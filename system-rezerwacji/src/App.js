@@ -1,12 +1,21 @@
 import React from "react";
-import './App.css';
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import Login from "./components/Login";
+import Home from "./components/Home";
 
 function App() {
+  const isLoggedIn = localStorage.getItem("loggedIn");
+
   return (
-    <div style={{ textAlign: "center", padding: "50px" }}>
-      <h1>Witaj w React!</h1>
-      <p>To jest twoja pierwsza aplikacja React</p>
-    </div>
+    <Router>
+      <Routes>
+        <Route path="/" element={<Login />} />
+        <Route
+          path="/home"
+          element={isLoggedIn ? <Home /> : <Navigate to="/" />}
+        />
+      </Routes>
+    </Router>
   );
 }
 
