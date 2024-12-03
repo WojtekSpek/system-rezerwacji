@@ -1,6 +1,6 @@
 const express = require("express");
-const bodyParser = require("body-parser");
 const cors = require("cors");
+const bodyParser = require("body-parser");
 const mysql = require("mysql2");
 
 const app = express();
@@ -13,12 +13,11 @@ app.use(bodyParser.json());
 // Konfiguracja bazy danych
 const db = mysql.createConnection({
   host: "localhost",
-  user: "root", // Nazwa użytkownika bazy danych
-  password: "password", // Hasło do bazy danych
-  database: "rezerwacja", // Nazwa bazy danych
+  user: "root",
+  password: "",
+  database: "rezerwacja",
 });
 
-// Połączenie z bazą danych
 db.connect((err) => {
   if (err) {
     console.error("Błąd połączenia z bazą danych:", err);
@@ -36,19 +35,19 @@ app.post("/login", (req, res) => {
     if (err) {
       res.status(500).send({ error: "Błąd serwera" });
     } else if (results.length > 0) {
-      res.status(200).send({ message: "Zalogowano pomyślnie" });
+      res.status(200).send({ message: "Zalogowano pomyślnie", user: results[0] });
     } else {
-      res.status(401).send({ error: "Nieprawidłowe dane logowania" });
+      res.status(401).send({ error: "Nieprawidłowy login lub hasło" });
     }
   });
 });
 
-// Endpoint: dodanie użytkownika
+// Endpoint: dodanie użytkownika (dla admina)
 app.post("/add-user", (req, res) => {
-  const { username, password } = req.body;
+  const { username, password, role } = req.body;
 
-  const query = "INSERT INTO users (username, password) VALUES (?, ?)";
-  db.query(query, [username, password], (err) => {
+  const query = "INSERT INTO users (username, password, role) VALUES (?, ?, ?)";
+  db.query(query, [username, password, role], (err) => {
     if (err) {
       res.status(500).send({ error: "Błąd dodawania użytkownika" });
     } else {
@@ -60,4 +59,16 @@ app.post("/add-user", (req, res) => {
 // Uruchomienie serwera
 app.listen(PORT, () => {
   console.log(`Serwer działa na porcie ${PORT}`);
+});
+
+// Endpoint: Pobieranie listy użytkowników
+app.get("/users", (req, res) => {
+  const query = "SELECT username, role FROM users";
+  db.query(query, (err, results) => {
+    if (err) {
+      res.status(500).send({ error: "Błąd serwera" });
+    } else {
+      res.status(200).send(results);
+    }
+  });
 });
