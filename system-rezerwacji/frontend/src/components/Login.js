@@ -1,6 +1,7 @@
 import React, { useState } from "react";
+import axios from "axios";
 
-function Login({ setIsLoggedIn, setUserRole }) {
+function Login({ onLogin  }) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -9,23 +10,24 @@ function Login({ setIsLoggedIn, setUserRole }) {
     e.preventDefault();
 
     try {
-      const response = await fetch("http://localhost:5000/login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ username, password }),
+      const response = await axios.post("http://localhost:5000/login", {
+        username,
+        password,
       });
+      console.log("Odpowiedź z backendu:", response.data); // Debug odpowiedzi z backendu
 
-      const data = await response.json();
-      if (response.status === 200) {
-        setIsLoggedIn(true);
-        setUserRole(data.user.role);
+      if (response.data.success) {
+        // Logowanie zakończone sukcesem
+        onLogin(response.data.username, response.data.role);
       } else {
-        setError(data.error || "Nieprawidłowe dane logowania");
+        // Jeśli backend zwróci `success: false`
+        console.error("Błąd logowania:", response.data.message);
+        alert(response.data.message || "Nieprawidłowe dane logowania");
       }
-    } catch (err) {
-      setError("Błąd serwera. Spróbuj ponownie później.");
+    } catch (error) {
+      // Obsługa błędów serwera
+      console.error("Błąd serwera:", error);
+      alert("Błąd serwera. Spróbuj ponownie później.");
     }
   };
 
