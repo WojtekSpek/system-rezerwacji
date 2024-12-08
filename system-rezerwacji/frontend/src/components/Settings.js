@@ -9,7 +9,15 @@ function Settings({ setView}) {
       
         Dodaj użytkowników
       </button>
+      <button
+        onClick={() => setView("trainingTypes")}
+        className="p-2 bg-blue-500 text-white rounded hover:bg-blue-400"
+      >
+        Typy szkoleń
+      </button>
     </div>
+
+    
   );
 }
 

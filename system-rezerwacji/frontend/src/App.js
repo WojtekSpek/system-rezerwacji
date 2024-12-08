@@ -5,6 +5,8 @@ import Settings from "./components/Settings";
 import AddUser from "./components/AddUser";
 import Projects from "./components/Projects";
 import Login from "./components/Login"; // Ekran logowania
+import TrainingTypes from "./components/TrainingTypes";
+import Trainers from "./components/Trainers";
 
 function App() {
   // Domyślnie użytkownik jest niezalogowany
@@ -57,6 +59,8 @@ function App() {
             {view === "addUser" && isAdmin && <AddUser onUserAdd={onUserAdd} />}
             {view === "home" && <div>Witaj, {user.name}!</div>}
             {view === "projects" && <Projects />}
+            {view === "trainers" && <Trainers />}
+            {view === "trainingTypes" && <TrainingTypes />}
           </div>
         </>
       )}
