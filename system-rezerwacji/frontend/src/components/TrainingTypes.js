@@ -14,7 +14,9 @@ function TrainingTypes() {
 
   const fetchTrainingTypes = async () => {
     try {
-        const response = await axios.get("http://localhost:5000/trainingTypes");
+        const response = await axios.get("http://localhost:5000/trainingTypes", {
+          withCredentials: true, // Włącz przesyłanie ciasteczek
+        });
         console.log("Otrzymane dane:", response.data);
         if (response.data.success) {
           setTypes(response.data.data|| []); // Sprawdź, czy dane są w odpowiednim formacie
@@ -33,6 +35,7 @@ function TrainingTypes() {
 
     try {
       const response = await axios.post("http://localhost:5000/addTrainingType", {
+        withCredentials: true,
         type: newType,
       });
 

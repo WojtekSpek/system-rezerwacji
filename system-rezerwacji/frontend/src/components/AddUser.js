@@ -16,7 +16,9 @@ function AddUser() {
 
   const fetchUsers = async () => {
     try {
-      const response = await axios.get("http://localhost:5000/users");
+      const response = await axios.get("http://localhost:5000/users", {
+        withCredentials: true, // Włącz przesyłanie ciasteczek
+      });
       if (response.data.success) {
         setUsers(response.data.users);
       }

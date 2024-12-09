@@ -20,7 +20,9 @@ function Trainers() {
 
   const fetchTrainers = async () => {
     try {
-      const response = await axios.get("http://localhost:5000/trainers");
+      const response = await axios.get("http://localhost:5000/trainers", {
+        withCredentials: true, // Włącz przesyłanie ciasteczek
+      });
       if (response.data.success) {
         setTrainers(response.data.trainers);
       }
@@ -31,7 +33,9 @@ function Trainers() {
 
   const fetchTrainingTypes = async () => {
     try {
-      const response = await axios.get("http://localhost:5000/trainingTypes");
+      const response = await axios.get("http://localhost:5000/trainingTypes", {
+          withCredentials: true, // Włącz przesyłanie ciasteczek
+        });
       console.log("Otrzymane dane:", response.data);
       if (response.data.success) {
         setTrainerTypes(response.data.data);
