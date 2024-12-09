@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
+import Select from "react-select";
 
 function Projects() {
   const [projects, setProjects] = useState([]);
@@ -16,13 +17,16 @@ function Projects() {
   const [editProject, setEditProject] = useState(null); // Projekt do edycji
   const [successMessage, setSuccessMessage] = useState("");
   const [trainers, setTrainers] = useState([]); // Lista szkoleniowców
+  const [selectedTrainers, setSelectedTrainers] = useState([]); // Wybrani szkoleniowcy dla danego typu wsparcia
+  const [supports, setSupports] = useState([]); // Dane dotyczące godzin i szkoleniowców
+
 
 
 
   useEffect(() => { //pobiera liste projektow przy kazdym renderowaniu
     fetchProjects();
     fetchSupportTypes();
-    console.log("Stan types:", projects);
+    
   }, []);
   useEffect(() => {
     if (Array.isArray(supportTypesFromDB) && supportTypesFromDB.length > 0) {
@@ -33,7 +37,17 @@ function Projects() {
       }));
     }
   }, [supportTypesFromDB]);
-  
+
+  useEffect(() => {
+    // Inicjalizacja danych wsparcia na podstawie typów
+    setSupports(
+      supportTypes.map((type) => ({
+        type: type.type,
+        hours: 0,
+        trainers: [],
+      }))
+    );
+  }, [supportTypes]);
 
   useEffect(() => {
     fetchTrainers();
@@ -49,7 +63,22 @@ function Projects() {
       console.error("Błąd podczas pobierania szkoleniowców:", error);
     }
   };
-  
+
+  const handleTrainerChange = (index, trainerId) => {
+    const updatedTrainers = [...selectedTrainers];
+    updatedTrainers[index] = { trainerId };
+    setSelectedTrainers(updatedTrainers);
+  };
+
+  const handleAddTrainer = () => {
+    setSelectedTrainers([...selectedTrainers, { trainerId: null }]);
+  };
+
+  const handleRemoveTrainer = (index) => {
+    const updatedTrainers = selectedTrainers.filter((_, i) => i !== index);
+    setSelectedTrainers(updatedTrainers);
+  };
+
   const fetchSupportTypes = async () => {
     try {
       const response = await axios.get("http://localhost:5000/trainingTypes");
@@ -57,7 +86,7 @@ function Projects() {
   
       // Użyj response.data.data, aby uzyskać tablicę typów
       if (response.data.success && Array.isArray(response.data.data)) {
-        setSupportTypesFromDB(response.data.data);
+        setSupportTypes(response.data.data);
         console.log("supportTypesFromDB ustawione:", response.data.data);
       } else {
         console.error("Nieprawidłowe dane z API:", response.data);
@@ -111,7 +140,14 @@ function Projects() {
       console.error("Błąd podczas zapisywania projektu:", error);
     }
   };
+  const handleHoursChange = (index, hours) => {
+    const updatedSupports = [...supports];
+    updatedSupports[index].hours = parseInt(hours, 10) || 0;
+    setSupports(updatedSupports);
+  };
+
   
+
   const handleSupportChange = (index, value) => {
     const updatedSupports = [...newProject.supports];
     updatedSupports[index] = value;
@@ -176,53 +212,56 @@ function Projects() {
             />
           </div>
           <div class="mb-4">
-            <h4 className="text-lg font-bold mb-2">Typy wsparcia:</h4>
-            {supportTypesFromDB?.map((supportType, index) => (
-                <div class="space-y-2">
+          <h2 className="text-lg font-semibold mb-4">Zarządzanie wsparciem</h2>
+      <div className="grid grid-cols-2 gap-8">
+        {/* Lewe okno: Wprowadzanie godzin */}
+        <div>
+          <h3 className="font-semibold mb-4">Wprowadź liczbę godzin</h3>
+          {supports.map((support, index) => (
+            <div key={index} className="mb-4">
+              <label className="block font-semibold mb-2">{support.type}</label>
+              <input
+                type="number"
+                placeholder="Liczba godzin"
+                className="border border-gray-300 p-2 rounded w-full"
+                value={support.hours || ""}
+                onChange={(e) => handleHoursChange(index, e.target.value)}
+              />
+            </div>
+          ))}
+        </div>
 
-                        <div key={index} className="flex flex-col mb-4">
-                        <label className="font-semibold">{supportType.type}</label>
-                        <input
-                            type="number"
-                            placeholder="Liczba godzin"
-                            className="border border-gray-300 p-2 rounded w-20"
-                            value={newProject.supports[index]?.hours || ""}
-                            onChange={(e) => {
-                            const updatedSupports = [...newProject.supports];
-                            updatedSupports[index] = {
-                                ...updatedSupports[index],
-                                hours: parseInt(e.target.value, 10) || 0,
-                            };
-                            setNewProject({ ...newProject, supports: updatedSupports });
-                            }}
-                        />
-                        <select
-                            multiple
-                            className="border border-gray-300 p-2 rounded w-full"
-                            value={newProject.supports[index]?.trainers || []}
-                            onChange={(e) => {
-                            const selectedOptions = Array.from(e.target.selectedOptions, (option) => option.value);
-                            const updatedSupports = [...newProject.supports];
-                            updatedSupports[index] = {
-                                ...updatedSupports[index],
-                                trainers: selectedOptions,
-                            };
-                            setNewProject({ ...newProject, supports: updatedSupports });
-                            }}
-                        >
-                            {trainers
-                            .filter((trainer) => trainer.types.includes(supportType.type)) // Filtruj szkoleniowców według typu
-                            .map((trainer) => (
-                                <option key={trainer.id} value={trainer.id}>
-                                {trainer.name}
-                                </option>
-                            ))}
-                        </select>
-                        </div>
-
-                    </div>   
-            
-            ))}
+        {/* Prawe okno: Dodawanie szkoleniowców */}
+        <div>
+          <h3 className="font-semibold mb-4">Przypisz szkoleniowców</h3>
+          {supports.map((support, index) => (
+            <div key={index} className="mb-4">
+              <label className="block font-semibold mb-2">{support.type}</label>
+              <Select
+                isMulti
+                options={trainers
+                  .filter((trainer) => trainer.types.includes(support.type)) // Filtruj szkoleniowców według typu
+                  .map((trainer) => ({
+                    value: trainer.id,
+                    label: trainer.name,
+                  }))}
+                value={trainers
+                  .filter((trainer) => support.trainers.includes(trainer.id))
+                  .map((trainer) => ({
+                    value: trainer.id,
+                    label: trainer.name,
+                  }))}
+                onChange={(selectedOptions) =>
+                  handleTrainerChange(index, selectedOptions)
+                }
+                placeholder="Wybierz szkoleniowców"
+                className="basic-multi-select"
+                classNamePrefix="select"
+              />
+            </div>
+          ))}
+        </div>
+      </div>
          </div> 
           <button
             className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"

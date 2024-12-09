@@ -33,7 +33,8 @@ app.post("/login", async (req, res) => {
       "SELECT * FROM users WHERE username = ? AND password = ?",
       [username, password]
     );
-
+    console.log("Zapytanie SQL:", "SELECT * FROM users WHERE username = ? AND password = ?", [username, password]);
+    console.log("Odpowiedź z bazy danych:", rows);
     if (rows.length > 0) {
       const user = rows[0];
       console.log("Użytkownik znaleziony:", user);
@@ -48,11 +49,15 @@ app.post("/login", async (req, res) => {
         message: "Nieprawidłowe dane logowania.",
       });
     }
-  } catch (error) {
-    console.error("Błąd podczas logowania:", error);
+  } catch (err) {
+    console.error("Błąd podczas logowania:", error.message);
+    console.error("Stack trace:", error.stack); // Dodaje pełny ślad stosu błędu
+    console.error("Szczegóły błędu:", error);   // Wyświetla pełny obiekt błędu dla szczegółowej analizy
+
     res.status(500).json({
       success: false,
-      message: "Błąd serwera. Spróbuj ponownie później.",
+      message: "Błąd serwera. Spróbuj ponownie później..",
+      error: error.message, // Dodaje szczegóły błędu w odpowiedzi (tylko na potrzeby debugowania)
     });
   }
 });

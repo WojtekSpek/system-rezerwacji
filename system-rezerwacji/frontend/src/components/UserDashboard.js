@@ -1,6 +1,7 @@
 import React from "react";
 
 function UserDashboard({ username }) {
+  console.log("Dane użytkownika:", user);
   return (
     <div className="flex flex-col items-center justify-center h-screen bg-gray-100">
       <h1 className="text-3xl font-bold">Witaj, {username}!</h1>

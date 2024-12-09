@@ -52,15 +52,21 @@ function App() {
       ) : (
         // Jeśli użytkownik jest zalogowany, pokaż panel główny
         <>
-          <TopBar user={user} isAdmin={isAdmin} onLogout={handleLogout} onSettingsClick={() => setView("settings")} selectedProject={selectedProject} />
+          <TopBar
+            user={user}
+            isAdmin={isAdmin}
+            onLogout={handleLogout}
+            onSettingsClick={() => setView("settings")}
+            selectedProject={selectedProject || null}
+          />
           <div className="main-layout flex">
-            <LeftPanel setView={setView} />
+             <LeftPanel setView={setView} />
             {view === "settings" && isAdmin && <Settings setView={setView} />}
             {view === "addUser" && isAdmin && <AddUser onUserAdd={onUserAdd} />}
-            {view === "home" && <div>Witaj, {user.name}!</div>}
+            {view === "home" && <div>Witaj, {user?.name || "Gościu"}!</div>}
             {view === "projects" && <Projects />}
             {view === "trainers" && <Trainers />}
-            {view === "trainingTypes" && <TrainingTypes />}
+            {view === "trainingTypes" && <TrainingTypes />} 
           </div>
         </>
       )}
