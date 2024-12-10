@@ -1,4 +1,4 @@
-const roles = require('../config/roles'); // Ścieżka do pliku z rolami
+const roles = require('../frontend/src/config/roles'); // Ścieżka do pliku z rolami
 
 // Middleware sprawdzający, czy użytkownik jest zalogowany
 const authenticateUser = (req, res, next) => {

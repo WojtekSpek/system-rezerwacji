@@ -8,6 +8,9 @@ import Projects from "./components/Projects";
 import Login from "./components/Login"; // Ekran logowania
 import TrainingTypes from "./components/TrainingTypes";
 import Trainers from "./components/Trainers";
+import Participants from "./components/Participants";
+import ProjectDetails from "./components/ProjectDetails"; // Szczegóły projektu
+import ProjectParticipants from "./components/ProjectParticipants"; // Nowy komponent
 
 // Konfiguracja Axios do obsługi ciasteczek
 axios.defaults.withCredentials = true; // Włącz przesyłanie ciasteczek
@@ -17,17 +20,19 @@ function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [user, setUser] = useState(null); // Zamiast domyślnego użytkownika
   const [view, setView] = useState("home");
-  const [selectedProject, setSelectedProject] = useState(null);
+  const [selectedProject, setSelectedProject] = useState(null); // Wybrany projekt
 
+  // Funkcja przełączenia na widok "Dodaj użytkownika"
   const handleAddUserClick = () => {
     setView("addUser");
   };
 
+  // Obsługa dodawania użytkownika
   const onUserAdd = (newUser) => {
     console.log("Dodano użytkownika:", newUser);
-    // Możesz dodać logikę wysyłania danych do backendu tutaj
   };
 
+  // Sprawdzenie, czy użytkownik jest adminem
   const isAdmin = user?.role === "admin";
 
   // Weryfikacja sesji po załadowaniu aplikacji
@@ -83,13 +88,38 @@ function App() {
             selectedProject={selectedProject || null}
           />
           <div className="main-layout flex">
-            <LeftPanel setView={setView} />
-            {view === "settings" && isAdmin && <Settings setView={setView} />}
-            {view === "addUser" && isAdmin && <AddUser onUserAdd={onUserAdd} />}
-            {view === "home" && <div>Witaj, {user?.name || "Gościu"}!</div>}
-            {view === "projects" && <Projects />}
-            {view === "trainers" && <Trainers />}
-            {view === "trainingTypes" && <TrainingTypes />}
+            <LeftPanel
+              view={view}
+              setView={setView}
+              selectedProject={selectedProject} //przekazanie do bocznego menu 
+            />
+            {/* Widoki aplikacji */}
+            <div className="flex-1 p-4">
+              {view === "settings" && isAdmin && <Settings setView={setView} />}
+              {view === "addUser" && isAdmin && <AddUser onUserAdd={onUserAdd} />}
+              {view === "home" && <div>Witaj, {user?.name || "Gościu"}!</div>}
+              {view === "projects" && (
+                <Projects
+                  setView={setView} // Przekazujemy setView
+                  setSelectedProject={setSelectedProject} // Przekazujemy funkcję ustawiania projektu
+                />
+              )}
+              {view === "trainers" && <Trainers />}
+              {view === "trainingTypes" && <TrainingTypes />}
+              {view === "participants" && <Participants />}
+              {view === "projectDetails" && (
+                <ProjectDetails
+                  project={selectedProject}
+                  onBack={() => setView("projects")}
+                >
+                  {console.log("Przekazywane projectId do ProjectParticipants:", selectedProject?.id)}
+                  <ProjectParticipants projectId={selectedProject?.id} />
+                </ProjectDetails>
+              )}
+              {view === "projectParticipants" && (
+                <ProjectParticipants project={selectedProject} />
+              )}
+            </div>
           </div>
         </>
       )}

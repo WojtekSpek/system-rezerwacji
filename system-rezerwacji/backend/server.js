@@ -3,6 +3,7 @@ const cors = require("cors");
 const bodyParser = require("body-parser");
 const mysql = require("mysql2");
 const session = require("express-session");
+const { authenticateUser, authorizePermission } = require("../middlewares/auth");
 
 // Inicjalizacja aplikacji
 const app = express();
@@ -24,9 +25,11 @@ app.use(session({
   resave: false,
   saveUninitialized: false,
   cookie: {
-    secure: false, // Ustaw true dla HTTPS
-    httpOnly: true, // Uniemożliwia dostęp z JavaScript
+    secure: false, // Ustaw true tylko dla HTTPS
+    httpOnly: true, // Uniemożliwia dostęp do ciasteczka z JavaScript
+    sameSite: "lax", // Zapobiega atakom CSRF (możesz użyć "strict" dla większego bezpieczeństwa)
   },
+  
 }));
 
 // Połączenie z bazą danych
@@ -37,24 +40,7 @@ const db = mysql.createPool({
   database: "rezerwacja",
 });
 
-// Middleware: Uwierzytelnianie użytkownika
-const authenticateUser = (req, res, next) => {
-  if (req.session && req.session.user) {
-    req.user = req.session.user; // Przypisanie użytkownika z sesji
-    next();
-  } else {
-    res.status(401).json({ success: false, message: "Musisz być zalogowany." });
-  }
-};
 
-// Middleware: Autoryzacja dla ról
-const authorizeRole = (role) => (req, res, next) => {
-  if (req.user && req.user.role === role) {
-    next();
-  } else {
-    res.status(403).json({ success: false, message: "Brak dostępu." });
-  }
-};
 
 // Logowanie użytkownika
 app.post("/login", async (req, res) => {
@@ -69,6 +55,7 @@ app.post("/login", async (req, res) => {
     if (rows.length > 0) {
       const user = rows[0];
       req.session.user = { id: user.id, username: user.username, role: user.role };
+      console.log("Sesja po zalogowaniu:", req.session.user); // Logowanie sesji
       res.status(200).json({
         success: true,
         username: user.username,
@@ -82,7 +69,14 @@ app.post("/login", async (req, res) => {
     res.status(500).json({ success: false, message: "Błąd serwera." });
   }
 });
-
+// Middleware: Autoryzacja dla ról
+const authorizeRole = (role) => (req, res, next) => {
+  if (req.user && req.user.role === role) {
+    next();
+  } else {
+    res.status(403).json({ success: false, message: "Brak dostępu." });
+  }
+};
 // Pobieranie użytkowników
 app.get("/users", authenticateUser, authorizeRole("admin"), (req, res) => {
   const sql = "SELECT id, username, role FROM users";
@@ -129,8 +123,11 @@ app.delete("/deleteUser/:id", authenticateUser, authorizeRole("admin"), (req, re
 
 // Dodawanie projektu
 app.post("/addProject", authenticateUser, authorizeRole("admin"), async (req, res) => {
-  const { name, createdBy } = req.body;
-
+  const { name} = req.body;
+  const createdBy = req.user.username; // Pobierz nazwę użytkownika z sesji
+  if (!name) {
+    return res.status(400).json({ success: false, message: "Nazwa projektu jest wymagana." });
+  }
   try {
     const [result] = await db.promise().query(
       "INSERT INTO projects (name, created_at, created_by) VALUES (?, NOW(), ?)",
@@ -145,8 +142,8 @@ app.post("/addProject", authenticateUser, authorizeRole("admin"), async (req, re
 
 // Pobieranie projektów
 app.get("/projects", authenticateUser, (req, res) => {
-  console.log("Endpoint /projects został wywołany"); // Dodaj log na poziomie endpointu
-  const query = "SELECT p.id, p.name, p.created_at, p.created_by, s.type, s.hours FROM projects p  LEFT JOIN supports s ON p.id = s.project_id  ";
+  
+  const query = "SELECT id, name, created_at, created_by FROM projects";
 
   db.query(query, (err, results) => {
     if (err) {
@@ -164,7 +161,7 @@ app.get("/projects", authenticateUser, (req, res) => {
           name: row.name,
           createdAt: row.created_at,
           createdBy: row.created_by,
-          supports: row.type ? [{ type: row.type, hours: row.hours }] : [],
+          
         });
       }
       return acc;
@@ -189,8 +186,9 @@ app.delete("/projects/:id", authenticateUser, authorizeRole("admin"), async (req
 
 // Obsługa sesji
 app.get("/session", (req, res) => {
+  console.log("Sesja użytkownika:", req.session); // Loguj pełną sesję
   if (req.session && req.session.user) {
-    res.json({ success: true, user: req.session.user }); // Zwraca dane użytkownika z sesji
+    res.json({ success: true, user: req.session.user });
   } else {
     res.status(401).json({ success: false, message: "Nie zalogowano." });
   }
@@ -211,7 +209,7 @@ app.listen(PORT, "0.0.0.0", () => {
   console.log(`Serwer działa na porcie ${PORT}`);
 });
 //pobieranie szkoleniowcow
-app.get("/trainers", (req, res) => {
+app.get("/trainers",authenticateUser, authorizeRole("admin"), (req, res) => {
   const query = 
    " SELECT trainers.id, trainers.name, GROUP_CONCAT(trainer_types.type) AS types FROM trainers     LEFT JOIN trainer_types ON trainers.id = trainer_types.trainer_id GROUP BY trainers.id"
   ;
@@ -228,7 +226,7 @@ app.get("/trainers", (req, res) => {
   });
 });
 //dodawanie szkoleniowca
-app.post("/trainingTypes", (req, res) => {
+app.post("/trainingTypes", authenticateUser, authorizeRole("admin"),  (req, res) => {
   const { name } = req.body;
 
   if (!name || name.trim() === "") {
@@ -244,4 +242,172 @@ app.post("/trainingTypes", (req, res) => {
       res.status(201).json({ success: true, message: "Typ szkolenia dodany pomyślnie" });
     }
   });
+});
+//pobieranie typow szkolen
+app.get("/trainingTypes", authenticateUser, authorizeRole("admin"), (req, res) => {
+  const query = "SELECT * FROM training_types";
+  db.query(query, (err, results) => {
+    if (err) {
+      console.error("Błąd podczas pobierania typów szkoleń:", err);
+      res.status(500).send("Błąd serwera");
+    } else {
+      res.json({ success: true, data: results });
+    }
+  });
+});
+app.get("/participants", authenticateUser, (req, res) => {
+  db.query("SELECT * FROM participants", (err, results) => {
+    if (err) {
+      console.error("Błąd podczas pobierania uczestników:", err);
+      return res.status(500).json({ success: false, message: "Błąd serwera." });
+    }
+    res.json({ success: true, participants: results });
+  });
+});
+
+app.post("/addParticipant", authenticateUser, async (req, res) => {
+  const {
+    firstName,
+    lastName,
+    pesel,
+    gender,
+    voivodeship,
+    city,
+    postalCode,
+    street,
+    houseNumber,
+    apartmentNumber,
+    phoneNumber,
+    email,
+    disabilityLevel,
+  } = req.body;
+
+  const createdBy = req.user.username; // Nazwa użytkownika dodającego uczestnika
+
+  const query = `
+    INSERT INTO participants (
+      firstName, lastName, pesel, gender, voivodeship, city, postalCode,
+      street, houseNumber, apartmentNumber, phoneNumber, email, disabilityLevel, created_by
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `;
+
+  try {
+    await db.promise().query(query, [
+      firstName,
+      lastName,
+      pesel,
+      gender,
+      voivodeship,
+      city,
+      postalCode,
+      street,
+      houseNumber,
+      apartmentNumber,
+      phoneNumber,
+      email,
+      disabilityLevel,
+      createdBy,
+    ]);
+
+    res.json({ success: true, message: "Uczestnik został dodany!" });
+  } catch (error) {
+    console.error("Błąd podczas dodawania uczestnika:", error.code);
+
+    // Obsługa błędu unikalności
+    if (error.code === "ER_DUP_ENTRY") {
+      console.log('1');
+      const duplicateField = error.sqlMessage.includes("email")
+        ? "email"
+        : "pesel";
+      return res.status(400).json({
+        success: false,
+        message: `Uczestnik z tym ${duplicateField} już istnieje.`,
+      });
+    }
+
+    res.status(500).json({ success: false, message: "Błąd serwera." });
+  }
+});
+app.get("/projectParticipants/:projectId", authenticateUser, async (req, res) => {
+  const { projectId } = req.params;
+
+  const query = `
+    SELECT p.id, p.firstName, p.lastName
+    FROM participants p
+    INNER JOIN project_participants pp ON p.id = pp.participant_id
+    WHERE pp.project_id = ?
+  `;
+
+  try {
+    const [rows] = await db.promise().query(query, [projectId]);
+    res.json({ success: true, participants: rows });
+  } catch (error) {
+    console.error("Błąd podczas pobierania przypisanych uczestników:", error);
+    res.status(500).json({ success: false, message: "Błąd serwera." });
+  }
+});
+
+app.post("/assignParticipants/:projectId", authenticateUser, async (req, res) => {
+  const { projectId } = req.params;
+  const { participants } = req.body;
+
+  const query = `
+    INSERT INTO project_participants (project_id, participant_id)
+    VALUES (?, ?)
+  `;
+
+  try {
+    for (const participantId of participants) {
+      await db.promise().query(query, [projectId, participantId]);
+    }
+    res.json({ success: true, message: "Uczestnicy zostali przypisani." });
+  } catch (error) {
+    console.error("Błąd podczas przypisywania uczestników:", error);
+    res.status(500).json({ success: false, message: "Błąd serwera." });
+  }
+});
+
+app.delete("/projects/:projectId/participants/:participantId", async (req, res) => {
+  const { projectId, participantId } = req.params;
+  try {
+    await db.promise().query(
+      "DELETE FROM project_participants WHERE project_id = ? AND participant_id = ?",
+      [projectId, participantId]
+    );
+    res.json({ success: true });
+  } catch (error) {
+    console.error("Błąd podczas usuwania uczestnika z projektu:", error);
+    res.status(500).json({ success: false, message: "Błąd serwera." });
+  }
+});
+app.get("/projects/:id/participants", async (req, res) => {
+  const { id } = req.params;
+  try {
+    const [rows] = await db.promise().query(
+      `SELECT p.id, p.firstName, p.lastName
+       FROM participants p
+       INNER JOIN project_participants pp ON p.id = pp.participant_id
+       WHERE pp.project_id = ?`,
+      [id]
+    );
+    res.json({ success: true, participants: rows });
+  } catch (error) {
+    console.error("Błąd podczas pobierania uczestników projektu:", error);
+    res.status(500).json({ success: false, message: "Błąd serwera." });
+  }
+});
+app.post("/projects/:id/participants", async (req, res) => {
+  const { id } = req.params; // ID projektu
+  const { participantId } = req.body; // ID uczestnika
+  console.error("Błąd podczas dodawania uczestnika do projektu:", participantId);
+  try {
+    await db.promise().query(
+      "INSERT INTO project_participants (project_id, participant_id) VALUES (?, ?)",
+      [id, participantId]
+    );
+    res.json({ success: true });
+  } catch (error) {
+    console.error("Błąd podczas dodawania uczestnika do projektu:", error);
+    res.status(500).json({ success: false, message: "Błąd serwera." });
+  }
 });
