@@ -35,21 +35,43 @@ function LeftPanel({ view, setView, selectedProject }) {
       </ul>
 
       {/* Dynamiczne podmenu */}
-      {selectedProject && (
-        <div className="mt-6">
-          <h3 className="text-xl font-semibold mb-2">Podmenu projektu</h3>
-          <ul className="space-y-2">
-            <li
-              className={`cursor-pointer p-2 hover:bg-gray-200 ${
-                view === "projectParticipants" && "bg-gray-300 font-bold"
-              }`}
-              onClick={() => setView("projectParticipants")}
-            >
-              Uczestnicy projektu
-            </li>
-          </ul>
-        </div>
-      )}
+        {selectedProject && (
+          <div className="mt-6">
+            <h3 className="text-xl font-semibold mb-2">Podmenu projektu</h3>
+            <ul className="space-y-2">
+              {/* Zakładka Projekt */}
+              <li
+                className={`cursor-pointer p-2 hover:bg-gray-200 ${
+                  view === "projectDetails" && "bg-gray-300 font-bold"
+                }`}
+                onClick={() => setView("projectDetails")}
+              >
+                Projekt
+              </li>
+
+              {/* Zakładka Uczestnicy Projektu */}
+              <li
+                className={`cursor-pointer p-2 hover:bg-gray-200 ${
+                  view === "projectParticipants" && "bg-gray-300 font-bold"
+                }`}
+                onClick={() => setView("projectParticipants")}
+              >
+                Uczestnicy projektu
+              </li>
+
+              {/* Zakładka Szkoleniowcy */}
+              <li
+                className={`cursor-pointer p-2 hover:bg-gray-200 ${
+                  view === "projectTrainers" && "bg-gray-300 font-bold"
+                }`}
+                onClick={() => setView("projectTrainers")}
+              >
+                Szkoleniowcy
+              </li>
+            </ul>
+          </div>
+        )}
+
     </div>
   );
 }

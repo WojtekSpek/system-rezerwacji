@@ -11,7 +11,7 @@ function Login({ onLogin }) {
 
     try {
       const response = await axios.post(
-        "http://localhost:5000/login",
+        "http://localhost:5000/users/login",
         { username, password },
         { withCredentials: true } // Przesyłanie ciasteczek sesji
       );

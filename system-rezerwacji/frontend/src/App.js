@@ -11,7 +11,7 @@ import Trainers from "./components/Trainers";
 import Participants from "./components/Participants";
 import ProjectDetails from "./components/ProjectDetails"; // Szczegóły projektu
 import ProjectParticipants from "./components/ProjectParticipants"; // Nowy komponent
-
+import ProjectTrainers from "./components/ProjectTrainers"; // Nowy komponent
 // Konfiguracja Axios do obsługi ciasteczek
 axios.defaults.withCredentials = true; // Włącz przesyłanie ciasteczek
 axios.defaults.baseURL = "http://localhost:5000"; // Adres backendu
@@ -39,7 +39,7 @@ function App() {
   useEffect(() => {
     const checkSession = async () => {
       try {
-        const response = await axios.get("/session"); // Endpoint sprawdzający sesję
+        const response = await axios.get("/users/session"); // Endpoint sprawdzający sesję
         if (response.data.success) {
           setUser(response.data.user);
           setIsLoggedIn(true);
@@ -62,7 +62,7 @@ function App() {
   // Obsługa wylogowania
   const handleLogout = async () => {
     try {
-      await axios.post("/logout"); // Endpoint wylogowania w backendzie
+      await axios.post("/users/logout"); // Endpoint wylogowania w backendzie
       setUser(null);
       setIsLoggedIn(false);
     } catch (error) {
@@ -90,8 +90,13 @@ function App() {
           <div className="main-layout flex">
             <LeftPanel
               view={view}
-              setView={setView}
-              selectedProject={selectedProject} //przekazanie do bocznego menu 
+              setView={(newView) => {
+                setView(newView);
+                if (newView !== "projectDetails" && newView !== "projectParticipants" && newView !== "projectTrainers") {
+                  setSelectedProject(null); // Resetuje wybrany projekt, gdy opuszczamy widoki projektu
+                }
+              }}
+              selectedProject={selectedProject}//przekazanie do bocznego menu 
             />
             {/* Widoki aplikacji */}
             <div className="flex-1 p-4">
@@ -112,12 +117,17 @@ function App() {
                   project={selectedProject}
                   onBack={() => setView("projects")}
                 >
-                  {console.log("Przekazywane projectId do ProjectParticipants:", selectedProject?.id)}
-                  <ProjectParticipants projectId={selectedProject?.id} />
+                  
+                 
                 </ProjectDetails>
               )}
               {view === "projectParticipants" && (
-                <ProjectParticipants project={selectedProject} />
+                <ProjectParticipants 
+                project={selectedProject}
+                projectId={selectedProject?.id} />
+              )}
+              {view === "projectTrainers" && (
+                <ProjectTrainers projectId={selectedProject?.id} />
               )}
             </div>
           </div>

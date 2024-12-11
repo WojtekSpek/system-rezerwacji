@@ -84,7 +84,25 @@ function ProjectParticipants({ projectId, project }) {
   return (
     <div className="p-4 w-full">
       <h2 className="text-2xl font-bold mb-4">Uczestnicy projektu</h2>
-
+      <h3 className="font-semibold mb-2">Lista uczestników projektu:</h3>
+      <ul>
+        {projectParticipants.map((participant) => (
+          <li
+            key={participant.id}
+            className="flex justify-between items-center p-2 border-b"
+          >
+            <span>
+              {participant.firstName} {participant.lastName}
+            </span>
+            <button
+              onClick={() => removeParticipantFromProject(participant.id)}
+              className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600"
+            >
+              Usuń
+            </button>
+          </li>
+        ))}
+      </ul>
       <div className="mb-6">
         <h3 className="font-semibold mb-2">Dodaj uczestnika:</h3>
         <input
@@ -114,25 +132,7 @@ function ProjectParticipants({ projectId, project }) {
         </ul>
       </div>
 
-      <h3 className="font-semibold mb-2">Lista uczestników projektu:</h3>
-      <ul>
-        {projectParticipants.map((participant) => (
-          <li
-            key={participant.id}
-            className="flex justify-between items-center p-2 border-b"
-          >
-            <span>
-              {participant.firstName} {participant.lastName}
-            </span>
-            <button
-              onClick={() => removeParticipantFromProject(participant.id)}
-              className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600"
-            >
-              Usuń
-            </button>
-          </li>
-        ))}
-      </ul>
+      
     </div>
   );
 }

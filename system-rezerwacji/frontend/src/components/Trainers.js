@@ -33,7 +33,7 @@ function Trainers() {
 
   const fetchTrainingTypes = async () => {
     try {
-      const response = await axios.get("http://localhost:5000/trainingTypes", {
+      const response = await axios.get("http://localhost:5000/trainers/Types", {
           withCredentials: true, // Włącz przesyłanie ciasteczek
         });
       console.log("Otrzymane dane:", response.data);
@@ -49,11 +49,13 @@ function Trainers() {
     setEditingTrainerId(trainer.id);
     setEditingName(trainer.name);
     setEditingTypes(trainer.types);
+    console.log("Typy szkoleniowca podczas edycji:", trainer.types); // Debugowanie
   };
 
   const saveEditedTrainer = async () => {
     try {
-      const response = await axios.put(`http://localhost:5000/editTrainer/${editingTrainerId}`, {
+      console.log('przed type editing types',editingTypes)
+      const response = await axios.put(`http://localhost:5000/trainers/editTrainer/${editingTrainerId}`, {
         name: editingName,
         types: editingTypes,
       });
@@ -86,7 +88,7 @@ function Trainers() {
     }
 
     try {
-      const response = await axios.post("http://localhost:5000/addTrainer", {
+      const response = await axios.post("http://localhost:5000/trainers/addTrainer", {
         name: trainerName,
         types: selectedTypes,
       });
@@ -114,7 +116,7 @@ const handleDeleteTrainer = async (id) => {
     if (!window.confirm("Czy na pewno chcesz usunąć tego szkoleniowca?")) return;
   
     try {
-      const response = await axios.delete(`http://localhost:5000/deleteTrainer/${id}`);
+      const response = await axios.delete(`http://localhost:5000/trainers/deleteTrainer/${id}`);
       if (response.data.success) {
         fetchTrainers();
       }
@@ -126,7 +128,7 @@ const handleDeleteTrainer = async (id) => {
   // Edytowanie szkoleniowca
   const handleEditTrainer = async (id, updatedName, updatedTypes) => {
     try {
-      const response = await axios.put(`http://localhost:5000/editTrainer/${id}`, {
+      const response = await axios.put(`http://localhost:5000/trainers/editTrainer/${id}`, {
         name: updatedName,
         types: updatedTypes,
       });
@@ -179,40 +181,42 @@ const handleDeleteTrainer = async (id) => {
             <li key={trainer.id} className="p-2 border border-gray-300 rounded flex flex-col gap-2">
             {editingTrainerId === trainer.id ? (
                 <div>
+                
                 <input
-                    type="text"
-                    value={editingName}
-                    onChange={(e) => setEditingName(e.target.value)}
-                    className="border border-gray-300 p-2 rounded w-full mb-2"
+                  type="text"
+                  value={editingName}
+                  onChange={(e) => setEditingName(e.target.value)}
+                  className="border border-gray-300 p-2 rounded w-full mb-2"
                 />
                 <h4 className="font-semibold mb-2">Typy szkoleń:</h4>
                 <div className="flex flex-wrap gap-2 mb-4">
-                    {trainerTypes.map((type) => (
+                  {trainerTypes.map((type) => (
                     <label key={type.id} className="flex items-center gap-2">
-                        <input
+                      <input
                         type="checkbox"
-                        checked={editingTypes.includes(type)}
-                        onChange={() => handleEditCheckboxChange(type)}
-                        />
-                        {type.type}
+                        checked={editingTypes.includes(type.type)} // Sprawdź, czy typ jest zaznaczony
+                        onChange={() => handleEditCheckboxChange(type.type)}
+                      />
+                      {type.type}
                     </label>
-                    ))}
+                  ))}
                 </div>
                 <div className="flex gap-2">
-                    <button
+                  <button
                     onClick={saveEditedTrainer}
                     className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
-                    >
+                  >
                     Zapisz
-                    </button>
-                    <button
+                  </button>
+                  <button
                     onClick={cancelEditing}
                     className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-400"
-                    >
+                  >
                     Anuluj
-                    </button>
+                  </button>
                 </div>
-                </div>
+              </div>
+
             ) : (
                 <div className="flex justify-between items-center">
                 <span>{trainer.name}</span>

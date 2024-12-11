@@ -123,7 +123,7 @@ function Participants() {
 
     try {
         const response = await axios.post(
-            "http://localhost:5000/addParticipant",
+            "http://localhost:5000/participants/addParticipant",
             newParticipant,
             { withCredentials: true }
       );

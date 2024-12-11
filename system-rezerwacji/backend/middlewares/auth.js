@@ -1,4 +1,4 @@
-const roles = require('../frontend/src/config/roles'); // Ścieżka do pliku z rolami
+const roles = require('../../frontend/src/config/roles'); // Ścieżka do pliku z rolami
 
 // Middleware sprawdzający, czy użytkownik jest zalogowany
 const authenticateUser = (req, res, next) => {
@@ -24,5 +24,14 @@ const authorizePermission = (permission) => {
     next();
   };
 };
+// Middleware: Autoryzacja dla ról
+const authorizeRole = (role) => (req, res, next) => {
+  if (req.user && req.user.role === role) {
+    next();
+  } else {
+    res.status(403).json({ success: false, message: "Brak dostępu." });
+  }
+};
 
-module.exports = { authenticateUser, authorizePermission };
+
+module.exports = { authenticateUser, authorizePermission,authorizeRole };
