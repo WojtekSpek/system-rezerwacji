@@ -45,12 +45,14 @@ function ProjectDetails({ project, onUpdate }) {
         name: editedName,
         types: editedTypes,
       });
+      console.log("response:", response);
       if (response.data.success) {
         alert("Zapisano zmiany!");
         onUpdate({ ...project, name: editedName, types: editedTypes });
         setIsEditing(false);
       }
     } catch (error) {
+      
       console.error("Błąd podczas zapisywania projektu:", error);
       alert("Nie udało się zapisać zmian.");
     }

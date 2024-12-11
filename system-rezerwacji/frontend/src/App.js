@@ -12,6 +12,7 @@ import Participants from "./components/Participants";
 import ProjectDetails from "./components/ProjectDetails"; // Szczegóły projektu
 import ProjectParticipants from "./components/ProjectParticipants"; // Nowy komponent
 import ProjectTrainers from "./components/ProjectTrainers"; // Nowy komponent
+
 // Konfiguracja Axios do obsługi ciasteczek
 axios.defaults.withCredentials = true; // Włącz przesyłanie ciasteczek
 axios.defaults.baseURL = "http://localhost:5000"; // Adres backendu
@@ -21,11 +22,7 @@ function App() {
   const [user, setUser] = useState(null); // Zamiast domyślnego użytkownika
   const [view, setView] = useState("home");
   const [selectedProject, setSelectedProject] = useState(null); // Wybrany projekt
-
-  // Funkcja przełączenia na widok "Dodaj użytkownika"
-  const handleAddUserClick = () => {
-    setView("addUser");
-  };
+  const [projects, setProjects] = useState([]); // Lista projektów
 
   // Obsługa dodawania użytkownika
   const onUserAdd = (newUser) => {
@@ -70,7 +67,15 @@ function App() {
     }
   };
 
-  console.log("Aktualny widok:", view);
+  // Aktualizacja projektu w stanie
+  const updateProjectInState = (updatedProject) => {
+    setProjects((prevProjects) =>
+      prevProjects.map((project) =>
+        project.id === updatedProject.id ? updatedProject : project
+      )
+    );
+    setSelectedProject(updatedProject);
+  };
 
   return (
     <div className="App">
@@ -92,11 +97,15 @@ function App() {
               view={view}
               setView={(newView) => {
                 setView(newView);
-                if (newView !== "projectDetails" && newView !== "projectParticipants" && newView !== "projectTrainers") {
+                if (
+                  newView !== "projectDetails" &&
+                  newView !== "projectParticipants" &&
+                  newView !== "projectTrainers"
+                ) {
                   setSelectedProject(null); // Resetuje wybrany projekt, gdy opuszczamy widoki projektu
                 }
               }}
-              selectedProject={selectedProject}//przekazanie do bocznego menu 
+              selectedProject={selectedProject} // Przekazanie do bocznego menu
             />
             {/* Widoki aplikacji */}
             <div className="flex-1 p-4">
@@ -107,6 +116,8 @@ function App() {
                 <Projects
                   setView={setView} // Przekazujemy setView
                   setSelectedProject={setSelectedProject} // Przekazujemy funkcję ustawiania projektu
+                  projects={projects}
+                  setProjects={setProjects} // Przekazujemy funkcję aktualizacji projektów
                 />
               )}
               {view === "trainers" && <Trainers />}
@@ -116,15 +127,14 @@ function App() {
                 <ProjectDetails
                   project={selectedProject}
                   onBack={() => setView("projects")}
-                >
-                  
-                 
-                </ProjectDetails>
+                  onUpdate={updateProjectInState}
+                />
               )}
               {view === "projectParticipants" && (
-                <ProjectParticipants 
-                project={selectedProject}
-                projectId={selectedProject?.id} />
+                <ProjectParticipants
+                  project={selectedProject}
+                  projectId={selectedProject?.id}
+                />
               )}
               {view === "projectTrainers" && (
                 <ProjectTrainers projectId={selectedProject?.id} />
