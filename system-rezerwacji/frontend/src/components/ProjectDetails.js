@@ -4,65 +4,60 @@ import axios from "axios";
 function ProjectDetails({ project, onUpdate }) {
   const [isEditing, setIsEditing] = useState(false);
   const [editedName, setEditedName] = useState(project.name);
-  const [editedTypes, setEditedTypes] = useState([]);
-  const [allTypes, setAllTypes] = useState([]);
+  const [editedTypes, setEditedTypes] = useState([]); // Zawiera ID typów przypisanych do projektu
+  const [allTypes, setAllTypes] = useState([]); // Zawiera obiekty typów { id, type }
+
+  useEffect(() => {
+    fetchProjectTypes();
+    fetchAllTypes();
+  }, [project.id]);
 
   const fetchProjectTypes = async () => {
     try {
-      const response = await axios.get(
-        `/projects/project_training_types/${project.id}`
-      );
+      const response = await axios.get(`/projects/project_training_types/${project.id}`);
       if (response.data.success) {
-        setEditedTypes(response.data.types); // Ustaw typy przypisane do projektu
+        setEditedTypes(response.data.types.map((type) => type.id)); // Zapisujemy tylko ID typów
+        console.log("Pobrane typy projektu:", response.data.types);
       }
     } catch (error) {
       console.error("Błąd podczas pobierania typów projektu:", error);
     }
   };
 
-  // Pobranie wszystkich dostępnych typów z bazy
   const fetchAllTypes = async () => {
     try {
       const response = await axios.get("/projects/trainingTypes");
       if (response.data.success) {
-        setAllTypes(response.data.data.map((type) => type.type));
+        setAllTypes(response.data.data); // Pełne obiekty z ID i nazwą typu
+        console.log("Pobrane wszystkie typy:", response.data.data);
       }
     } catch (error) {
       console.error("Błąd podczas pobierania wszystkich typów:", error);
     }
   };
 
-  useEffect(() => {
-    // Pobranie typów projektu z backendu
-    
-    fetchProjectTypes();
-    fetchAllTypes();
-  }, [project.id]);
-
   const handleSave = async () => {
     try {
-      const response = await axios.put(`projects/updateProject/${project.id}`, {
+      const response = await axios.put(`/projects/updateProject/${project.id}`, {
         name: editedName,
         types: editedTypes,
       });
-      console.log("response:", response);
       if (response.data.success) {
         alert("Zapisano zmiany!");
         onUpdate({ ...project, name: editedName, types: editedTypes });
         setIsEditing(false);
       }
     } catch (error) {
-      
       console.error("Błąd podczas zapisywania projektu:", error);
       alert("Nie udało się zapisać zmian.");
     }
   };
 
-  const handleCheckboxChange = (type) => {
-    if (editedTypes.includes(type)) {
-      setEditedTypes(editedTypes.filter((t) => t !== type));
+  const handleCheckboxChange = (typeId) => {
+    if (editedTypes.includes(typeId)) {
+      setEditedTypes(editedTypes.filter((id) => id !== typeId));
     } else {
-      setEditedTypes([...editedTypes, type]);
+      setEditedTypes([...editedTypes, typeId]);
     }
   };
 
@@ -89,8 +84,7 @@ function ProjectDetails({ project, onUpdate }) {
           </div>
         ) : (
           <p className="mb-4">
-            <strong className="block text-lg font-semibold">Nazwa:</strong>{" "}
-            {project.name}
+            <strong className="block text-lg font-semibold">Nazwa:</strong> {project.name}
           </p>
         )}
         <div className="text-sm text-gray-500 mb-6">
@@ -98,8 +92,7 @@ function ProjectDetails({ project, onUpdate }) {
             <strong>Utworzony przez:</strong> {project.created_by || "Nieznany"}
           </p>
           <p>
-            <strong>Data utworzenia:</strong>{" "}
-            {new Date(project.created_at).toLocaleDateString()}
+            <strong>Data utworzenia:</strong> {new Date(project.created_at).toLocaleDateString()}
           </p>
         </div>
       </div>
@@ -110,25 +103,28 @@ function ProjectDetails({ project, onUpdate }) {
         {isEditing ? (
           <div className="flex flex-wrap gap-2">
             {allTypes.map((type) => (
-              <label key={type} className="flex items-center gap-2">
+              <label key={type.id} className="flex items-center gap-2">
                 <input
                   type="checkbox"
-                  checked={editedTypes.includes(type)}
-                  onChange={() => handleCheckboxChange(type)}
-                  className="w-4 h-4" // Zwiększa szerokość i wysokość checkboxa
+                  checked={editedTypes.includes(type.id)} // Sprawdza obecność w editedTypes
+                  onChange={() => handleCheckboxChange(type.id)} // Zmienia stan
+                  className="w-4 h-4"
                 />
-                {type}
+                {type.type}
               </label>
             ))}
           </div>
         ) : (
           <ul className="list-disc list-inside">
             {editedTypes.length > 0 ? (
-              editedTypes.map((type, index) => (
-                <li key={index} className="text-gray-700">
-                  {type}
-                </li>
-              ))
+              editedTypes.map((typeId) => {
+                const typeObj = allTypes.find((type) => type.id === typeId); // Znajdź pełny obiekt
+                return (
+                  <li key={typeId} className="text-gray-700">
+                    {typeObj?.type || "Nieznany typ"}
+                  </li>
+                );
+              })
             ) : (
               <p className="text-gray-500">Brak przypisanych typów</p>
             )}

@@ -16,6 +16,7 @@ function Trainers() {
   useEffect(() => {
     fetchTrainers();
     fetchTrainingTypes();
+    
   }, []);
 
   const fetchTrainers = async () => {
@@ -23,6 +24,7 @@ function Trainers() {
       const response = await axios.get("http://localhost:5000/trainers", {
         withCredentials: true, // Włącz przesyłanie ciasteczek
       });
+      console.log("Dane trenerów z backendu:", response.data.trainers);
       if (response.data.success) {
         setTrainers(response.data.trainers);
       }
@@ -45,38 +47,63 @@ function Trainers() {
       console.error("Błąd podczas pobierania typów szkoleń:", error);
     }
   };
+  
   const startEditingTrainer = (trainer) => {
-    setEditingTrainerId(trainer.id);
-    setEditingName(trainer.name);
-    setEditingTypes(trainer.types);
-    console.log("Typy szkoleniowca podczas edycji:", trainer.types); // Debugowanie
+    console.log("Rozpoczynam edycję szkoleniowca:", trainer);
+  
+    setEditingTrainerId(trainer.id); // Ustaw ID edytowanego trenera
+    setEditingName(trainer.name); // Ustaw nazwę edytowanego trenera
+  
+    // Mapowanie typów na obiekty zawierające `id` i `type`
+    const mappedTypes = (trainer.types || []).map((typeName) => {
+      const matchedType = trainerTypes.find((t) => t.type === typeName); // Znajdź typ w `trainerTypes`
+      return matchedType || { id: null, type: typeName }; // Dodaj typ z `id` lub samą nazwę jako fallback
+    });
+  
+    console.log("Typy po mapowaniu:", mappedTypes); // Debugowanie
+    setEditingTypes(mappedTypes); // Ustawienie stanu dla checkboxów
   };
+  
+  
 
   const saveEditedTrainer = async () => {
     try {
-      console.log('przed type editing types',editingTypes)
-      const response = await axios.put(`http://localhost:5000/trainers/editTrainer/${editingTrainerId}`, {
-        name: editingName,
-        types: editingTypes,
-      });
+      console.log('editingTypes-save',editingTypes)
+      const response = await axios.put(
+        `http://localhost:5000/trainers/editTrainer/${editingTrainerId}`,
+        {
+          name: editingName,
+          types: editingTypes.map((type) => ({
+            id: type.id,
+            type: type.type,
+          })), // Przekształć na odpowiedni format
+        }
+      );
   
       if (response.data.success) {
         setEditingTrainerId(null); // Wyjdź z trybu edycji
         fetchTrainers(); // Odśwież listę szkoleniowców
       }
     } catch (error) {
+      //console.log('editingTypes-save'.editingTypes);
       console.error("Błąd podczas zapisywania edytowanego szkoleniowca:", error);
     }
-  };  
+  };
+  
   const cancelEditing = () => {
     setEditingTrainerId(null);
     setEditingName("");
     setEditingTypes([]);
   };
   const handleEditCheckboxChange = (type) => {
-    if (editingTypes.includes(type)) {
-      setEditingTypes(editingTypes.filter((t) => t !== type));
+    // Sprawdź, czy typ już istnieje w `editingTypes`
+    const exists = editingTypes.some((t) => t.id === type.id);
+  
+    if (exists) {
+      // Usuń typ, jeśli istnieje
+      setEditingTypes(editingTypes.filter((t) => t.id !== type.id));
     } else {
+      // Dodaj typ, jeśli go nie ma
       setEditingTypes([...editingTypes, type]);
     }
   };
@@ -160,8 +187,8 @@ const handleDeleteTrainer = async (id) => {
             <label key={type.id} className="flex items-center gap-2">
               <input
                 type="checkbox"
-                checked={selectedTypes.includes(type)}
-                onChange={() => handleCheckboxChange(type)}
+                checked={selectedTypes.some((t) => t.id === type.id)} // Używa `selectedTypes`
+                onChange={() => handleCheckboxChange(type)} // Funkcja dla dodawania
               />
               {type.type}
             </label>
@@ -194,8 +221,8 @@ const handleDeleteTrainer = async (id) => {
                     <label key={type.id} className="flex items-center gap-2">
                       <input
                         type="checkbox"
-                        checked={editingTypes.includes(type.type)} // Sprawdź, czy typ jest zaznaczony
-                        onChange={() => handleEditCheckboxChange(type.type)}
+                        checked={editingTypes.some((t) => t.id === type.id)} // Używa `editingTypes`
+                        onChange={() => handleEditCheckboxChange(type)} // Funkcja dla edycji
                       />
                       {type.type}
                     </label>
@@ -221,7 +248,7 @@ const handleDeleteTrainer = async (id) => {
                 <div className="flex justify-between items-center">
                 <span>{trainer.name}</span>
                 <span>-</span>
-                <span>{trainer.types.join(", ")}</span>
+                <span>{trainer.types.join(", ")}</span> {/* //łączy elementy tablicy w jeden ciąg tekstowy, używając podanego separatora. */}
                     <div>
                         <button
                         onClick={() => startEditingTrainer(trainer)}

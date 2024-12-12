@@ -22,7 +22,9 @@ router.post("/Types", authenticateUser, authorizeRole("admin"),  (req, res) => {
   });
   router.post("/addTrainer", async (req, res) => {
     const { name, types } = req.body;
-    console.log("Otrzymane dane1:", types);
+  
+    console.log("Otrzymane dane:", { name, types });
+  
     if (!name || !Array.isArray(types) || types.length === 0) {
       return res.status(400).json({ success: false, message: "Brak wymaganych danych" });
     }
@@ -35,9 +37,10 @@ router.post("/Types", authenticateUser, authorizeRole("admin"),  (req, res) => {
       const trainerId = trainerResult.insertId; // Pobierz ID dodanego szkoleniowca
   
       // Dodaj typy szkoleń dla szkoleniowca
-      const typeInsertQuery = "INSERT INTO trainer_types (trainer_id, type) VALUES (?, ?)";
+      const typeInsertQuery = "INSERT INTO trainer_types (trainer_id, type_id,type) VALUES (?, ?, ?)";
       const typePromises = types.map((typeObj) => {
-        return db.promise().query(typeInsertQuery, [trainerId, typeObj.type]);
+        // Załóżmy, że `typeObj` zawiera `id` (type_id) oraz `type` (type_name)
+        return db.promise().query(typeInsertQuery, [trainerId, typeObj.id, typeObj.type]);
       });
   
       await Promise.all(typePromises); // Poczekaj na zapis wszystkich typów
@@ -48,6 +51,7 @@ router.post("/Types", authenticateUser, authorizeRole("admin"),  (req, res) => {
       res.status(500).json({ success: false, message: "Błąd serwera" });
     }
   });
+  
   
   // Usuwanie szkoleniowca
   router.delete("/deleteTrainer/:id", (req, res) => {
@@ -68,38 +72,56 @@ router.post("/Types", authenticateUser, authorizeRole("admin"),  (req, res) => {
   router.put("/editTrainer/:id", (req, res) => {
     console.log("Otrzymane req.body:", req.body);
     console.log("Otrzymane req.params.id:", req.params.id);
+    
     const { id } = req.params;
     const { name, types } = req.body;
+  
+    // Walidacja types
+    if (!Array.isArray(types) || types.length === 0) {
+      console.error("Brak lub nieprawidłowa tablica types:", types);
+      return res.status(400).json({ success: false, message: "Nieprawidłowe dane typów." });
+    }
+  
     const validTypes = types.filter((typeObj) => typeObj && typeObj.type);
+    console.log("Przefiltrowane validTypes:", validTypes);
+  
     const updateTrainerQuery = "UPDATE trainers SET name = ? WHERE id = ?";
     db.query(updateTrainerQuery, [name, id], (err) => {
       if (err) {
         console.error("Błąd podczas edytowania szkoleniowca:", err);
-        res.status(500).json({ success: false, error: err });
-      } else {
-        const deleteTypesQuery = "DELETE FROM trainer_types WHERE trainer_id = ?";
-        db.query(deleteTypesQuery, [id], (err) => {
-          if (err) {
-            console.error("Błąd podczas usuwania typów szkoleń:", err);
-            res.status(500).json({ success: false, error: err });
-          } else {
-            console.log("Otrzymane types:", types);
-            const typeInsertQuery = "INSERT INTO trainer_types (trainer_id, type) VALUES (?, ?)";
-            const typePromises = types.map((type) => {
-            console.log("id, type:", id, type); // Debug poprawionego zapisu
-            return db.promise().query(typeInsertQuery, [id, type]);
-            });
-            Promise.all(typePromises)
-              .then(() => res.json({ success: true }))
-              .catch((err) => {
-                console.error("Błąd podczas dodawania typów szkoleń:", err);
-                res.status(500).json({ success: false, error: err });
-              });
-          }
-        });
+        return res.status(500).json({ success: false, error: err });
       }
+  
+      const deleteTypesQuery = "DELETE FROM trainer_types WHERE trainer_id = ?";
+      db.query(deleteTypesQuery, [id], (err) => {
+        if (err) {
+          console.error("Błąd podczas usuwania typów szkoleń:", err);
+          return res.status(500).json({ success: false, error: err });
+        }
+  
+        console.log("Otrzymane types:", types);
+        const typeInsertQuery = "INSERT INTO trainer_types (trainer_id, type_id, type) VALUES (?, ?, ?)";
+  
+        const typePromises = types.map((typeObj) => {
+          if (!typeObj.id || !typeObj.type) {
+            console.error("Nieprawidłowe dane typu:", typeObj);
+            return Promise.reject(new Error("Nieprawidłowe dane typu"));
+          }
+  
+          console.log("id, typeObj:", id, typeObj); // Debug poprawionego zapisu
+          return db.promise().query(typeInsertQuery, [id, typeObj.id, typeObj.type]);
+        });
+  
+        Promise.all(typePromises)
+          .then(() => res.json({ success: true }))
+          .catch((err) => {
+            console.error("Błąd podczas dodawania typów szkoleń:", err);
+            res.status(500).json({ success: false, error: err });
+          });
+      });
     });
-  });  
+  });
+  
 
   //pobieranie szkoleniowcow
 router.get("/", (req, res) => {
@@ -176,3 +198,30 @@ router.post("/addTrainingType", (req, res) => {
       }
     });
   });
+  router.get("/trainersType", async (req, res) => {
+    const { typeId } = req.query; // Pobierz typeId z query params
+  
+    if (!typeId) {
+      return res.status(400).json({ success: false, message: "typeId jest wymagane." });
+    }
+  
+    try {
+      const [rows] = await db.promise().query(
+        `SELECT t.id, t.name 
+         FROM trainers t
+         INNER JOIN trainer_types tt ON t.id = tt.trainer_id
+         WHERE tt.type_id = ?`,
+        [typeId]
+      );
+  
+      res.json({
+        success: true,
+        trainers: rows,
+      });
+      console.log('rows_type',rows);
+    } catch (error) {
+      console.error("Błąd podczas pobierania szkoleniowców:", error);
+      res.status(500).json({ success: false, message: "Błąd serwera." });
+    }
+  });
+  

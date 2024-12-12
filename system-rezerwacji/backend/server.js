@@ -8,6 +8,7 @@ const projectRoutes = require("./routes/project");
 const participantRoutes = require("./routes/participant");
 const userRoutes = require("./routes/user");
 const trainersRoutes = require("./routes/trainers");
+const filesRoutes = require("./routes/files");
 
 const app = express();
 const PORT = 5000;
@@ -42,6 +43,9 @@ app.use("/projects", projectRoutes);
 app.use("/participants", participantRoutes);
 app.use("/users", userRoutes);
 app.use("/trainers", trainersRoutes);
+app.use("/files", filesRoutes);
+
+
 // Uruchomienie serwera
 app.listen(PORT, () => {
   console.log(`Serwer działa na porcie ${PORT}`);

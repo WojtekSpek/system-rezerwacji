@@ -12,6 +12,7 @@ import Participants from "./components/Participants";
 import ProjectDetails from "./components/ProjectDetails"; // Szczegóły projektu
 import ProjectParticipants from "./components/ProjectParticipants"; // Nowy komponent
 import ProjectTrainers from "./components/ProjectTrainers"; // Nowy komponent
+import ProjectParticipantDetails from "./components/ProjectParticipantDetails";
 
 // Konfiguracja Axios do obsługi ciasteczek
 axios.defaults.withCredentials = true; // Włącz przesyłanie ciasteczek
@@ -23,6 +24,7 @@ function App() {
   const [view, setView] = useState("home");
   const [selectedProject, setSelectedProject] = useState(null); // Wybrany projekt
   const [projects, setProjects] = useState([]); // Lista projektów
+  const [selectedParticipant, setSelectedParticipant] = useState(null); // Wybrany uczestnik
 
   // Obsługa dodawania użytkownika
   const onUserAdd = (newUser) => {
@@ -134,10 +136,20 @@ function App() {
                 <ProjectParticipants
                   project={selectedProject}
                   projectId={selectedProject?.id}
+                  setView={setView} // Dodaj funkcję przełączania widoku
+                  setSelectedParticipant={setSelectedParticipant} // Dodaj funkcję ustawiania uczestnika
                 />
               )}
               {view === "projectTrainers" && (
                 <ProjectTrainers projectId={selectedProject?.id} />
+              )}
+              {view === "projectParticipantDetails" && (
+                <ProjectParticipantDetails
+                participantId={selectedParticipant?.id}
+                 projectId={selectedProject?.id}
+                  participant={selectedParticipant} // Przekazujemy wybranego uczestnika
+                  onBack={() => setView("projectParticipants")} // Powrót do listy uczestników
+                />
               )}
             </div>
           </div>

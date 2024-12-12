@@ -1,37 +1,31 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 
-function ProjectParticipants({ projectId, project }) {
-  const [searchQuery, setSearchQuery] = useState(""); // Wartość wyszukiwania
-  const [allParticipants, setAllParticipants] = useState([]); // Lista wszystkich uczestników
-  const [filteredParticipants, setFilteredParticipants] = useState([]); // Filtrowani uczestnicy
-  const [projectParticipants, setProjectParticipants] = useState([]); // Uczestnicy przypisani do projektu
+function ProjectParticipants({ projectId, setView, setSelectedParticipant }) {
+  const [searchQuery, setSearchQuery] = useState("");
+  const [allParticipants, setAllParticipants] = useState([]);
+  const [filteredParticipants, setFilteredParticipants] = useState([]);
+  const [projectParticipants, setProjectParticipants] = useState([]);
 
   useEffect(() => {
     fetchAllParticipants();
     fetchProjectParticipants();
-    console.log("Otrzymane projectId:", projectId);
-    console.log("Otrzymany project obiekt:", project);
   }, []);
 
-  // Pobierz listę wszystkich uczestników
   const fetchAllParticipants = async () => {
     try {
-      const response = await axios.get("/participants");
+      const response = await axios.get("/participants"); // Pobranie wszystkich uczestników
       if (response.data.success) {
         setAllParticipants(response.data.participants);
       }
     } catch (error) {
-      console.error("Błąd podczas pobierania uczestników:", error);
+      console.error("Błąd podczas pobierania wszystkich uczestników:", error);
     }
   };
 
-  // Pobierz uczestników przypisanych do projektu
   const fetchProjectParticipants = async () => {
-    console.log("Otrzymane projectId2:", projectId);
-    console.log("Otrzymany project obiekt2:", project);
     try {
-      const response = await axios.get(`/projects/${projectId}/participants`);
+      const response = await axios.get(`/projects/${projectId}/participants`); // Pobranie uczestników projektu
       if (response.data.success) {
         setProjectParticipants(response.data.participants);
       }
@@ -40,7 +34,6 @@ function ProjectParticipants({ projectId, project }) {
     }
   };
 
-  // Obsługa wyszukiwania
   useEffect(() => {
     setFilteredParticipants(
       allParticipants.filter((participant) =>
@@ -51,7 +44,6 @@ function ProjectParticipants({ projectId, project }) {
     );
   }, [searchQuery, allParticipants]);
 
-  // Dodawanie uczestnika do projektu
   const addParticipantToProject = async (participantId) => {
     try {
       const response = await axios.post(`/projects/${projectId}/participants`, {
@@ -59,14 +51,12 @@ function ProjectParticipants({ projectId, project }) {
       });
       if (response.data.success) {
         fetchProjectParticipants(); // Odśwież listę uczestników projektu
-        alert("Uczestnik został dodany do projektu!");
       }
     } catch (error) {
       console.error("Błąd podczas dodawania uczestnika do projektu:", error);
     }
   };
 
-  // Usuwanie uczestnika z projektu
   const removeParticipantFromProject = async (participantId) => {
     try {
       const response = await axios.delete(
@@ -74,16 +64,25 @@ function ProjectParticipants({ projectId, project }) {
       );
       if (response.data.success) {
         fetchProjectParticipants(); // Odśwież listę uczestników projektu
-        alert("Uczestnik został usunięty z projektu!");
       }
     } catch (error) {
       console.error("Błąd podczas usuwania uczestnika z projektu:", error);
     }
   };
 
+  const isParticipantInProject = (participantId) => {
+    return projectParticipants.some((p) => p.id === participantId);
+  };
+
+  const handleParticipantClick = (participant) => {
+    setSelectedParticipant(participant); // Ustaw wybranego uczestnika
+    setView("projectParticipantDetails"); // Przejdź do widoku szczegółów uczestnika
+  };
+
   return (
     <div className="p-4 w-full">
       <h2 className="text-2xl font-bold mb-4">Uczestnicy projektu</h2>
+
       <h3 className="font-semibold mb-2">Lista uczestników projektu:</h3>
       <ul>
         {projectParticipants.map((participant) => (
@@ -91,7 +90,10 @@ function ProjectParticipants({ projectId, project }) {
             key={participant.id}
             className="flex justify-between items-center p-2 border-b"
           >
-            <span>
+            <span
+              className="cursor-pointer text-blue-600 hover:underline"
+              onClick={() => handleParticipantClick(participant)} // Kliknięcie w uczestnika
+            >
               {participant.firstName} {participant.lastName}
             </span>
             <button
@@ -103,6 +105,7 @@ function ProjectParticipants({ projectId, project }) {
           </li>
         ))}
       </ul>
+
       <div className="mb-6">
         <h3 className="font-semibold mb-2">Dodaj uczestnika:</h3>
         <input
@@ -123,16 +126,19 @@ function ProjectParticipants({ projectId, project }) {
               </span>
               <button
                 onClick={() => addParticipantToProject(participant.id)}
-                className="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600"
+                className={`${
+                  isParticipantInProject(participant.id)
+                    ? "bg-gray-400 cursor-not-allowed"
+                    : "bg-blue-500 hover:bg-blue-600"
+                } text-white px-3 py-1 rounded`}
+                disabled={isParticipantInProject(participant.id)}
               >
-                Dodaj
+                {isParticipantInProject(participant.id) ? "Dodano" : "Dodaj"}
               </button>
             </li>
           ))}
         </ul>
       </div>
-
-      
     </div>
   );
 }
