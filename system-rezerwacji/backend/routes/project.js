@@ -316,27 +316,33 @@ router.get("/:projectId/participants/:participantId", async (req, res) => {
   const { projectId, participantId } = req.params;
 
   try {
+    // Pobieranie danych uczestnika
     const [participantData] = await db.promise().query(
       "SELECT * FROM participants WHERE id = ?",
       [participantId]
-    );
-    const [participantTypes] = await db.promise().query(
-      `SELECT t.type 
-       FROM project_training_types ptt
-       INNER JOIN training_types t ON ptt.training_type_id = t.id
-       WHERE ptt.project_id = ?`,
-      [projectId]
     );
 
     if (participantData.length === 0) {
       return res.status(404).json({ success: false, message: "Nie znaleziono uczestnika." });
     }
 
+    // Pobieranie typów związanych z uczestnikiem i projektem
+    const [participantTypes] = await db.promise().query(
+      `SELECT t.id AS typeId, t.type 
+       FROM project_training_types ptt
+       INNER JOIN training_types t ON ptt.training_type_id = t.id
+       WHERE ptt.project_id = ?`,
+      [projectId]
+    );
+
     res.json({
       success: true,
       participant: {
         ...participantData[0],
-        types: participantTypes.map((row) => row.type), // Lista dynamicznych typów
+        types: participantTypes.map((row) => ({
+          id: row.typeId,
+          name: row.type, // Zmienna nazwa typu
+        })), // Lista typów z id i nazwą
       },
     });
   } catch (error) {
@@ -344,6 +350,7 @@ router.get("/:projectId/participants/:participantId", async (req, res) => {
     res.status(500).json({ success: false, message: "Błąd serwera." });
   }
 });
+
 
 
 module.exports = router;

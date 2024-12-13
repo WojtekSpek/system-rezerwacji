@@ -9,6 +9,7 @@ const participantRoutes = require("./routes/participant");
 const userRoutes = require("./routes/user");
 const trainersRoutes = require("./routes/trainers");
 const filesRoutes = require("./routes/files");
+const calendarRoutes = require("./routes/calendar");
 
 const app = express();
 const PORT = 5000;
@@ -44,6 +45,7 @@ app.use("/participants", participantRoutes);
 app.use("/users", userRoutes);
 app.use("/trainers", trainersRoutes);
 app.use("/files", filesRoutes);
+app.use("/calendar", calendarRoutes);
 
 
 // Uruchomienie serwera

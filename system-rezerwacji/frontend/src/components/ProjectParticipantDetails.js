@@ -1,18 +1,128 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
+import { Calendar as BigCalendar, momentLocalizer } from "react-big-calendar";
+import moment from 'moment';
+import 'react-big-calendar/lib/css/react-big-calendar.css';
+import Calendar1 from "./ProjectParticipantDetails/Calendar1";
+import EditEventModal from "./ProjectParticipantDetails/EditEventModal";
+
+
+const localizer = momentLocalizer(moment);
 
 function ProjectParticipantDetails({ participantId, projectId, onBack }) {
   const [participant, setParticipant] = useState(null); // Dane uczestnika w ramach projektu
   const [activeTab, setActiveTab] = useState("Dane osobowe"); // Domyślna zakładka
-  const [projectTypes, setProjectTypes] = useState([]); // Typy przypisane do uczestnika w projekcie
+ 
   const [uploadedFiles, setUploadedFiles] = useState([]); // Lista plików
   const [file, setFile] = useState(null); // Wybrany plik do dodania
+  const [selectedAdvisor, setSelectedAdvisor] = useState(null);
+  const [trainers, setTrainers] = useState([]); // Trenerzy przypisani do projektu
+  const [selectedTrainer, setSelectedTrainer] = useState(null); // Wybrany trener
+  const [events, setEvents] = useState([]); // Wydarzenia w kalendarzu
+  const [newEvent, setNewEvent] = useState({ start: "", end: "", title: "" }); // Nowe wydarzenie
+  const [projectTypes, setProjectTypes] = useState([]); // Typy przypisane do uczestnika w projekcie
+  const [projectTypesAll, setProjectTypesAll] = useState([]); // Typy przypisane do uczestnika w projekcie
+ /*  const currentType = projectTypesAll.find((type) => type.name === activeTab);
+  const typeId = currentType?.id;
+ console.log('currentType',typeId) */
+ const [selectedEvent, setSelectedEvent] = useState(null); // Wydarzenie do edycji
+  const [showEditModal, setShowEditModal] = useState(false); // Kontrola widoczności modala
+
+  const handleEditEvent = (event) => {
+    console.log("Otwieranie modala dla wydarzenia", event);
+    setSelectedEvent(event); // Ustaw wybrane wydarzenie
+    setShowEditModal(true); // Pokaż modal edycji
+  };
 
   useEffect(() => {
-    fetchParticipantDetails();
+    
+    
+    //fetchParticipantDetails();
     fetchFiles();
-  }, [participantId, projectId]); //funkcja uruchamia sie po zmianie [participantId, projectId]
+    fetchParticipantDetails();
+    fetchEvents();
+  }, [participantId, projectId,activeTab]); //funkcja uruchamia sie po zmianie [participantId, projectId]
 
+     // Pobranie danych uczestnika w ramach projektu
+     const fetchParticipantDetails = async () => {
+      try {
+        const response = await axios.get(`/projects/${projectId}/participants/${participantId}`);
+        if (response.data.success) {
+          setParticipant(response.data.participant);
+          setProjectTypesAll(response.data.participant.types); // Zakładki dynamiczne z `types`
+          setProjectTypes(response.data.participant.types.map((type) => type.name)); 
+        }
+        console.log('jestem tu',response.data.participant);
+      } catch (error) {
+        console.error("Błąd podczas pobierania danych uczestnika projektu:", error);
+      }
+    };
+
+  const fetchEvents = async () => {
+      try {
+        const response = await axios.get(`calendar/events/${projectId}`);
+        if (response.data.success) {
+          setEvents(
+            response.data.events.map((event) => ({
+              ...event,
+              start: new Date(event.start),
+              end: new Date(event.end),
+            }))
+          );
+        }
+      } catch (error) {
+        console.error("Błąd podczas pobierania wydarzeń:", error);
+      }
+    };
+
+  // Obsługa dodawania wydarzenia
+  const handleAddEvent = async () => {
+    if (!selectedTrainer) {
+      alert("Wybierz trenera przed dodaniem wydarzenia.a");
+      return;
+    }
+
+    const eventToSave = {
+      ...newEvent,
+      trainerId: 1, //selectedTrainer.trainer_id,
+      projectId: projectId,
+      description: 'test',
+
+    };
+
+    try {
+      const response = await axios.post("calendar/events", eventToSave);
+      if (response.data.success) {
+        setEvents([
+          ...events,
+          {
+            ...eventToSave,
+            id: response.data.eventId,
+            start: new Date(eventToSave.start),
+            end: new Date(eventToSave.end),
+          },
+        ]);
+        setNewEvent({ start: "", end: "", title: "" });
+        alert("Wydarzenie zostało dodane!");
+      }
+    } catch (error) {
+      console.error("Błąd podczas dodawania wydarzenia:", error);
+    }
+  };
+
+  // Sumowanie godzin na trenera
+  const calculateHoursPerTrainer = () => {
+    const hours = {};
+    console.log('events',events)
+    events.forEach((event) => {
+      if (!hours[event.id]) hours[event.id] = 0;
+      hours[event.id] +=
+        (new Date(event.end) - new Date(event.start)) / 1000 / 60 / 60; // Liczenie godzin
+    });
+    console.log('hours',hours)
+    return hours;
+  };
+  
  // Pobierz pliki uczestnika
  const fetchFiles = async () => {
     try {
@@ -64,21 +174,40 @@ function ProjectParticipantDetails({ participantId, projectId, onBack }) {
 
 
 
-  // Pobranie danych uczestnika w ramach projektu
+  /* // Pobranie danych uczestnika w ramach projektu
   const fetchParticipantDetails = async () => {
     try {
       const response = await axios.get(`/projects/${projectId}/participants/${participantId}`);
       if (response.data.success) {
         setParticipant(response.data.participant);
-        setProjectTypes(response.data.participant.types); // Zakładki dynamiczne z `types`
+        setProjectTypesAll(response.data.participant.types); // Zakładki dynamiczne z `types`
+        setProjectTypes(response.data.participant.types.map((type) => type.name)); 
       }
+      console.log('jestem tu',response.data.participant);
     } catch (error) {
       console.error("Błąd podczas pobierania danych uczestnika projektu:", error);
+    }
+  }; */
+
+  
+ 
+  const handleSelectSlot = (slotInfo) => {
+    const title = window.prompt("Podaj tytuł wydarzenia:");
+    if (title) {
+      setEvents((prevEvents) => [
+        ...prevEvents,
+        {
+          start: slotInfo.start,
+          end: slotInfo.end,
+          title,
+        },
+      ]);
     }
   };
 
   // Obsługa renderowania zawartości zakładek
   const renderTabContent = () => {
+    
     switch (activeTab) {
       case "Dane osobowe":
         return (
@@ -173,17 +302,54 @@ function ProjectParticipantDetails({ participantId, projectId, onBack }) {
               </button>
             </div>
           );
-      default:
-        // Zakładki dynamiczne
-        if (projectTypes.includes(activeTab)) {
+          default:
+        
+         // Zakładki dynamiczne
+         if (projectTypes.includes(activeTab)) {
+          {/* Kalendarz */}
+        
           return (
             <div>
-              <h3 className="text-xl font-semibold mb-4">Zakładka: {activeTab}</h3>
-              <p>Tu pojawi się zawartość dla typu {activeTab} w ramach projektu.</p>
+              
+              <Calendar1
+                projectId={projectId}
+                participantId={participantId}
+                trainerId={selectedTrainer?.id}
+                activeTab={activeTab}
+                events={events}
+                onEditEvent={handleEditEvent} // Dodaj obsługę edycji
+                onAddEvent={handleAddEvent}
+                projectTypes={projectTypes}
+                projectTypesAll={projectTypesAll} // Przekazanie projectTypes // Przekazanie projectTypes
+                newEvent={newEvent}
+                setNewEvent={setNewEvent}
+                selectedTrainer={selectedTrainer} // Przekazanie selectedTrainer
+                setSelectedTrainer={setSelectedTrainer} // Przekazanie setSelectedTrainer
+                
+              />
+              {showEditModal && selectedEvent && (
+                <EditEventModal
+                  show={showEditModal}
+                  event={selectedEvent}
+                  trainers={trainers} // Jeśli korzystasz z listy trenerów
+                  onSave={(updatedEvent) => {
+                    setEvents((prevEvents) =>
+                      prevEvents.map((evt) =>
+                        evt.id === updatedEvent.id ? { ...evt, ...updatedEvent } : evt
+                      )
+                    );
+                    setShowEditModal(false);
+                  }}
+                  onClose={() => setShowEditModal(false)}
+                />
+              )}
             </div>
+            
           );
         }
         return null;
+        
+        
     }
   };
 
@@ -229,6 +395,7 @@ function ProjectParticipantDetails({ participantId, projectId, onBack }) {
       </div>
       {/* Zawartość aktywnej zakładki */}
       {participant ? renderTabContent() : <p>Ładowanie danych...</p>}
+      
     </div>
   );
 }
