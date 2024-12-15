@@ -27,7 +27,13 @@ function ProjectParticipantDetails({ participantId, projectId, onBack }) {
  console.log('currentType',typeId) */
  const [selectedEvent, setSelectedEvent] = useState(null); // Wydarzenie do edycji
   const [showEditModal, setShowEditModal] = useState(false); // Kontrola widoczności modala
-
+  const [eventData, setEventData] = useState({
+    title: "",
+    description: "",
+    start: "",
+    end: "",
+    trainerId: "",
+  });
   const handleEditEvent = (event) => {
     console.log("Otwieranie modala dla wydarzenia", event);
     setSelectedEvent(event); // Ustaw wybrane wydarzenie
@@ -35,8 +41,37 @@ function ProjectParticipantDetails({ participantId, projectId, onBack }) {
   };
 
   useEffect(() => {
+    if (events) {
+      events.forEach((event) => {
+        if (!event.start || !event.end) {
+          console.error("Nieprawidłowe wydarzenie:", event);
+        }
+      });
+    }
+  }, [events]);
+  console.log('event',events)
+  useEffect(() => {
+    const fetchTrainers = async () => {
+      try {
+        const response = await axios.get(`/projects/${projectId}/trainers/${typeId}`);
+        if (response.data.success) {
+          setTrainers(response.data.trainers);
+          console.log('response.data.trainers',response.data.trainers)
+        }
+      } catch (error) {
+        console.error("Błąd podczas pobierania trenerów projektu:", error);
+      }
+    };
     
+    fetchTrainers();
+  }, [projectId, activeTab]);
+
+  const currentType = projectTypesAll.find((type) => type.name === activeTab);
+  const typeId = currentType?.id;
+  console.log("Obecne typeId:", projectTypesAll);
+  useEffect(() => {
     
+
     //fetchParticipantDetails();
     fetchFiles();
     fetchParticipantDetails();
@@ -57,11 +92,35 @@ function ProjectParticipantDetails({ participantId, projectId, onBack }) {
         console.error("Błąd podczas pobierania danych uczestnika projektu:", error);
       }
     };
+   
+    const getEventStyle = (event) => {
+      console.log("Wywołanie getEventStyle dla wydarzenia:", event.trainerId);
+    
+      // Dopasuj kolor na podstawie trenera
+      const trainerColors = {
+        1: "#f56c6c", // Trener 1 - czerwony
+        2: "#67c23a", // Trener 2 - zielony
+        3: "#8cff00", // Trener 3 - niebieski
+      };
+    
+      const backgroundColor = trainerColors[event.trainerId] || "#fffff"; // Domyślny kolor szary
+    
+      return {
+        style: {
+          backgroundColor,
+          color: "white", // Kolor tekstu
+          borderRadius: "5px",
+          border: "none",
+        },
+      };
+    };
+    
 
   const fetchEvents = async () => {
       try {
         const response = await axios.get(`calendar/events/${projectId}`);
         if (response.data.success) {
+          console.log('event response.data',response.data)
           setEvents(
             response.data.events.map((event) => ({
               ...event,
@@ -75,40 +134,7 @@ function ProjectParticipantDetails({ participantId, projectId, onBack }) {
       }
     };
 
-  // Obsługa dodawania wydarzenia
-  const handleAddEvent = async () => {
-    if (!selectedTrainer) {
-      alert("Wybierz trenera przed dodaniem wydarzenia.a");
-      return;
-    }
-
-    const eventToSave = {
-      ...newEvent,
-      trainerId: 1, //selectedTrainer.trainer_id,
-      projectId: projectId,
-      description: 'test',
-
-    };
-
-    try {
-      const response = await axios.post("calendar/events", eventToSave);
-      if (response.data.success) {
-        setEvents([
-          ...events,
-          {
-            ...eventToSave,
-            id: response.data.eventId,
-            start: new Date(eventToSave.start),
-            end: new Date(eventToSave.end),
-          },
-        ]);
-        setNewEvent({ start: "", end: "", title: "" });
-        alert("Wydarzenie zostało dodane!");
-      }
-    } catch (error) {
-      console.error("Błąd podczas dodawania wydarzenia:", error);
-    }
-  };
+  
 
   // Sumowanie godzin na trenera
   const calculateHoursPerTrainer = () => {
@@ -204,6 +230,8 @@ function ProjectParticipantDetails({ participantId, projectId, onBack }) {
       ]);
     }
   };
+
+
 
   // Obsługa renderowania zawartości zakładek
   const renderTabContent = () => {
@@ -317,20 +345,26 @@ function ProjectParticipantDetails({ participantId, projectId, onBack }) {
                 trainerId={selectedTrainer?.id}
                 activeTab={activeTab}
                 events={events}
+                trainers={trainers}
                 onEditEvent={handleEditEvent} // Dodaj obsługę edycji
-                onAddEvent={handleAddEvent}
+                setEvents={setEvents} // Dodano setEvents
+                //onAddEvent={handleAddEvent}
                 projectTypes={projectTypes}
                 projectTypesAll={projectTypesAll} // Przekazanie projectTypes // Przekazanie projectTypes
                 newEvent={newEvent}
                 setNewEvent={setNewEvent}
                 selectedTrainer={selectedTrainer} // Przekazanie selectedTrainer
                 setSelectedTrainer={setSelectedTrainer} // Przekazanie setSelectedTrainer
+                eventPropGetter={getEventStyle} // Przypisanie stylu do wydarzenia
                 
               />
               {showEditModal && selectedEvent && (
                 <EditEventModal
                   show={showEditModal}
                   event={selectedEvent}
+                  setEventData={(updatedEvent) => {
+                    setSelectedEvent((prevEvent) => ({ ...prevEvent, ...updatedEvent }));
+                  }}
                   trainers={trainers} // Jeśli korzystasz z listy trenerów
                   onSave={(updatedEvent) => {
                     setEvents((prevEvents) =>

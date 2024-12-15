@@ -291,20 +291,30 @@ router.get("/:projectId/trainers/:typeId", async (req, res) => {
   const { projectId, typeId } = req.params;
 
   const query = `
-    SELECT t.id AS trainerId, t.name AS trainerName
+    SELECT 
+      pt.id AS projectTrainerId,
+      t.id AS trainerId,
+      t.name AS trainerName
     FROM project_trainers pt
     INNER JOIN trainers t ON pt.trainer_id = t.id
     WHERE pt.project_id = ? AND pt.training_type_id = ?
   `;
 
   try {
-    const [rows] = await db.promise().query(query, [projectId, typeId]);
+    // Upewnij się, że typeId jest przekazywane jako liczba
+    const numericTypeId = parseInt(typeId, 10);
+    if (isNaN(numericTypeId)) {
+      return res.status(400).json({ success: false, message: "Invalid typeId" });
+    }
+
+    const [rows] = await db.promise().query(query, [projectId, numericTypeId]);
 
     res.json({
       success: true,
       trainers: rows.map((row) => ({
         id: row.trainerId,
         name: row.trainerName,
+        projectTrainerId: row.projectTrainerId,
       })),
     });
   } catch (error) {
@@ -312,6 +322,7 @@ router.get("/:projectId/trainers/:typeId", async (req, res) => {
     res.status(500).json({ success: false, message: "Błąd serwera." });
   }
 });
+
 router.get("/:projectId/participants/:participantId", async (req, res) => {
   const { projectId, participantId } = req.params;
 

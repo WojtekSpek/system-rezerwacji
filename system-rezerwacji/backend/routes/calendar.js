@@ -68,33 +68,44 @@ router.get('/projects/:projectId/hours-summary', async (req, res) => {
 });
 // Pobieranie wydarzeń dla projektu
 router.get("/events/:projectId", async (req, res) => {
-    const { projectId } = req.params;
-  
-    try {
-      const query = `
-        SELECT e.id, e.title, e.description, e.start, e.end, t.name AS trainerName
-        FROM events e
-        LEFT JOIN trainers t ON e.project_trainer_id = t.id
-        WHERE e.project_id = ?
-      `;
-      const [events] = await db.promise().query(query, [projectId]);
-  
-      res.json({
-        success: true,
-        events: events.map((event) => ({
-          id: event.id,
-          title: event.title,
-          description: event.description,
-          start: event.start,
-          end: event.end,
-          trainerName: event.trainerName || "Nieprzypisany",
-        })),
-      });
-    } catch (error) {
-      console.error("Błąd podczas pobierania wydarzeń:", error);
-      res.status(500).json({ success: false, message: "Błąd serwera" });
-    }
-  });
+  const { projectId } = req.params;
+
+  try {
+    const query = `
+      SELECT 
+        e.id, 
+        e.title, 
+        e.description, 
+        e.start, 
+        e.end, 
+        pt.id AS projectTrainerId, -- Id z tabeli project_trainers
+        t.name AS trainerName
+      FROM events e
+      LEFT JOIN project_trainers pt ON e.project_trainer_id = pt.id -- Połączenie z project_trainers
+      LEFT JOIN trainers t ON pt.trainer_id = t.id -- Połączenie z trainers
+      WHERE e.project_id = ?
+    `;
+    const [events] = await db.promise().query(query, [projectId]);
+    console.log("Pobieranie wydarzeń:", events);
+
+    res.json({
+      success: true,
+      events: events.map((event) => ({
+        id: event.id,
+        title: event.title,
+        description: event.description,
+        start: event.start,
+        end: event.end,
+        trainerName: event.trainerName || "Nieprzypisany",
+        projectTrainerId: event.projectTrainerId, // Dodanie projectTrainerId do odpowiedzi
+      })),
+    });
+  } catch (error) {
+    console.error("Błąd podczas pobierania wydarzeń:", error);
+    res.status(500).json({ success: false, message: "Błąd serwera" });
+  }
+});
+
   // Dodawanie wydarzenia
 router.post("/events", async (req, res) => {
     const { title, description, start, end, trainerId, projectId } = req.body;

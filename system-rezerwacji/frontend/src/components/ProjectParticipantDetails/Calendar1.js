@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import axios from "axios";
 import { Calendar as BigCalendar, momentLocalizer } from "react-big-calendar";
 import moment from "moment";
 import "react-big-calendar/lib/css/react-big-calendar.css";
 import EditEventModal from "./EditEventModal";
+import CreateEventModal from "./CreateEventModal";
 
 const localizer = momentLocalizer(moment);
 
@@ -18,64 +19,123 @@ function Calendar1({
   setNewEvent,
   projectTypesAll,
   projectId,
+  trainers,
   activeTab,
   selectedTrainer, // Dodaj selectedTrainer jako prop
   setSelectedTrainer, // Dodaj setSelectedTrainer jako prop
+  getEventStyle,
+  eventPropGetter,
+   // Przekazanie funkcji
 }) {
     const [selectedEvent, setSelectedEvent] = useState(null); // Wybrane wydarzenie do edycji
     const [showEditModal, setShowEditModal] = useState(false); // Pokazanie okna edycji
-    const [trainers, setTrainers] = useState([]);
+    const [showCreateModal, setShowCreateModal] = React.useState(false);
+    const [eventData, setEventData] = useState(events || {});
+    //const [trainers, setTrainers] = useState([]);
    // const [selectedTrainer, setSelectedTrainer] = useState(null);
    
     console.log('trainers', trainers)
+// Obsługa dodawania wydarzenia
+const handleAddEvent = async () => {
+  if (!newEvent.title || !newEvent.start || !newEvent.end) {
+    alert("Uzupełnij wszystkie dane wydarzenia!");
+    return;
+  }
 
-    useEffect(() => {
-        const fetchTrainers = async () => {
-          try {
-            const response = await axios.get(`/projects/${projectId}/trainers/${typeId}`);
-            if (response.data.success) {
-              setTrainers(response.data.trainers);
-              console.log('participantId',participantId)
-            }
-          } catch (error) {
-            console.error("Błąd podczas pobierania trenerów projektu:", error);
-          }
-        };
-        
-        fetchTrainers();
-      }, [projectId, activeTab]);
+  const eventToSave = {
+    ...newEvent,
+    trainerId: selectedTrainer?.id, // Powiązanie z wybranym trenerem
+    projectId, // Powiązanie z projektem
+  };
 
-      const currentType = projectTypesAll.find((type) => type.name === activeTab);
-      const typeId = currentType?.id;
-      console.log("Obecne typeId:", projectTypesAll);
+  try {
+    const response = await axios.post("/calendar/events", eventToSave); // Wywołanie endpointu
+    console.log("Odpowiedź z backendu:", response.data);
 
-
-
-   
-
-    const handleSelectSlot = (slotInfo) => {
-    const title = window.prompt("Podaj tytuł wydarzenia:");
-    if (title && selectedTrainer) {
-      onAddEvent({
-        start: slotInfo.start,
-        end: slotInfo.end,
-        title,
-        trainerId: selectedTrainer.id,
-      });
-      
+    if (response.data.success) {
+      setEvents((prevEvents) => [
+        ...prevEvents,
+        {
+          ...eventToSave,
+          id: response.data.eventId, // ID zwrócone przez backend
+          start: new Date(eventToSave.start), // Przekształcenie daty na obiekt
+          end: new Date(eventToSave.end),
+        },
+      ]);
+      alert("Wydarzenie zostało zapisane!");
     } else {
-        console.log('slotInfo',slotInfo)
-     // alert("Wybierz trenera przed dodaniem wydarzenias.");
+      alert("Nie udało się dodać wydarzenia.");
     }
+  } catch (error) {
+    console.error("Błąd podczas dodawania wydarzenia:", error);
+    alert("Wystąpił problem podczas zapisywania wydarzenia.");
+  }
+};
+      const sanitizedEvents = useMemo(() => {
+        if (!events || !Array.isArray(events)) {
+          console.error("Events jest null lub nie jest tablicą:", events);
+          return [];
+        }
+        return events.map((event) => ({
+          ...event,
+          start: new Date(event.start),
+          end: new Date(event.end),
+        }));
+      }, [events]);
+
+
+      
+      class ErrorBoundary extends React.Component {
+        constructor(props) {
+          super(props);
+          this.state = { hasError: false };
+        }
+      
+        static getDerivedStateFromError(error) {
+          return { hasError: true };
+        }
+      
+        componentDidCatch(error, errorInfo) {
+          console.error("Błąd złapany w ErrorBoundary:", error, errorInfo);
+        }
+      
+        render() {
+          if (this.state.hasError) {
+            return <h1>Coś poszło nie tak.</h1>;
+          }
+          return this.props.children;
+        }
+      }  
+
+      // Obsługa kliknięcia w slot (wolny obszar kalendarza)
+  const handleSelectSlot = (slotInfo) => {
+    setSelectedEvent({
+      start: slotInfo.start,
+      end: slotInfo.end,
+      title: "", // Domyślny tytuł, np. puste pole
+      description: "", // Pole na dodatkowy opis
+      trainerId: "", // Domyślnie brak przypisanego trenera
+    });
+    setShowEditModal(true); // Otwórz modal
   };
 
-  const handleSelectEvent = (event) => {
-    /* setSelectedEvent(event); // Ustaw wybrane wydarzenie 
-    setShowEditModal(true); // Pokaż okno edycji  */
-    console.log("Kliknięte wydarzenie:", event);
-    onEditEvent(event); // Wywołaj funkcję przekazaną z ProjectParticipantDetails
+  // Obsługa zapisu wydarzenia (nowego lub edytowanego)
+  const handleSaveEvent = (eventData) => {
+    if (eventData.id) {
+      // Edycja istniejącego wydarzenia
+      setEvents((prev) =>
+        prev.map((evt) => (evt.id === eventData.id ? { ...evt, ...eventData } : evt))
+      );
+    } else {
+      // Tworzenie nowego wydarzenia
+      const newEvent = {
+        ...eventData,
+        id: Date.now(), // Tymczasowe ID (w rzeczywistości powinno pochodzić z backendu)
+      };
+      setEvents((prev) => [...prev, newEvent]);
+    }
+    setShowEditModal(false); // Zamknij modal
   };
-
   const handleEditEvent = async () => {
     if (!selectedEvent) return;
   
@@ -172,25 +232,47 @@ function Calendar1({
       </div>
 
       {/* Kalendarz */}
+      <ErrorBoundary>
       <BigCalendar
-       events={events}
+      // events={events}
        localizer={localizer}
        startAccessor="start"
+       events={sanitizedEvents} // Użyj zabezpieczonych danych
        endAccessor="end"
-       selectable
-       onSelectEvent={handleSelectEvent} // Obsługuje kliknięcie wydarzenia
-       onSelectSlot={handleSelectSlot} // Obsługa dodawania wydarzeń
+       selectable // Włącza możliwość klikania w wolne obszary
+       onSelectSlot={() => setShowCreateModal(true)} // Wyświetl modal tworzenia
+        onSelectEvent={(event) => {
+          setSelectedEvent(event); // Ustaw wybrane wydarzenie
+          setShowEditModal(true); // Otwórz modal
+        }}
        style={{ height: 500 }}
+       eventPropGetter={eventPropGetter} // Przypisanie stylu do wydarzenia
       />
 
-
-      {/* {showEditModal && selectedEvent && (
-        <EditEventModal
-          event={selectedEvent}
-          onClose={() => setShowEditModal(false)}
-          onSave={handleEditEvent}
+      </ErrorBoundary>
+      {showCreateModal && (
+        <CreateEventModal
+        show={showCreateModal}
+        trainers={trainers}
+        onSave={(eventData) => {
+          console.log("Otrzymano dane do zapisania:", eventData); // Debuguj dane
+          handleAddEvent(eventData); // Wywołaj handleAddEvent z eventData
+          setShowCreateModal(false); // Zamknij modal po zapisie
+          }}
+          onClose={() => setShowCreateModal(false)}
         />
-      )} */}
+      )}
+      {/* Modal dla tworzenia/edycji wydarzeń */}
+      {showEditModal && (
+        <EditEventModal
+          show={showEditModal}
+          event={selectedEvent}
+          trainers={trainers}
+          onClose={() => setShowEditModal(false)}
+          onSave={handleSaveEvent}
+          //etEventData={setEventData} // Przekazanie funkcji
+        />
+      )}
 
     </div>
   );
