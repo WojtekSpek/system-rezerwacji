@@ -35,43 +35,75 @@ function Calendar1({
    // const [selectedTrainer, setSelectedTrainer] = useState(null);
    
     console.log('trainers', trainers)
+    console.log("Przekazanie eventPropGetter:", eventPropGetter);
 // Obsługa dodawania wydarzenia
-const handleAddEvent = async () => {
-  if (!newEvent.title || !newEvent.start || !newEvent.end) {
-    alert("Uzupełnij wszystkie dane wydarzenia!");
-    return;
-  }
+    const handleAddEvent = async (newEventData) => {
+      console.log("handleAddEvent - Przekazane dane:", newEventData); // Debuguj dane
+      if (newEventData.id) {
+        // Edytowanie istniejącego wydarzenia
+        console.log('edytowanie wydarzenia')
+        try {
+          const response = await axios.put(`/calendar/events/${newEventData.id}`, newEventData);
+          if (response.data.success) {
+            setEvents((prevEvents) =>
+              prevEvents.map((evt) =>
+                evt.id === newEventData.id ? { ...evt, ...newEventData } : evt
+              )
+            );
+            alert("Wydarzenie zostało zaktualizowane!");
+          }
+        } catch (error) {
+          console.error("Błąd podczas edytowania wydarzenia:", error);
+          alert("Nie udało się zaktualizować wydarzenia.");
+      }
+      } else {
+        const eventToSave = {
+          ...newEventData,
+          projectId, // Dodanie ID projektu
+        };
+        const newEventToAdd = {
+          ...eventData,
+          id: Date.now(), // Tymczasowe ID
+        };
 
-  const eventToSave = {
-    ...newEvent,
-    trainerId: selectedTrainer?.id, // Powiązanie z wybranym trenerem
-    projectId, // Powiązanie z projektem
-  };
+        setEvents((prevEvents) => [...prevEvents, newEventToAdd]);
+          setShowCreateModal(false);
+        try {
+          const response = await axios.post("/calendar/events", eventToSave); // Wywołanie API
+          console.log("Odpowiedź z serwera:", response.data);
 
-  try {
-    const response = await axios.post("/calendar/events", eventToSave); // Wywołanie endpointu
-    console.log("Odpowiedź z backendu:", response.data);
+          if (response.data.success) {
+            setEvents((prevEvents) => [
+              ...prevEvents,
+              {
+                ...eventToSave,
+                id: response.data.eventId, // ID zwrócone przez backend
+                start: new Date(newEventData.start),
+                end: new Date(newEventData.end),
+              },
+            ]);
+            setShowCreateModal(false); // Zamknięcie modala
+            alert("Wydarzenie zostało dodane!");
+          } else {
+            alert("Nie udało się dodać wydarzenia.");
+          }
+        } catch (error) {
+          console.error("Błąd podczas dodawania wydarzenia:", error);
+          alert("Wystąpił błąd podczas zapisu.");
+        }
+      }
+    };
 
-    if (response.data.success) {
-      setEvents((prevEvents) => [
-        ...prevEvents,
-        {
-          ...eventToSave,
-          id: response.data.eventId, // ID zwrócone przez backend
-          start: new Date(eventToSave.start), // Przekształcenie daty na obiekt
-          end: new Date(eventToSave.end),
-        },
-      ]);
-      alert("Wydarzenie zostało zapisane!");
-    } else {
-      alert("Nie udało się dodać wydarzenia.");
-    }
-  } catch (error) {
-    console.error("Błąd podczas dodawania wydarzenia:", error);
-    alert("Wystąpił problem podczas zapisywania wydarzenia.");
-  }
-};
-      const sanitizedEvents = useMemo(() => {
+    const handleSelectEvent = (event) => {
+      if (event.type === activeTab) {
+        setSelectedEvent(event); // Ustaw wybrane wydarzenie
+        setShowEditModal(true); // Otwórz modal
+      } else {
+        alert(`Możesz edytować tylko wydarzenia z typem "${activeTab}".`);
+      }
+    };
+
+ const sanitizedEvents = useMemo(() => {
         if (!events || !Array.isArray(events)) {
           console.error("Events jest null lub nie jest tablicą:", events);
           return [];
@@ -83,7 +115,20 @@ const handleAddEvent = async () => {
         }));
       }, [events]);
 
-
+      const handleDeleteEvent = async (eventId) => {
+        try {
+          const response = await axios.delete(`/calendar/events/${eventId}`); // Wywołanie API do usunięcia
+          if (response.data.success) {
+            setEvents((prevEvents) => prevEvents.filter((event) => event.id !== eventId));
+            alert("Wydarzenie zostało usunięte.");
+          } else {
+            alert("Nie udało się usunąć wydarzenia.");
+          }
+        } catch (error) {
+          console.error("Błąd podczas usuwania wydarzenia:", error);
+          alert("Wystąpił błąd podczas usuwania.");
+        }
+      };
       
       class ErrorBoundary extends React.Component {
         constructor(props) {
@@ -108,16 +153,17 @@ const handleAddEvent = async () => {
       }  
 
       // Obsługa kliknięcia w slot (wolny obszar kalendarza)
-  const handleSelectSlot = (slotInfo) => {
-    setSelectedEvent({
-      start: slotInfo.start,
-      end: slotInfo.end,
-      title: "", // Domyślny tytuł, np. puste pole
-      description: "", // Pole na dodatkowy opis
-      trainerId: "", // Domyślnie brak przypisanego trenera
-    });
-    setShowEditModal(true); // Otwórz modal
-  };
+      const handleSelectSlot = (slotInfo) => {
+        const defaultEnd = moment(slotInfo.start).add(1, "hours").toDate();
+        setNewEvent({
+          title: "",
+          description: "",
+          start: slotInfo.start,
+          end: defaultEnd,
+          projectTrainerId: "",
+        });
+        setShowCreateModal(true); // Otwórz modal tworzenia
+      };
 
   // Obsługa zapisu wydarzenia (nowego lub edytowanego)
   const handleSaveEvent = (eventData) => {
@@ -164,60 +210,11 @@ const handleAddEvent = async () => {
   return (
     <div>
       <h2 className="text-2xl font-bold mb-4">Kalendarz - {activeTab}</h2>
-      {/* Wybór trenera */}
-      <div className="mb-4">
-        <label htmlFor="trainer" className="block mb-2 font-semibold">
-          Wybierz trenera:
-        </label>
-        <select
-          id="trainer"
-          value={selectedTrainer?.id || ""}
-          onChange={(e) =>
-            setSelectedTrainer(
-              trainers.find((t) => t.id === parseInt(e.target.value))
-            )
-          }
-          className="border border-gray-300 p-2 rounded w-full"
-        >
-          <option value="">-- Wybierz trenera --</option>
-          {trainers.map((trainer) => (
-            <option key={trainer.id} value={trainer.id}>
-              {trainer.name}
-            </option>
-          ))}
-        </select>
-      </div>
+      
 
       {/* Dodawanie wydarzenia */}
       <div className="mb-4">
-        <label className="block mb-2 font-semibold">Dodaj wydarzenie:</label>
-        <input
-          type="text"
-          placeholder="Tytuł"
-          value={newEvent.title}
-          onChange={(e) =>
-            setNewEvent((prev) => ({ ...prev, title: e.target.value }))
-          }
-          className="border border-gray-300 p-2 rounded w-full mb-2"
-        />
-        <input
-          type="datetime-local"
-          placeholder="Data początkowa"
-          value={newEvent.start}
-          onChange={(e) =>
-            setNewEvent((prev) => ({ ...prev, start: e.target.value }))
-          }
-          className="border border-gray-300 p-2 rounded w-full mb-2"
-        />
-        <input
-          type="datetime-local"
-          placeholder="Data końcowa"
-          value={newEvent.end}
-          onChange={(e) =>
-            setNewEvent((prev) => ({ ...prev, end: e.target.value }))
-          }
-          className="border border-gray-300 p-2 rounded w-full mb-2"
-        />
+       
         <button
           onClick={() =>
             onAddEvent({
@@ -234,30 +231,45 @@ const handleAddEvent = async () => {
       {/* Kalendarz */}
       <ErrorBoundary>
       <BigCalendar
-      // events={events}
-       localizer={localizer}
-       startAccessor="start"
-       events={sanitizedEvents} // Użyj zabezpieczonych danych
-       endAccessor="end"
-       selectable // Włącza możliwość klikania w wolne obszary
-       onSelectSlot={() => setShowCreateModal(true)} // Wyświetl modal tworzenia
-        onSelectEvent={(event) => {
-          setSelectedEvent(event); // Ustaw wybrane wydarzenie
-          setShowEditModal(true); // Otwórz modal
-        }}
-       style={{ height: 500 }}
-       eventPropGetter={eventPropGetter} // Przypisanie stylu do wydarzenia
+        // events={events}
+        localizer={localizer}
+        startAccessor="start"
+        events={sanitizedEvents} // Użyj zabezpieczonych danych
+        endAccessor="end"
+        
+        selectable // Włącza możliwość klikania w wolne obszary
+        onSelectSlot={(slotInfo) => {
+          const newEvent = {
+            start: slotInfo.start,
+            end: moment(slotInfo.start).add(1, "hours").toDate(),
+           /*  title: "",
+            description: "",
+            trainerId: "", */
+            type: activeTab, // Domyślnie ustaw typ na aktywną zakładkę
+          };
+          console.log("Nowe wydarzenie do dodania:", newEvent); // Debuguj dane wydarzenia
+
+          setSelectedEvent(newEvent);
+          setShowCreateModal(true); // Otwórz modal dodawania wydarzenia
+        }}        onSelectEvent={(event) => {
+            setSelectedEvent(event); // Ustaw wybrane wydarzenie
+            setShowEditModal(true); // Otwórz modal
+          }}
+        style={{ height: 500 }}
+        onSelectEvent={handleSelectEvent} // Użyj nowej funkcji obsługującej edycję
+        eventPropGetter={eventPropGetter} // Przypisanie stylu do wydarzenia
       />
 
       </ErrorBoundary>
       {showCreateModal && (
         <CreateEventModal
-        show={showCreateModal}
-        trainers={trainers}
-        onSave={(eventData) => {
-          console.log("Otrzymano dane do zapisania:", eventData); // Debuguj dane
-          handleAddEvent(eventData); // Wywołaj handleAddEvent z eventData
-          setShowCreateModal(false); // Zamknij modal po zapisie
+          show={showCreateModal}
+          trainers={trainers}
+          eventData={selectedEvent} // Przekazywanie danych do modala
+          onSave={(eventData) => {
+            console.log("Zapisano wydarzenie:", eventData); // Debuguj dane zapisywane z modala
+            handleAddEvent(eventData); // Wywołaj funkcję dodawania wydarzenia
+            setShowCreateModal(false); // Zamknij modal po zapisie
           }}
           onClose={() => setShowCreateModal(false)}
         />
@@ -268,9 +280,12 @@ const handleAddEvent = async () => {
           show={showEditModal}
           event={selectedEvent}
           trainers={trainers}
-          onClose={() => setShowEditModal(false)}
-          onSave={handleSaveEvent}
-          //etEventData={setEventData} // Przekazanie funkcji
+          onClose={() => setShowEditModal(false)} // Funkcja zamykająca modal
+          onSave={(updatedEvent) => {
+            handleAddEvent(updatedEvent); // Wywołanie funkcji zapisu
+            setShowEditModal(false); // Zamknięcie modala po zapisie
+          }}
+          onDelete={handleDeleteEvent} // Usuwa wydarzenie
         />
       )}
 

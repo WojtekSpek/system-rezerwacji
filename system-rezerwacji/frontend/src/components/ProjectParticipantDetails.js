@@ -34,6 +34,8 @@ function ProjectParticipantDetails({ participantId, projectId, onBack }) {
     end: "",
     trainerId: "",
   });
+
+
   const handleEditEvent = (event) => {
     console.log("Otwieranie modala dla wydarzenia", event);
     setSelectedEvent(event); // Ustaw wybrane wydarzenie
@@ -50,6 +52,8 @@ function ProjectParticipantDetails({ participantId, projectId, onBack }) {
     }
   }, [events]);
   console.log('event',events)
+
+
   useEffect(() => {
     const fetchTrainers = async () => {
       try {
@@ -94,29 +98,43 @@ function ProjectParticipantDetails({ participantId, projectId, onBack }) {
     };
    
     const getEventStyle = (event) => {
-      console.log("Wywołanie getEventStyle dla wydarzenia:", event.trainerId);
-    
-      // Dopasuj kolor na podstawie trenera
+      console.log("Wywołanie getEventStyle dla wydarzenia:", event);
+
       const trainerColors = {
         1: "#f56c6c", // Trener 1 - czerwony
         2: "#67c23a", // Trener 2 - zielony
-        3: "#8cff00", // Trener 3 - niebieski
+        3: "#ff9900", // Trener 3 - pomarańczowy
       };
-    
-      const backgroundColor = trainerColors[event.trainerId] || "#fffff"; // Domyślny kolor szary
-    
-      return {
-        style: {
-          backgroundColor,
-          color: "white", // Kolor tekstu
-          borderRadius: "5px",
-          border: "none",
-        },
-      };
+
+      if (event.typeName === activeTab) {
+        // Kolorowe wydarzenie dla aktywnej zakładki
+        return {
+          style: {
+            backgroundColor: trainerColors[event.projectTrainerId] || "#cccccc",
+            color: "white",
+            borderRadius: "5px",
+            border: "none",
+            cursor: "pointer",
+            opacity: 1,
+          },
+        };
+      } else {
+        // Zaszarzałe dla nieaktywnej zakładki
+        return {
+          style: {
+            backgroundColor: "#d3d3d3",
+            color: "#a9a9a9",
+            borderRadius: "5px",
+            border: "none",
+            cursor: "not-allowed",
+            opacity: 0.6,
+          },
+        };
+      }
     };
     
 
-  const fetchEvents = async () => {
+    const fetchEvents = async () => {
       try {
         const response = await axios.get(`calendar/events/${projectId}`);
         if (response.data.success) {
@@ -126,6 +144,7 @@ function ProjectParticipantDetails({ participantId, projectId, onBack }) {
               ...event,
               start: new Date(event.start),
               end: new Date(event.end),
+              type: (event.type), // Przypisz typ na podstawie logiki
             }))
           );
         }
