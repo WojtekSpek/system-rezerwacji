@@ -399,6 +399,14 @@ function ProjectParticipantDetails({ participantId, projectId, onBack}) {
         
           return (
             <div>
+              <h2 className="text-2xl font-bold mb-4">Kalendarz - {activeTab}</h2>
+      
+
+      {/* Dodawanie wydarzenia */}
+            <div className="mb-4">
+            
+              
+            </div>
               <div className="mb-4">
             <TotalHours projectId={projectId} type={activeTab} typeId={typeId} initialPlannedHours={0}/>
             </div>

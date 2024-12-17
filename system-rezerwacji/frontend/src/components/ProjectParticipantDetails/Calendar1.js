@@ -219,7 +219,7 @@ const handleAddEvent = async (newEventData) => {
   };
   return (
     <div>
-      <h2 className="text-2xl font-bold mb-4">Kalendarz - {activeTab}</h2>
+      
       
 
       {/* Dodawanie wydarzenia */}

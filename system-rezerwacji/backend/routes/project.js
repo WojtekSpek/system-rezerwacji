@@ -93,7 +93,7 @@ router.delete("/:id", authenticateUser, authorizeRole("admin"), async (req, res)
 router.put("/updateProject/:id", authenticateUser, authorizeRole("admin"), async (req, res) => {
   const projectId = req.params.id; // ID projektu z URL
   const { name, types } = req.body; // Dane przesłane w żądaniu
-  console.log('req.body',req.body)
+  //console.log('req.body',req.body)
   if (!name) {
     return res.status(400).json({ success: false, message: "Nazwa projektu jest wymagana." });
   }
@@ -364,8 +364,8 @@ router.get("/:projectId/participants/:participantId", async (req, res) => {
 router.put("/:projectId/types/:typeId", async (req, res) => {
   const { projectId, typeId } = req.params;
   const { plannedHours } = req.body;
-console.log(req.params)
-console.log(req.body)
+//console.log(req.params)
+//console.log(req.body)
   try {
     const query = `
       UPDATE project_training_types
@@ -412,9 +412,9 @@ router.get("/events/total-hours/:projectId/:type", async (req, res) => {
 });
 
 // GET /projects/:projectId/types/:typeId/hours
-router.get("/projects/:projectId/types/:typeId/hours", async (req, res) => {
+router.get("/:projectId/types/:typeId/hours", async (req, res) => {
   const { projectId, typeId } = req.params;
-
+ console.log('godziny ',req.params)
   try {
     // Sumowanie godzin przydzielonych dla danego typu i projektu
     const query = `
@@ -439,5 +439,98 @@ router.get("/projects/:projectId/types/:typeId/hours", async (req, res) => {
   }
 });
 
+// GET /projects/:projectId/types/:typeId/planned-hours
+router.get("/:projectId/types/:typeId/planned-hours", async (req, res) => {
+  const { projectId, typeId } = req.params;
+
+  try {
+    // Pobranie planned_hours na podstawie projectId i typeId
+    const query = `
+      SELECT planned_hours 
+      FROM project_training_types
+      WHERE project_id = ? AND training_type_id = ?
+    `;
+    const [rows] = await db.promise().query(query, [projectId, typeId]);
+
+    if (rows.length > 0) {
+      res.json({
+        success: true,
+        plannedHours: rows[0].planned_hours,
+        
+      });
+      console.log('plannedHours',rows[0].planned_hours)
+    } else {
+      res.status(404).json({
+        success: false,
+        message: "Nie znaleziono planowanych godzin dla podanego projektu i typu.",
+      });
+    }
+  } catch (error) {
+    console.error("Błąd podczas pobierania planned_hours:", error);
+    res.status(500).json({
+      success: false,
+      message: "Błąd serwera podczas pobierania planned_hours.",
+    });
+  }
+});
+
+// GET - Pobierz planned_hours dla wybranego projektu i typów
+router.get("/:projectId/training-types/hours", async (req, res) => {
+  const { projectId } = req.params;
+
+  try {
+    const query = `
+      SELECT pt.training_type_id, t.type AS typeName, pt.planned_hours
+      FROM project_training_types pt
+      INNER JOIN training_types t ON pt.training_type_id = t.id
+      WHERE pt.project_id = ?
+    `;
+    const [rows] = await db.promise().query(query, [projectId]);
+console.log('rows',rows);
+    res.json({
+      success: true,
+      trainingHours: rows,
+    });
+  } catch (error) {
+    console.error("Błąd podczas pobierania godzin szkoleń:", error);
+    res.status(500).json({
+      success: false,
+      message: "Błąd serwera.",
+    });
+  }
+});
+
+// PUT - Aktualizuj planned_hours dla konkretnego typu szkolenia
+router.put(":projectId/training-types/:typeId", async (req, res) => {
+  const { projectId, typeId } = req.params;
+  const { plannedHours } = req.body;
+
+  try {
+    const query = `
+      UPDATE project_training_types
+      SET planned_hours = ?
+      WHERE project_id = ? AND training_type_id = ?
+    `;
+    const [result] = await db.promise().query(query, [plannedHours, projectId, typeId]);
+
+    if (result.affectedRows > 0) {
+      res.json({
+        success: true,
+        message: "Czas szkolenia został zaktualizowany.",
+      });
+    } else {
+      res.status(404).json({
+        success: false,
+        message: "Nie znaleziono typu szkolenia dla projektu.",
+      });
+    }
+  } catch (error) {
+    console.error("Błąd podczas aktualizacji godzin szkoleń:", error);
+    res.status(500).json({
+      success: false,
+      message: "Błąd serwera.",
+    });
+  }
+});
 
 module.exports = router;

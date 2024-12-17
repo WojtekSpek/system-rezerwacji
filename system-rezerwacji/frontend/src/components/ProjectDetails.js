@@ -6,10 +6,13 @@ function ProjectDetails({ project, onUpdate }) {
   const [editedName, setEditedName] = useState(project.name);
   const [editedTypes, setEditedTypes] = useState([]); // Zawiera ID typów przypisanych do projektu
   const [allTypes, setAllTypes] = useState([]); // Zawiera obiekty typów { id, type }
+  const [trainingHours, setTrainingHours] = useState([]); // Godziny dla typów
+  const [editingHours, setEditingHours] = useState({}); // Bieżące edytowane godziny
 
   useEffect(() => {
     fetchProjectTypes();
     fetchAllTypes();
+    fetchTrainingHours();
   }, [project.id]);
 
   const fetchProjectTypes = async () => {
@@ -53,6 +56,33 @@ function ProjectDetails({ project, onUpdate }) {
     }
   };
 
+// Pobierz planned_hours
+const fetchTrainingHours = async () => {
+  try {
+    const response = await axios.get(`/projects/${project.id}/training-types/hours`);
+    if (response.data.success) {
+      setTrainingHours(response.data.trainingHours);
+      console.log('response.data.trainingHours',response.data.trainingHours)
+    }
+  } catch (error) {
+    console.error("Błąd podczas pobierania godzin:", error);
+  }
+};
+
+// Aktualizuj planned_hours
+const handleUpdateHours = async (typeId, newHours) => {
+  try {
+    await axios.put(`/projects/${project.id}/training-types/${typeId}`, {
+      plannedHours: newHours,
+    });
+    fetchTrainingHours(); // Odśwież dane
+    alert("Godziny zostały zaktualizowane!");
+  } catch (error) {
+    console.error("Błąd podczas aktualizacji godzin:", error);
+    alert("Nie udało się zaktualizować godzin.");
+  }
+};
+
   const handleCheckboxChange = (typeId) => {
     if (editedTypes.includes(typeId)) {
       setEditedTypes(editedTypes.filter((id) => id !== typeId));
@@ -66,7 +96,9 @@ function ProjectDetails({ project, onUpdate }) {
   }
 
   return (
-    <div className="flex justify-between items-center bg-gray-50 p-4 rounded mb-2 shadow hover:shadow-md">
+    <div>
+      {/* Szczegóły projektu */}
+      <div className="flex justify-between items-center bg-gray-50 p-4 rounded mb-2 shadow hover:shadow-md">
       {/* Sekcja po lewej */}
       <div className="lg:w-1/2">
         <h2 className="text-3xl font-bold mb-6">Szczegóły projektu</h2>
@@ -157,6 +189,53 @@ function ProjectDetails({ project, onUpdate }) {
             Edytuj
           </button>
         )}
+      </div>
+    </div>
+
+      {/* Sekcja Czas szkoleń */}
+      <div className="mt-6 p-4 bg-white shadow rounded">
+        <h3 className="text-xl font-semibold mb-4">Czas szkoleń</h3>
+        {trainingHours.map((training) => (
+          <div key={training.type_id} className="flex justify-between items-center mb-2">
+            <span>{training.typeName}</span>
+            {editingHours[training.type_id] !== undefined ? (
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  value={editingHours[training.type_id]}
+                  onChange={(e) =>
+                    setEditingHours({
+                      ...editingHours,
+                      [training.type_id]: e.target.value,
+                    })
+                  }
+                  className="border p-1 rounded w-16"
+                />
+                <button
+                  onClick={() => {
+                    handleUpdateHours(training.type_id, editingHours[training.type_id]);
+                    setEditingHours({ ...editingHours, [training.type_id]: undefined });
+                  }}
+                  className="bg-green-500 text-white px-2 py-1 rounded"
+                >
+                  Zapisz
+                </button>
+              </div>
+            ) : (
+              <>
+                <span>{training.planned_hours || 0} godzin</span>
+                <button
+                  onClick={() =>
+                    setEditingHours({ ...editingHours, [training.type_id]: training.planned_hours })
+                  }
+                  className="bg-blue-500 text-white px-2 py-1 rounded"
+                >
+                  Edytuj
+                </button>
+              </>
+            )}
+          </div>
+        ))}
       </div>
     </div>
   );
