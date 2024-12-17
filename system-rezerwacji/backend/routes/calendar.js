@@ -80,11 +80,10 @@ router.get("/events/:projectId", async (req, res) => {
         e.end, 
         pt.id AS projectTrainerId, -- Id z tabeli project_trainers
         t.name AS trainerName,
-        ty.type AS type -- Typ przypisany do wydarzenia
+        e.type 
       FROM events e
       LEFT JOIN project_trainers pt ON e.project_trainer_id = pt.id -- Połączenie z project_trainers
       LEFT JOIN trainers t ON pt.trainer_id = t.id -- Połączenie z trainers
-      LEFT JOIN training_types ty ON pt.training_type_id = ty.id -- Połączenie z types
       WHERE e.project_id = ?
     `;
     const [events] = await db.promise().query(query, [projectId]);
@@ -112,7 +111,7 @@ router.get("/events/:projectId", async (req, res) => {
 
   // Dodawanie wydarzenia
 router.post("/events", async (req, res) => {
-    const { title, description, start, end, projectTrainerId, projectId } = req.body;
+    const { title, description, start, end, projectTrainerId, projectId,type } = req.body;
     console.log("Event to insert:", {
       title: req.body.title,
       description: req.body.description,

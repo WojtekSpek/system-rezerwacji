@@ -52,62 +52,56 @@ function Calendar1({
     console.log('trainers', trainers)
     console.log("Przekazanie eventPropGetter:", eventPropGetter);
 // Obsługa dodawania wydarzenia
-    const handleAddEvent = async (newEventData) => {
-      console.log("handleAddEvent - Przekazane dane:", newEventData); // Debuguj dane
-      if (newEventData.id) {
-        // Edytowanie istniejącego wydarzenia
-        console.log('edytowanie wydarzenia')
-        try {
-          const response = await axios.put(`/calendar/events/${newEventData.id}`, newEventData);
-          if (response.data.success) {
-            setEvents((prevEvents) =>
-              prevEvents.map((evt) =>
-                evt.id === newEventData.id ? { ...evt, ...newEventData } : evt
-              )
-            );
-            alert("Wydarzenie zostało zaktualizowane!");
-          }
-        } catch (error) {
-          console.error("Błąd podczas edytowania wydarzenia:", error);
-          alert("Nie udało się zaktualizować wydarzenia.");
-      }
-      } else {
-        const eventToSave = {
-          ...newEventData,
-          projectId, // Dodanie ID projektu
-        };
-        const newEventToAdd = {
-          ...eventData,
-          id: Date.now(), // Tymczasowe ID
-        };
+const handleAddEvent = async (newEventData) => {
+  console.log("handleAddEvent - Przekazane dane:", newEventData);
 
-        setEvents((prevEvents) => [...prevEvents, newEventToAdd]);
-          setShowCreateModal(false);
-        try {
-          const response = await axios.post("/calendar/events", eventToSave); // Wywołanie API
-          console.log("Odpowiedź z serwera:", response.data);
-
-          if (response.data.success) {
-            setEvents((prevEvents) => [
-              ...prevEvents,
-              {
-                ...eventToSave,
-                id: response.data.eventId, // ID zwrócone przez backend
-                start: new Date(newEventData.start),
-                end: new Date(newEventData.end),
-              },
-            ]);
-            setShowCreateModal(false); // Zamknięcie modala
-            alert("Wydarzenie zostało dodane!");
-          } else {
-            alert("Nie udało się dodać wydarzenia.");
-          }
-        } catch (error) {
-          console.error("Błąd podczas dodawania wydarzenia:", error);
-          alert("Wystąpił błąd podczas zapisu.");
-        }
+  if (newEventData.id) {
+    // Edytowanie istniejącego wydarzenia
+    try {
+      const response = await axios.put(`/calendar/events/${newEventData.id}`, newEventData);
+      if (response.data.success) {
+        setEvents((prevEvents) =>
+          prevEvents.map((evt) =>
+            evt.id === newEventData.id ? { ...evt, ...newEventData } : evt
+          )
+        );
+        alert("Wydarzenie zostało zaktualizowane!");
       }
+    } catch (error) {
+      console.error("Błąd podczas edytowania wydarzenia:", error);
+      alert("Nie udało się zaktualizować wydarzenia.");
+    }
+  } else {
+    // Dodawanie nowego wydarzenia
+    const eventToSave = {
+      ...newEventData,
+      projectId, // ID projektu
     };
+
+    try {
+      const response = await axios.post("/calendar/events", eventToSave);
+      if (response.data.success) {
+        const savedEvent = {
+          ...eventToSave,
+          id: response.data.eventId, // ID z bazy
+          start: new Date(newEventData.start),
+          end: new Date(newEventData.end),
+        };
+
+        setEvents((prevEvents) => [...prevEvents, savedEvent]);
+        alert("Wydarzenie zostało dodane!");
+      } else {
+        alert("Nie udało się dodać wydarzenia.");
+      }
+    } catch (error) {
+      console.error("Błąd podczas dodawania wydarzenia:", error);
+      alert("Wystąpił błąd podczas zapisu.");
+    }
+  }
+
+  setShowCreateModal(false); // Zamknij modal
+};
+
 
     const handleSelectEvent = (event) => {
       if (event.type === activeTab) {
@@ -247,6 +241,7 @@ function Calendar1({
       {/* Kalendarz */}
       <ErrorBoundary>
       <BigCalendar
+       key={`${activeTab}-${sanitizedEvents.length}`} // Dodaj dynamiczny klucz
         localizer={localizer}
         startAccessor="start"
         endAccessor="end"

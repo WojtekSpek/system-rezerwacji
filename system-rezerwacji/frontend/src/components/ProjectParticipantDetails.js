@@ -6,6 +6,7 @@ import "moment/locale/pl"; // Import lokalizacji polskiej
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import Calendar1 from "./ProjectParticipantDetails/Calendar1";
 import EditEventModal from "./ProjectParticipantDetails/EditEventModal";
+import TotalHours from "./ProjectParticipantDetails/TotalHours"; // Import komponentu
 
 moment.locale("pl"); // Ustaw język polski
 
@@ -14,7 +15,7 @@ const localizer = momentLocalizer(moment);
 
 
 
-function ProjectParticipantDetails({ participantId, projectId, onBack }) {
+function ProjectParticipantDetails({ participantId, projectId, onBack}) {
   const [participant, setParticipant] = useState(null); // Dane uczestnika w ramach projektu
   const [activeTab, setActiveTab] = useState("Dane osobowe"); // Domyślna zakładka
  
@@ -102,7 +103,7 @@ function ProjectParticipantDetails({ participantId, projectId, onBack }) {
 
   const currentType = projectTypesAll.find((type) => type.name === activeTab);
   const typeId = currentType?.id;
-  console.log("Obecne typeId:", projectTypesAll);
+  console.log("Obecne typeId:", activeTab);
   useEffect(() => {
     
 
@@ -126,18 +127,28 @@ function ProjectParticipantDetails({ participantId, projectId, onBack }) {
         console.error("Błąd podczas pobierania danych uczestnika projektu:", error);
       }
     };
+
+    /* const getTypeIdByName = (typeName) => {
+      const type = projectTypesAll.find((t) => t.name === typeName);
+      return type ? type.id : null;
    
+    };
+
+    const typeId = getTypeIdByName(activeTab); */
+    console.log("Type ID dla aktywnego typu:", typeId);
+
     const getEventStyle = (event) => {
       console.log("Wywołanie getEventStyle dla wydarzenia:", event);
-
+      console.log("activeTab", activeTab);
       const trainerColors = {
         1: "#f56c6c", // Trener 1 - czerwony
         2: "#67c23a", // Trener 2 - zielony
         3: "#ff9900", // Trener 3 - pomarańczowy
       };
 
-      if (event.typeName === activeTab) {
+      if (event.typeName?.trim().toLowerCase() === activeTab?.trim().toLowerCase()) {
         // Kolorowe wydarzenie dla aktywnej zakładki
+        console.log('jestem tu');
         return {
           style: {
             backgroundColor: trainerColors[event.projectTrainerId] || "#cccccc",
@@ -150,6 +161,7 @@ function ProjectParticipantDetails({ participantId, projectId, onBack }) {
         };
       } else {
         // Zaszarzałe dla nieaktywnej zakładki
+        console.log('albo')
         return {
           style: {
             backgroundColor: "#d3d3d3",
@@ -387,8 +399,11 @@ function ProjectParticipantDetails({ participantId, projectId, onBack }) {
         
           return (
             <div>
-              
+              <div className="mb-4">
+            <TotalHours projectId={projectId} type={activeTab} typeId={typeId} initialPlannedHours={0}/>
+            </div>
               <Calendar1
+                key={`${activeTab}-${events.length}`} // Klucz bazujący na activeTab i liczbie wydarzeń
                 projectId={projectId}
                 participantId={participantId}
                 trainerId={selectedTrainer?.id}

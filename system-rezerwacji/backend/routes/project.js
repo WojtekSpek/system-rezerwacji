@@ -140,7 +140,7 @@ router.get("/project_training_types/:projectId", async (req, res) => {
      // types: rows.map((row) => row.type), // Wyciągnięcie nazw typów
       types: rows, // Wyciągnięcie nazw typów
     });
-    console.log('types',rows);
+    //console.log('types',rows);
   } catch (error) {
     console.error("Błąd podczas pobierania typów projektu:", error);
     res.status(500).json({ success: false, message: "Błąd serwera." });
@@ -168,8 +168,7 @@ router.post("/:id/participants", async (req, res) => {
   const { id } = req.params;
   const { participantId } = req.body;
 
-  console.log("Otrzymany projectId z URL:", id);
-  console.log("Otrzymany participantId z body:", participantId);
+
 
   if (!id || !participantId) {
     return res.status(400).json({ success: false, message: "Brak wymaganych danych." });
@@ -362,6 +361,83 @@ router.get("/:projectId/participants/:participantId", async (req, res) => {
   }
 });
 
+router.put("/:projectId/types/:typeId", async (req, res) => {
+  const { projectId, typeId } = req.params;
+  const { plannedHours } = req.body;
+console.log(req.params)
+console.log(req.body)
+  try {
+    const query = `
+      UPDATE project_training_types
+      SET planned_hours = ?
+      WHERE training_type_id = ? AND project_id = ?
+    `;
+    await db.promise().query(query, [plannedHours, typeId, projectId]);
+
+    res.json({ success: true, message: "Planowane godziny zostały zaktualizowane." });
+  } catch (error) {
+    console.error("Błąd podczas aktualizacji planowanych godzin:", error);
+    res.status(500).json({ success: false, message: "Błąd serwera." });
+  }
+});
+
+
+// Endpoint do obliczenia sumy godzin dla danego typu i projektu
+router.get("/events/total-hours/:projectId/:type", async (req, res) => {
+  const { projectId, type } = req.params; // Pobierz ID projektu i typ wydarzenia z parametrów URL
+
+  try {
+    // Zapytanie SQL do obliczenia sumy godzin
+    const query = `
+      SELECT SUM(TIMESTAMPDIFF(HOUR, start, end)) AS total_hours
+      FROM events
+      WHERE type = ? AND project_id = ?;
+    `;
+
+    // Wykonaj zapytanie z podanymi parametrami
+    const [result] = await db.promise().query(query, [type, projectId]);
+
+    // Odpowiedz z wynikiem
+    res.json({
+      success: true,
+      totalHours: result[0]?.total_hours || 0, // Jeśli brak danych, zwróć 0
+    });
+  } catch (error) {
+    console.error("Błąd podczas obliczania sumy godzin:", error);
+    res.status(500).json({
+      success: false,
+      message: "Nie udało się obliczyć sumy godzin.",
+    });
+  }
+});
+
+// GET /projects/:projectId/types/:typeId/hours
+router.get("/projects/:projectId/types/:typeId/hours", async (req, res) => {
+  const { projectId, typeId } = req.params;
+
+  try {
+    // Sumowanie godzin przydzielonych dla danego typu i projektu
+    const query = `
+      SELECT SUM(TIMESTAMPDIFF(HOUR, start, end)) AS assignedHours
+      FROM events
+      WHERE project_id = ? AND type_id = ?
+    `;
+    const [rows] = await db.promise().query(query, [projectId, typeId]);
+
+    const assignedHours = rows[0]?.assignedHours || 0;
+
+    res.json({
+      success: true,
+      assignedHours,
+    });
+  } catch (error) {
+    console.error("Błąd podczas pobierania godzin przydzielonych:", error);
+    res.status(500).json({
+      success: false,
+      message: "Błąd serwera podczas pobierania godzin.",
+    });
+  }
+});
 
 
 module.exports = router;
