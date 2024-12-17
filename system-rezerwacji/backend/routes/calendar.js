@@ -120,6 +120,7 @@ router.post("/events", async (req, res) => {
       end: req.body.end,
       projectTrainerId: req.body.projectTrainerId, // to musi być poprawne id
       projectId: req.body.projectId,
+      type: req.body.type,
     });
     console.log('body', req.body)
     if (!title || !start || !end || !projectId) {

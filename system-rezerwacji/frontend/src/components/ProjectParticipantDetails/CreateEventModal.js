@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import moment from "moment";
 
-function CreateEventModal({ show, trainers, onSave, onClose, eventData }) {
+function CreateEventModal({ show, trainers, onSave, onClose, eventData, activeTab }) {
   const [localEventData, setLocalEventData] = useState({
     title: "",
     description: "",
@@ -13,16 +13,16 @@ function CreateEventModal({ show, trainers, onSave, onClose, eventData }) {
 
   // Ustawienie wstępnych danych, jeśli istnieją
   useEffect(() => {
-    if (eventData) {
-      console.log("Ustawianie początkowych danych:", eventData);
-      setLocalEventData(eventData);
-    }
-  }, [eventData]);
+    setLocalEventData((prev) => ({
+      ...prev,
+      ...eventData, // Przeładowanie innych danych, jeśli są
+      title: activeTab || "Domyślny tytuł", // Zawsze ustawiaj tytuł na activeTab
+    }));
+  }, [eventData, activeTab]);
 
   // Funkcja walidująca formularz
   const validateForm = () => {
     if (
-      !localEventData.title ||
       !localEventData.start ||
       !localEventData.end ||
       !localEventData.projectTrainerId
@@ -40,7 +40,6 @@ function CreateEventModal({ show, trainers, onSave, onClose, eventData }) {
 
   const handleSave = () => {
     if (validateForm()) {
-      console.log("Zapisanie wydarzenia:", localEventData);
       onSave(localEventData); // Przekazanie `localEventData` do `onSave`
       onClose(); // Zamknięcie modala
     }
@@ -56,17 +55,6 @@ function CreateEventModal({ show, trainers, onSave, onClose, eventData }) {
         </h3>
 
         {error && <p className="text-red-500 mb-4">{error}</p>}
-
-        <label className="block font-semibold mb-2">Tytuł</label>
-        <input
-          type="text"
-          value={localEventData.title}
-          onChange={(e) =>
-            setLocalEventData((prev) => ({ ...prev, title: e.target.value }))
-          }
-          placeholder="Tytuł wydarzenia"
-          className="border border-gray-300 p-2 rounded w-full mb-2"
-        />
 
         <label className="block font-semibold mb-2">Opis</label>
         <textarea

@@ -25,15 +25,30 @@ function Calendar1({
   setSelectedTrainer, // Dodaj setSelectedTrainer jako prop
   getEventStyle,
   eventPropGetter,
+  view, // Odbierz aktualny widok z propsów
+  onViewChange, // Odbierz funkcję zmiany widoku z propsów
    // Przekazanie funkcji
 }) {
     const [selectedEvent, setSelectedEvent] = useState(null); // Wybrane wydarzenie do edycji
     const [showEditModal, setShowEditModal] = useState(false); // Pokazanie okna edycji
     const [showCreateModal, setShowCreateModal] = React.useState(false);
     const [eventData, setEventData] = useState(events || {});
-    //const [trainers, setTrainers] = useState([]);
-   // const [selectedTrainer, setSelectedTrainer] = useState(null);
-   
+    const messages = {
+      allDay: "Cały dzień",
+      previous: "Poprzedni",
+      next: "Następny",
+      today: "Dzisiaj",
+      month: "Miesiąc",
+      week: "Tydzień",
+      day: "Dzień",
+      agenda: "Agenda",
+      date: "Data",
+      time: "Czas",
+      event: "Wydarzenie",
+      noEventsInRange: "Brak wydarzeń w tym zakresie.",
+      showMore: (count) => `+ Pokaż więcej (${count})`,
+    };
+    
     console.log('trainers', trainers)
     console.log("Przekazanie eventPropGetter:", eventPropGetter);
 // Obsługa dodawania wydarzenia
@@ -165,6 +180,7 @@ function Calendar1({
         setShowCreateModal(true); // Otwórz modal tworzenia
       };
 
+    
   // Obsługa zapisu wydarzenia (nowego lub edytowanego)
   const handleSaveEvent = (eventData) => {
     if (eventData.id) {
@@ -231,33 +247,30 @@ function Calendar1({
       {/* Kalendarz */}
       <ErrorBoundary>
       <BigCalendar
-        // events={events}
         localizer={localizer}
         startAccessor="start"
-        events={sanitizedEvents} // Użyj zabezpieczonych danych
         endAccessor="end"
-        
+        events={sanitizedEvents} // Użyj zabezpieczonych danych
         selectable // Włącza możliwość klikania w wolne obszary
         onSelectSlot={(slotInfo) => {
           const newEvent = {
             start: slotInfo.start,
             end: moment(slotInfo.start).add(1, "hours").toDate(),
-           /*  title: "",
-            description: "",
-            trainerId: "", */
             type: activeTab, // Domyślnie ustaw typ na aktywną zakładkę
           };
           console.log("Nowe wydarzenie do dodania:", newEvent); // Debuguj dane wydarzenia
-
           setSelectedEvent(newEvent);
           setShowCreateModal(true); // Otwórz modal dodawania wydarzenia
-        }}        onSelectEvent={(event) => {
-            setSelectedEvent(event); // Ustaw wybrane wydarzenie
-            setShowEditModal(true); // Otwórz modal
-          }}
+        }}
+        onSelectEvent={(event) => {
+          setSelectedEvent(event); // Ustaw wybrane wydarzenie
+          setShowEditModal(true); // Otwórz modal
+        }}
         style={{ height: 500 }}
-        onSelectEvent={handleSelectEvent} // Użyj nowej funkcji obsługującej edycję
         eventPropGetter={eventPropGetter} // Przypisanie stylu do wydarzenia
+        onView={onViewChange} // Przekazanie funkcji zmiany widoku
+        view={view} // Ustaw aktualny widok
+        messages={messages} // Przekazanie tłumaczeń
       />
 
       </ErrorBoundary>
@@ -265,10 +278,13 @@ function Calendar1({
         <CreateEventModal
           show={showCreateModal}
           trainers={trainers}
-          eventData={selectedEvent} // Przekazywanie danych do modala
+          eventData={selectedEvent}
+          activeTab={activeTab} // Przekazanie aktywnej zakładki jako domyślnego tytułu
+         
           onSave={(eventData) => {
             console.log("Zapisano wydarzenie:", eventData); // Debuguj dane zapisywane z modala
             handleAddEvent(eventData); // Wywołaj funkcję dodawania wydarzenia
+            setSelectedEvent(null); // Nowe wydarzenie, brak `eventData`
             setShowCreateModal(false); // Zamknij modal po zapisie
           }}
           onClose={() => setShowCreateModal(false)}

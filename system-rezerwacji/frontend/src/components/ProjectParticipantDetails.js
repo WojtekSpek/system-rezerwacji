@@ -2,12 +2,17 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { Calendar as BigCalendar, momentLocalizer } from "react-big-calendar";
 import moment from 'moment';
+import "moment/locale/pl"; // Import lokalizacji polskiej
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import Calendar1 from "./ProjectParticipantDetails/Calendar1";
 import EditEventModal from "./ProjectParticipantDetails/EditEventModal";
 
+moment.locale("pl"); // Ustaw język polski
 
 const localizer = momentLocalizer(moment);
+
+
+
 
 function ProjectParticipantDetails({ participantId, projectId, onBack }) {
   const [participant, setParticipant] = useState(null); // Dane uczestnika w ramach projektu
@@ -35,7 +40,32 @@ function ProjectParticipantDetails({ participantId, projectId, onBack }) {
     trainerId: "",
   });
 
+  const messages = {
+    allDay: "Cały dzień",
+    previous: "Poprzedni",
+    next: "Następny",
+    today: "Dzisiaj",
+    month: "Miesiąc",
+    week: "Tydzień",
+    day: "Dzień",
+    agenda: "Agenda",
+    date: "Data",
+    time: "Czas",
+    event: "Wydarzenie",
+    noEventsInRange: "Brak wydarzeń w tym zakresie.",
+    showMore: (count) => `+ Pokaż więcej (${count})`,
+  };
 
+  const [calendarView, setCalendarView] = useState("week"); // Domyślny widok
+  const [view, setView] = useState("week"); // Domyślny widok to tydzień
+
+  const handleCalendarViewChange = (newView) => {
+    setCalendarView(newView); // Aktualizuj widok w stanie
+  };
+  const onViewChange = (newView) => {
+    console.log("Zmieniono widok na:", newView);
+    setView(newView); // Aktualizuj stan widoku
+  };
   const handleEditEvent = (event) => {
     console.log("Otwieranie modala dla wydarzenia", event);
     setSelectedEvent(event); // Ustaw wybrane wydarzenie
@@ -367,7 +397,7 @@ function ProjectParticipantDetails({ participantId, projectId, onBack }) {
                 trainers={trainers}
                 onEditEvent={handleEditEvent} // Dodaj obsługę edycji
                 setEvents={setEvents} // Dodano setEvents
-                //onAddEvent={handleAddEvent}
+                
                 projectTypes={projectTypes}
                 projectTypesAll={projectTypesAll} // Przekazanie projectTypes // Przekazanie projectTypes
                 newEvent={newEvent}
@@ -375,6 +405,8 @@ function ProjectParticipantDetails({ participantId, projectId, onBack }) {
                 selectedTrainer={selectedTrainer} // Przekazanie selectedTrainer
                 setSelectedTrainer={setSelectedTrainer} // Przekazanie setSelectedTrainer
                 eventPropGetter={getEventStyle} // Przypisanie stylu do wydarzenia
+                view={calendarView} // Przekazanie bieżącego widoku
+                onViewChange={handleCalendarViewChange} // Przekazanie funkcji zmiany widoku
                 
               />
               {showEditModal && selectedEvent && (
