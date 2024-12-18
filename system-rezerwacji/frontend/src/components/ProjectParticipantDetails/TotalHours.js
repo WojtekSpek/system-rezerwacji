@@ -13,6 +13,7 @@ const [isEditing, setIsEditing] = useState(false); // Tryb edycji
     const fetchTotalHours = async () => {
       try {
         const response = await axios.get(`/projects/events/total-hours/${projectId}/${type}`);
+           
         if (response.data.success) {
           setTotalHours(response.data.totalHours);
         } else {
@@ -22,64 +23,44 @@ const [isEditing, setIsEditing] = useState(false); // Tryb edycji
         console.error("Błąd podczas pobierania sumy godzin:", error);
       }
     };
-    fetchPlannedHours();
+
     fetchTotalHours();
-    
+    fetchHours();
   }, [projectId, type]);
 
-  const fetchPlannedHours = async () => {
+  const fetchHours = async () => {
     try {
-      const response = await axios.get(
-        `/projects/${projectId}/types/${typeId}/planned-hours`
-      );
+      const response = await axios.get(`/projects/${projectId}/types/${typeId}/planned-hours`);
+      console.log('response.data1',response.data)
       if (response.data.success) {
-        setPlannedHours(response.data.plannedHours);
-      } else {
-        console.error("Nie udało się pobrać planowanych godzin.");
+        setAssignedHours(response.data.plannedHours); // Ładowanie godzin przydzielonych
       }
     } catch (error) {
-      console.error("Błąd podczas pobierania planned_hours:", error);
+      console.error("Błąd podczas pobierania godzin:", error);
     }
   };
   
-   // Funkcja zapisująca nowe godziny
-   const handleSave = async () => {
-    try {
-      await axios.put(`/projects/${projectId}/types/${typeId}`, {
-        plannedHours: inputHours,
-      });
-      setPlannedHours(inputHours); // Aktualizacja widoku
-      setIsEditing(false); // Wyjście z trybu edycji
-      alert("Planowane godziny zostały zaktualizowane!");
-    } catch (error) {
-      console.error("Błąd podczas aktualizacji godzin:", error);
-      alert("Nie udało się zapisać godzin.");
-    }
-  };
-
+  
+  
 
   return (
     <div>
 
 
-      
-      
-      
 
     <div className="mt-2">
         <p>
-        <strong>Planowane godziny szkoleniowe:</strong> {plannedHours} h
+          <strong>Planowane godziny szkoleniowe:</strong> {assignedHours} godzin
         </p>
-       
         <p>
-        <strong>Przydzielone godziny:</strong> {totalHours} h
+        <strong>Przydzielone godziny:</strong> {totalHours}  godzin
         </p>
         <p>
         <strong>Szkolenia do zaplanowania:</strong>{" "}
-        {Math.max(0, plannedHours - totalHours) } h
+        {Math.max(0,  assignedHours - totalHours)} godzin
         </p>
     </div>
-     
+      
     </div>
   );
 }

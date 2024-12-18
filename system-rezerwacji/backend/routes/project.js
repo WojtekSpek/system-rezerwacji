@@ -364,8 +364,8 @@ router.get("/:projectId/participants/:participantId", async (req, res) => {
 router.put("/:projectId/types/:typeId", async (req, res) => {
   const { projectId, typeId } = req.params;
   const { plannedHours } = req.body;
-//console.log(req.params)
-//console.log(req.body)
+console.log(req.params)
+console.log(req.body)
   try {
     const query = `
       UPDATE project_training_types
@@ -501,10 +501,11 @@ console.log('rows',rows);
 });
 
 // PUT - Aktualizuj planned_hours dla konkretnego typu szkolenia
-router.put(":projectId/training-types/:typeId", async (req, res) => {
+router.put("/:projectId/training-types/:typeId", async (req, res) => {
   const { projectId, typeId } = req.params;
   const { plannedHours } = req.body;
-
+  console.log('req.body',req.body)
+  console.log('req.params',req.params)
   try {
     const query = `
       UPDATE project_training_types
