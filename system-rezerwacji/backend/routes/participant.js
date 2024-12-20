@@ -76,5 +76,45 @@ router.post("/addParticipant", authenticateUser, async (req, res) => {
       res.status(500).json({ success: false, message: "Błąd serwera." });
     }
   });
+
+
+  router.get("/:projectId/participants/:participantId/hours", async (req, res) => {
+    const { projectId, participantId } = req.params;
+  
+    try {
+      // Pobierz planowane godziny dla wszystkich typów w projekcie
+      const plannedQuery = `
+        SELECT training_type_id, planned_hours 
+        FROM project_training_types 
+        WHERE project_id = ?
+      `;
+      const [plannedHours] = await db.promise().query(plannedQuery, [projectId]);
+  
+      // Pobierz sumę godzin zaplanowanych dla uczestnika w projekcie
+      const assignedQuery = `
+         SELECT type, SUM(TIMESTAMPDIFF(HOUR, start, end)) AS assigned_hours
+      FROM events 
+      WHERE project_id = ? AND participant_id = ?
+      GROUP BY type
+      `;
+      const [assignedHours] = await db.promise().query(assignedQuery, [projectId, participantId]);
+  
+      // Mapowanie danych: dopasowanie godzin planowanych do zaplanowanych
+      const hoursData = plannedHours.map((planned) => {
+        const assigned = assignedHours.find((a) => a.type_id === planned.type_id) || { assigned_hours: 0 };
+        return {
+          typeId: planned.typeName,
+          plannedHours: planned.planned_hours,
+          assignedHours: assigned.assigned_hours,
+          remainingHours: planned.planned_hours - assigned.assigned_hours,
+        };
+      });
+  console.log(plannedHours);
+      res.json({ success: true, hours: hoursData });
+    } catch (error) {
+      console.error("Błąd podczas pobierania godzin uczestnika:", error);
+      res.status(500).json({ success: false, message: "Błąd serwera." });
+    }
+  });
   
 module.exports = router;

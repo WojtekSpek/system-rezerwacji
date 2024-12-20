@@ -5,7 +5,31 @@ function ProjectParticipants({ projectId, setView, setSelectedParticipant }) {
   const [searchQuery, setSearchQuery] = useState(""); // Wartość inputu do wyszukiwania
   const [filteredParticipants, setFilteredParticipants] = useState([]); // Wyniki filtrowania
   const [projectParticipants, setProjectParticipants] = useState([]); // Uczestnicy przypisani do projektu
-
+  const [hoursByParticipant, setHoursByParticipant] = useState({}); // Godziny uczestników
+  console.log('hoursByParticipant',hoursByParticipant)
+  // Pobierz godziny dla uczestnika
+  const fetchParticipantHours = async (participantId) => {
+    try {
+      const response = await axios.get(`/participants/${projectId}/participants/${participantId}/hours`);
+      if (response.data.success) {
+        setHoursByParticipant((prev) => ({
+          ...prev,
+          [participantId]: response.data.hours,
+        }));
+      }
+      
+    } catch (error) {
+      console.error("Błąd podczas pobierania godzin uczestnika:", error);
+    }
+  };
+  
+  // Wywołanie funkcji dla wszystkich uczestników projektu
+  useEffect(() => {
+    projectParticipants.forEach((participant) => {
+      fetchParticipantHours(participant.id);
+    });
+  }, [projectParticipants]);
+  
   // Pobierz uczestników przypisanych do projektu
   useEffect(() => {
     fetchProjectParticipants();
@@ -104,6 +128,23 @@ function ProjectParticipants({ projectId, setView, setSelectedParticipant }) {
             >
               Usuń
             </button>
+             {/* Wyświetlanie godzin */}
+             <div className="mt-2 ml-2 text-gray-600 text-sm">
+                  {hoursByParticipant[participant.id] ? (
+                    hoursByParticipant[participant.id].map((hour) => (
+                      <div key={hour.typeId} className="flex justify-between">
+                        <span>
+                          Typ {hour.typeId}: {hour.assignedHours} / {hour.plannedHours} godzin
+                        </span>
+                        <span className="ml-4">
+                          Pozostało: {hour.remainingHours} godzin
+                        </span>
+                      </div>
+                    ))
+                  ) : (
+                    <span>Ładowanie godzin...</span>
+                  )}
+                </div>
           </li>
         ))}
       </ul>
@@ -141,6 +182,8 @@ function ProjectParticipants({ projectId, setView, setSelectedParticipant }) {
                     ? "Dodano"
                     : "Dodaj"}
                 </button>
+
+               
               </li>
             ))}
           </ul>
