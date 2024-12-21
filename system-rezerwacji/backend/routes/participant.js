@@ -39,7 +39,7 @@ router.post("/addParticipant", authenticateUser, async (req, res) => {
         street, houseNumber, apartmentNumber, phoneNumber, email, disabilityLevel, created_by
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
-  
+  console.log('req.body',req.body)
     try {
       await db.promise().query(query, [
         firstName,
@@ -84,32 +84,36 @@ router.post("/addParticipant", authenticateUser, async (req, res) => {
     try {
       // Pobierz planowane godziny dla wszystkich typów w projekcie
       const plannedQuery = `
-        SELECT training_type_id, planned_hours 
-        FROM project_training_types 
-        WHERE project_id = ?
+        SELECT pt.training_type_id, pt.planned_hours, tt.type
+        FROM project_training_types pt
+        JOIN training_types tt ON pt.training_type_id = tt.id
+        WHERE pt.project_id = ?
       `;
       const [plannedHours] = await db.promise().query(plannedQuery, [projectId]);
   
       // Pobierz sumę godzin zaplanowanych dla uczestnika w projekcie
       const assignedQuery = `
-         SELECT type, SUM(TIMESTAMPDIFF(HOUR, start, end)) AS assigned_hours
-      FROM events 
-      WHERE project_id = ? AND participant_id = ?
-      GROUP BY type
+        SELECT project_trainer_id AS training_type_id, SUM(TIMESTAMPDIFF(HOUR, start, end)) AS assigned_hours
+        FROM events 
+        WHERE project_id = ? AND participant_id = ?
+        GROUP BY project_trainer_id
       `;
       const [assignedHours] = await db.promise().query(assignedQuery, [projectId, participantId]);
   
       // Mapowanie danych: dopasowanie godzin planowanych do zaplanowanych
       const hoursData = plannedHours.map((planned) => {
-        const assigned = assignedHours.find((a) => a.type_id === planned.type_id) || { assigned_hours: 0 };
+        // Dopasuj przydzielone godziny do planowanych typów
+        const assigned = assignedHours.find((a) => a.training_type_id === planned.training_type_id) || { assigned_hours: 0 };
+        
         return {
-          typeId: planned.typeName,
+          typeName: planned.type, // Nazwa z tabeli `training_types`
           plannedHours: planned.planned_hours,
           assignedHours: assigned.assigned_hours,
-          remainingHours: planned.planned_hours - assigned.assigned_hours,
+          remainingHours: Math.max(0, planned.planned_hours - assigned.assigned_hours), // Zapewnij, że nie ma wartości ujemnych
         };
       });
-  console.log(plannedHours);
+  
+      console.log('hoursData ', hoursData);
       res.json({ success: true, hours: hoursData });
     } catch (error) {
       console.error("Błąd podczas pobierania godzin uczestnika:", error);
@@ -117,4 +121,27 @@ router.post("/addParticipant", authenticateUser, async (req, res) => {
     }
   });
   
+      router.get("/:id", async (req, res) => {
+        const { id } = req.params;
+        try {
+          // Pobieranie danych uczestnika
+          const [participantData] = await db.promise().query(
+            "SELECT * FROM participants WHERE id = ?",
+            [id]
+          );
+      
+      
+          res.json({
+            success: true,
+            participant: {
+              ...participantData[0],
+             
+            },
+          });
+        } catch (error) {
+          console.error("Błąd podczas pobierania danych uczestnika projektu:", error);
+          res.status(500).json({ success: false, message: "Błąd serwera." });
+        }
+      });
+
 module.exports = router;

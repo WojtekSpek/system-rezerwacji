@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 
-function Participants() {
+function Participants({ onViewChange }) {
+  
   const [participants, setParticipants] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [showAddForm, setShowAddForm] = useState(false);
@@ -20,6 +21,10 @@ function Participants() {
     email: "",
     disabilityLevel: "",
   });
+
+    const goToDetails = (id) => {
+      onViewChange("participantDetail", id);
+    };
 
     const genders = ["Mężczyzna", "Kobieta"];
 
@@ -54,6 +59,7 @@ function Participants() {
       if (response.data.success) {
         setParticipants(response.data.participants);
       }
+      console.log('response.data.participants',response.data.participants)
     } catch (error) {
       console.error("Błąd podczas pobierania uczestników:", error);
     }
@@ -198,19 +204,25 @@ console.log(errors);
             className="border border-gray-300 p-2 rounded w-full mb-4"
           />
           <ul>
-          {participants.map((participant) => (
-              <li
-                key={participant.id}
-                className="flex justify-between items-center bg-gray-50 p-4 rounded mb-2 shadow hover:shadow-md"
-              >
-                <div>
-                  <span className="text-lg font-medium">
-                    {participant.firstName} {participant.lastName}
-                  </span>
-                </div>
-              </li>
-            ))}
-          </ul>
+              {participants.map((participant) => (
+                <li
+                  key={participant.id}
+                  className="flex justify-between items-center bg-gray-50 p-4 rounded mb-2 shadow hover:shadow-md"
+                >
+                  <div>
+                    <span className="text-lg font-medium">
+                      {participant.firstName} {participant.lastName}
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => goToDetails(participant.id)}
+                    className="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600"
+                  >
+                    Szczegóły
+                  </button>
+                </li>
+              ))}
+            </ul>
         </>
       ) : (
         // Widok formularza dodawania uczestnika

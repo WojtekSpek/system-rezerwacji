@@ -9,6 +9,7 @@ import Login from "./components/Login"; // Ekran logowania
 import TrainingTypes from "./components/TrainingTypes";
 import Trainers from "./components/Trainers";
 import Participants from "./components/Participants";
+import ParticipantDetails from "./components/ParticipantDetails";
 import ProjectDetails from "./components/ProjectDetails"; // Szczegóły projektu
 import ProjectParticipants from "./components/ProjectParticipants"; // Nowy komponent
 import ProjectTrainers from "./components/ProjectTrainers"; // Nowy komponent
@@ -22,6 +23,7 @@ function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [user, setUser] = useState(null); // Zamiast domyślnego użytkownika
   const [view, setView] = useState("home");
+  const [selectedParticipantId, setSelectedParticipantId] = useState(null);
   const [selectedProject, setSelectedProject] = useState(null); // Wybrany projekt
   const [projects, setProjects] = useState([]); // Lista projektów
   const [selectedParticipant, setSelectedParticipant] = useState(null); // Wybrany uczestnik
@@ -31,6 +33,11 @@ function App() {
     console.log("Dodano użytkownika:", newUser);
   };
 
+  const handleViewChange = (newView, participantId = null) => {
+    setView(newView);
+    setSelectedParticipantId(participantId); // Zapisz ID uczestnika
+  };
+  
   // Sprawdzenie, czy użytkownik jest adminem
   const isAdmin = user?.role === "admin";
 
@@ -123,8 +130,16 @@ function App() {
                 />
               )}
               {view === "trainers" && <Trainers />}
+              {view === "participants" && (
+                <Participants onViewChange={handleViewChange} />
+              )}
               {view === "trainingTypes" && <TrainingTypes />}
-              {view === "participants" && <Participants />}
+              {view === "participantDetail" && selectedParticipantId && (
+                <ParticipantDetails
+                  id={selectedParticipantId}
+                  onViewChange={handleViewChange}
+                />
+              )}
               {view === "projectDetails" && (
                 <ProjectDetails
                   project={selectedProject}

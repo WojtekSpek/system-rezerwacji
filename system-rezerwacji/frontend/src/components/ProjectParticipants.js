@@ -17,6 +17,7 @@ function ProjectParticipants({ projectId, setView, setSelectedParticipant }) {
           [participantId]: response.data.hours,
         }));
       }
+      console.log('response.data',response.data);
       
     } catch (error) {
       console.error("Błąd podczas pobierania godzin uczestnika:", error);
@@ -112,39 +113,46 @@ function ProjectParticipants({ projectId, setView, setSelectedParticipant }) {
           <li
             key={participant.id}
             className="flex justify-between items-center p-2 border-b"
+            style={{padding: "2.5rem 0"}}
           >
-            <span
-              className="cursor-pointer text-blue-600 hover:underline"
-              onClick={() => {
-                setSelectedParticipant(participant);
-                setView("projectParticipantDetails");
-              }}
-            >
-              {participant.firstName} {participant.lastName}
-            </span>
+           <div>
+              <span
+                className="cursor-pointer text-blue-600 hover:underline"
+                onClick={() => {
+                  setSelectedParticipant(participant);
+                  setView("projectParticipantDetails");
+                }}
+              >
+                       
+                {participant.firstName} {participant.lastName}
+              </span>
+
+              {/* Wyświetlanie godzin */}
+              <div className="mt-2 ml-2 text-gray-600 text-sm">
+                                  {hoursByParticipant[participant.id] ? (
+                                    hoursByParticipant[participant.id].map((hour) => (
+                                      <div key={hour.typeId} className="flex justify-between">
+                                        <span>
+                                          <b>{hour.typeName}:</b> {hour.assignedHours} / {hour.plannedHours} godzin
+                                        </span>
+                                        <span className="ml-4">
+                                          Zaplanować: {hour.remainingHours} godzin
+                                        </span>
+                                      </div>
+                                    ))
+                                  ) : (
+                                    <span>Ładowanie godzin...</span>
+                                  )}
+                </div>
+
+            </div>
             <button
               onClick={() => removeParticipantFromProject(participant.id)}
               className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600"
             >
               Usuń
             </button>
-             {/* Wyświetlanie godzin */}
-             <div className="mt-2 ml-2 text-gray-600 text-sm">
-                  {hoursByParticipant[participant.id] ? (
-                    hoursByParticipant[participant.id].map((hour) => (
-                      <div key={hour.typeId} className="flex justify-between">
-                        <span>
-                          Typ {hour.typeId}: {hour.assignedHours} / {hour.plannedHours} godzin
-                        </span>
-                        <span className="ml-4">
-                          Pozostało: {hour.remainingHours} godzin
-                        </span>
-                      </div>
-                    ))
-                  ) : (
-                    <span>Ładowanie godzin...</span>
-                  )}
-                </div>
+             
           </li>
         ))}
       </ul>

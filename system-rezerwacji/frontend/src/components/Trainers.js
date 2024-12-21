@@ -1,3 +1,5 @@
+//dodac karte szkoleniowca z plikami
+
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 
