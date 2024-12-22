@@ -125,7 +125,7 @@ router.post("/Types", authenticateUser, authorizeRole("admin"),  (req, res) => {
 
   //pobieranie szkoleniowcow
 router.get("/", (req, res) => {
-    const query = "SELECT trainers.id, trainers.name, GROUP_CONCAT(trainer_types.type) AS types       FROM trainers       LEFT JOIN trainer_types ON trainers.id = trainer_types.trainer_id       GROUP BY trainers.id"     ;
+    const query = "SELECT trainers.id, trainers.name, trainers.email,trainers.phone, GROUP_CONCAT(trainer_types.type) AS types       FROM trainers       LEFT JOIN trainer_types ON trainers.id = trainer_types.trainer_id       GROUP BY trainers.id"     ;
     db.query(query, (err, results) => {
       if (err) return res.status(500).json({ success: false, message: err.message });
       res.json({
@@ -133,6 +133,8 @@ router.get("/", (req, res) => {
         trainers: results.map((row) => ({
           id: row.id,
           name: row.name,
+          email: row.email,
+          phone: row.phone,
           types: row.types ? row.types.split(",") : [],
         })),
       });

@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 
-function Trainers() {
+function Trainers(onViewChange) {
   const [trainers, setTrainers] = useState([]); // Lista szkoleniowców
   const [trainerName, setTrainerName] = useState(""); // Imię i nazwisko szkoleniowca
   const [trainerTypes, setTrainerTypes] = useState([]); // Lista typów szkoleń
@@ -13,6 +13,7 @@ function Trainers() {
   const [editingName, setEditingName] = useState(""); // Edytowane imię i nazwisko
   const [editingTypes, setEditingTypes] = useState([]); // Edytowane typy szkoleń
 
+  console.log("onViewChange:", onViewChange); // Sprawdzenie, czy funkcja jest przekazana
 
   // Pobierz listę szkoleniowców i typów szkoleń z backendu
   useEffect(() => {
@@ -251,6 +252,11 @@ const handleDeleteTrainer = async (id) => {
                 <span>{trainer.name}</span>
                 <span>-</span>
                 <span>{trainer.types.join(", ")}</span> {/* //łączy elementy tablicy w jeden ciąg tekstowy, używając podanego separatora. */}
+                <span>{trainer.email}</span>
+                <span>{trainer.phone}</span>
+                <button onClick={() => onViewChange("trainerDetails", trainer.id)}>
+                  Zobacz szczegóły
+                </button>
                     <div>
                         <button
                         onClick={() => startEditingTrainer(trainer)}

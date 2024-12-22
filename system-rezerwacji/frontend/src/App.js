@@ -14,6 +14,7 @@ import ProjectDetails from "./components/ProjectDetails"; // Szczegóły projekt
 import ProjectParticipants from "./components/ProjectParticipants"; // Nowy komponent
 import ProjectTrainers from "./components/ProjectTrainers"; // Nowy komponent
 import ProjectParticipantDetails from "./components/ProjectParticipantDetails";
+import TrainerDetails from "./components/TrainerDetails";
 
 // Konfiguracja Axios do obsługi ciasteczek
 axios.defaults.withCredentials = true; // Włącz przesyłanie ciasteczek
@@ -27,6 +28,7 @@ function App() {
   const [selectedProject, setSelectedProject] = useState(null); // Wybrany projekt
   const [projects, setProjects] = useState([]); // Lista projektów
   const [selectedParticipant, setSelectedParticipant] = useState(null); // Wybrany uczestnik
+  const [selectedTrainerId, setSelectedTrainerId] = useState(null);
 
   // Obsługa dodawania użytkownika
   const onUserAdd = (newUser) => {
@@ -37,6 +39,11 @@ function App() {
     setView(newView);
     setSelectedParticipantId(participantId); // Zapisz ID uczestnika
   };
+  const handleViewDetails = (newView, trainerId = null) => {
+    setView(newView);
+    setSelectedTrainerId(trainerId); // Zapisujemy ID trenera
+  };
+  
   
   // Sprawdzenie, czy użytkownik jest adminem
   const isAdmin = user?.role === "admin";
@@ -129,7 +136,12 @@ function App() {
                   setProjects={setProjects} // Przekazujemy funkcję aktualizacji projektów
                 />
               )}
-              {view === "trainers" && <Trainers />}
+               {view === "trainers" && (
+                  <Trainers onViewChange={(newView, trainerId) => handleViewDetails(newView, trainerId)} />
+                )}
+                {view === "trainerDetails" && selectedTrainerId && (
+                  <TrainerDetails trainerId={selectedTrainerId} />
+                )}
               {view === "participants" && (
                 <Participants onViewChange={handleViewChange} />
               )}
