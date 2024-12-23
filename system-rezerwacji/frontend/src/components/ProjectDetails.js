@@ -1,23 +1,63 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
+import { useParams, useNavigate } from "react-router-dom";
 
-function ProjectDetails({ project, onUpdate }) {
+function ProjectDetails({ onUpdate }) {
+  const { id } = useParams(); // Pobiera ID projektu z URL
+  const navigate = useNavigate();
+  const [project, setProject] = useState(null); // Dane projektu
   const [isEditing, setIsEditing] = useState(false);
-  const [editedName, setEditedName] = useState(project.name);
-  const [editedTypes, setEditedTypes] = useState([]); // Zawiera ID typów przypisanych do projektu
-  const [allTypes, setAllTypes] = useState([]); // Zawiera obiekty typów { id, type }
+  const [editedName, setEditedName] = useState(""); // Edytowana nazwa projektu
+  const [editedTypes, setEditedTypes] = useState([]); // ID typów przypisanych do projektu
+  const [allTypes, setAllTypes] = useState([]); // Pełna lista typów
   const [trainingHours, setTrainingHours] = useState([]); // Godziny dla typów
   const [editingHours, setEditingHours] = useState({}); // Bieżące edytowane godziny
 
   useEffect(() => {
-    fetchProjectTypes();
     fetchAllTypes();
+    fetchProject();
+    //
+    fetchProjectTypes();
     fetchTrainingHours();
-  }, [project.id]);
-console.log('training.type_id',editingHours)
+  }, [id],onUpdate); // ID projektu jako zależność
+
+  const fetchAllTypes = async () => {
+    try {
+      const url = "/projects/trainingTypes";
+      console.log("Wysyłanie żądania do:", url);
+      const response = await axios.get(url);
+      if (response.data.success) {
+        setAllTypes(response.data.data);
+        console.log("Pobrane wszystkie typy:", response.data.data);
+      }
+    } catch (error) {
+      console.error("Błąd podczas pobierania wszystkich typów:", error);
+    }
+  };
+
+// Pobierz szczegóły projektu
+const fetchProject = async () => {
+  try {
+    const response = await axios.get(`/projects/${id}`);
+    if (response.data.success) {
+      setProject(response.data.project);
+      setEditedName(response.data.project.project_name
+      ); // Ustaw nazwę
+      //setEditedTypes(response.data.project.types || []); // Ustaw przypisane typy
+    }
+    console.log('fetchProject',response.data)
+  } catch (error) {
+    console.error("Błąd podczas pobierania projektu:", error);
+  }
+};
+
+console.log('project',project)
+
+
   const fetchProjectTypes = async () => {
     try {
-      const response = await axios.get(`/projects/project_training_types/${project.id}`);
+      const response = await axios.get(`/projects/project_training_types/${id}`);
+      console.log('response-1',response)
       if (response.data.success) {
         setEditedTypes(response.data.types.map((type) => type.id)); // Zapisujemy tylko ID typów
         console.log("Pobrane typy projektu:", response.data.types);
@@ -27,21 +67,11 @@ console.log('training.type_id',editingHours)
     }
   };
 
-  const fetchAllTypes = async () => {
-    try {
-      const response = await axios.get("/projects/trainingTypes");
-      if (response.data.success) {
-        setAllTypes(response.data.data); // Pełne obiekty z ID i nazwą typu
-        console.log("Pobrane wszystkie typy:", response.data.data);
-      }
-    } catch (error) {
-      console.error("Błąd podczas pobierania wszystkich typów:", error);
-    }
-  };
+  
 
   const handleSave = async () => {
     try {
-      const response = await axios.put(`/projects/updateProject/${project.id}`, {
+      const response = await axios.put(`/projects/updateProject/${id}`, {
         name: editedName,
         types: editedTypes,
       });
@@ -59,7 +89,7 @@ console.log('training.type_id',editingHours)
 // Pobierz planned_hours
 const fetchTrainingHours = async () => {
   try {
-    const response = await axios.get(`/projects/${project.id}/training-types/hours`);
+    const response = await axios.get(`/projects/${id}/training-types/hours`);
     if (response.data.success) {
       setTrainingHours(response.data.trainingHours);
       console.log('response.data.trainingHours',response.data.trainingHours)
@@ -73,7 +103,7 @@ const fetchTrainingHours = async () => {
 const handleUpdateHours = async (typeId, newHours) => {
   console.log('(typeId, newHours)',(typeId, newHours))
   try {
-    await axios.put(`/projects/${project.id}/training-types/${typeId}`, {
+    await axios.put(`/projects/${id}/training-types/${typeId}`, {
       plannedHours: newHours,
     });
     fetchTrainingHours(); // Odśwież dane
@@ -117,7 +147,8 @@ const handleUpdateHours = async (typeId, newHours) => {
           </div>
         ) : (
           <p className="mb-4">
-            <strong className="block text-lg font-semibold">Nazwa:</strong> {project.name}
+            <strong className="block text-lg font-semibold">Nazwa:</strong> {project.project_name
+            }
           </p>
         )}
         <div className="text-sm text-gray-500 mb-6">

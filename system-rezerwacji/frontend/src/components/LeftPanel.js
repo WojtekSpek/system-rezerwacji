@@ -1,36 +1,41 @@
 import React from "react";
+import { Link, useLocation } from "react-router-dom";
 
 function LeftPanel({ view, setView, selectedProject }) {
   console.log("Aktualny widok:", view); // Debugowanie widoku
   console.log("Wybrany projekt:", selectedProject); // Debugowanie projektu
+  const isActive = (path) => location.pathname === path;
+  const location = useLocation(); // Pobiera bieżący URL
 
   return (
     <div className="w-64 bg-gray-800 text-white h-screen p-4">
-      <h2 className="text-2xl font-bold mb-4">Menu</h2>
+       <h2 className="text-2xl font-bold mb-4">Menu</h2>
       <ul className="space-y-2">
+        {/* Projekty */}
         <li
-          className={`cursor-pointer p-2 hover:bg-gray-200 ${
-            view === "projects" && "bg-gray-300 font-bold"
+          className={`cursor-pointer p-2 hover:bg-gray-700 ${
+            isActive("/projects") ? "bg-gray-600 font-bold" : ""
           }`}
-          onClick={() => setView("projects")}
         >
-          Projekty
+          <Link to="/projects">Projekty</Link>
         </li>
+
+        {/* Szkoleniowcy */}
         <li
-          className={`cursor-pointer p-2 hover:bg-gray-200 ${
-            view === "trainers" ? "bg-gray-300 font-bold" : ""
+          className={`cursor-pointer p-2 hover:bg-gray-700 ${
+            isActive("/trainers") ? "bg-gray-600 font-bold" : ""
           }`}
-          onClick={() => setView("trainers")}
         >
-          Szkoleniowcy
+          <Link to="/trainers">Szkoleniowcy</Link>
         </li>
+
+        {/* Uczestnicy */}
         <li
-          className={`cursor-pointer p-2 hover:bg-gray-200 ${
-            view === "participants" ? "bg-gray-300 font-bold" : ""
+          className={`cursor-pointer p-2 hover:bg-gray-700 ${
+            isActive("/participants") ? "bg-gray-600 font-bold" : ""
           }`}
-          onClick={() => setView("participants")}
         >
-          Uczestnicy
+          <Link to="/participants">Uczestnicy</Link>
         </li>
       </ul>
 

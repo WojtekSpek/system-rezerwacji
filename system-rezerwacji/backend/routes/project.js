@@ -15,6 +15,71 @@ router.get("/", authenticateUser, async (req, res) => {
   }
 });
 
+// Pobranie wszystkich typów szkoleń
+router.get("/trainingTypes", async (req, res) => {
+  console.log('wojtek')
+  try {
+    const [rows] = await db.promise().query(
+      "SELECT id, type FROM training_types"
+    );
+  
+    res.json({
+      success: true,
+      data: rows, // Zwraca wszystkie typy jako obiekty
+    });
+  } catch (error) {
+    console.error("Błąd podczas pobierania typów szkoleń:", error);
+    res.status(500).json({ success: false, message: "Błąd serwera." });
+  }
+});
+
+// Endpoint GET /projects/:id
+router.get("/:id", async (req, res) => {
+  const projectId = req.params.id;
+
+  const query = `
+    SELECT 
+        p.id AS project_id,
+        p.name AS project_name,
+        p.created_by,
+        p.created_at,
+        GROUP_CONCAT(pt.type) AS types
+    FROM 
+        projects p
+    LEFT JOIN 
+        project_training_types ptt ON p.id = ptt.project_id
+    LEFT JOIN 
+        training_types pt ON ptt.training_type_id = pt.id
+    WHERE 
+        p.id = ?
+    GROUP BY 
+        p.id, p.name, p.created_by, p.created_at;
+  `;
+
+  try {
+    const [rows] = await db.promise().execute(query, [projectId]);
+    console.log("Wynik zapytania:", rows);
+  
+    if (Array.isArray(rows) && rows.length > 0) {
+      res.json({
+        success: true,
+        project: rows[0],
+      });
+    } else {
+      res.status(404).json({
+        success: false,
+        message: "Projekt nie został znaleziony",
+      });
+    }
+  } catch (error) {
+    console.error("Błąd podczas pobierania projektu:", error);
+    res.status(500).json({
+      success: false,
+      message: "Wystąpił błąd serwera",
+    });
+  }
+});
+
 // Dodawanie projektu
 router.post("/addProject", authenticateUser, async (req, res) => {
   const { name, trainingTypes, createdBy } = req.body;
@@ -147,22 +212,7 @@ router.get("/project_training_types/:projectId", async (req, res) => {
   }
 });
 
-// Pobranie wszystkich typów szkoleń
-router.get("/trainingTypes", async (req, res) => {
-  try {
-    const [rows] = await db.promise().query(
-      "SELECT id, type FROM training_types"
-    );
 
-    res.json({
-      success: true,
-      data: rows, // Zwraca wszystkie typy jako obiekty
-    });
-  } catch (error) {
-    console.error("Błąd podczas pobierania typów szkoleń:", error);
-    res.status(500).json({ success: false, message: "Błąd serwera." });
-  }
-});
 
 router.post("/:id/participants", async (req, res) => {
   const { id } = req.params;

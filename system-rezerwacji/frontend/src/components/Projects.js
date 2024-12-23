@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
+import { useNavigate } from "react-router-dom";
 
 function Projects({ setView, setSelectedProject }) {
   const [projects, setProjects] = useState([]); // Lista projektów
@@ -15,6 +16,13 @@ function Projects({ setView, setSelectedProject }) {
     fetchTrainingTypes();
     
   }, []);
+
+  const navigate = useNavigate();
+
+  const handleViewDetails = (projectId) => {
+    navigate(`/projects/${projectId}`);
+  };
+
 
   const fetchProjects = async () => {
       try {
@@ -152,10 +160,7 @@ function Projects({ setView, setSelectedProject }) {
               <div>
                 <span
                   className="text-lg text-blue-600 font-medium cursor-pointer hover:underline"
-                  onClick={() => {
-                    setSelectedProject(project); // Ustaw wybrany projekt
-                    setView("projectDetails"); // Zmień widok na szczegóły projektu
-                  }}
+                  onClick={() => handleViewDetails(project.id)}
                 >
                   {project.name}
                 </span>

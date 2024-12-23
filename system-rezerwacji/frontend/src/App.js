@@ -15,6 +15,7 @@ import ProjectParticipants from "./components/ProjectParticipants"; // Nowy komp
 import ProjectTrainers from "./components/ProjectTrainers"; // Nowy komponent
 import ProjectParticipantDetails from "./components/ProjectParticipantDetails";
 import TrainerDetails from "./components/TrainerDetails";
+import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
 
 // Konfiguracja Axios do obsługi ciasteczek
 axios.defaults.withCredentials = true; // Włącz przesyłanie ciasteczek
@@ -43,7 +44,9 @@ function App() {
     setView(newView);
     setSelectedTrainerId(trainerId); // Zapisujemy ID trenera
   };
-  
+  const handleUpdateProject = (updatedProject) => {
+    console.log("Zaktualizowany projekt:", updatedProject);
+  };
   
   // Sprawdzenie, czy użytkownik jest adminem
   const isAdmin = user?.role === "admin";
@@ -95,6 +98,7 @@ function App() {
 
   return (
     <div className="App">
+      <Router>
       {!isLoggedIn ? (
         // Jeśli użytkownik nie jest zalogowany, pokaż ekran logowania
         <Login onLogin={handleLogin} />
@@ -125,40 +129,82 @@ function App() {
             />
             {/* Widoki aplikacji */}
             <div className="flex-1 p-4">
+            <Routes>
+            <Route path="/" element={<div>Witaj, {user?.name || "Gościu"}!</div>} />
+              <Route path="/trainers" element={<Trainers />} />
+              <Route path="/trainer/:id" element={<TrainerDetails />} />
+              <Route path="/participants" element={<Participants />} />
+              <Route path="/trainingTypes" element={<TrainingTypes />} />
+              <Route path="/projectParticipants" element={<ProjectParticipants />} />
+                  <Route path="/projectTrainers" element={<ProjectTrainers />} />
+               
+             
+               <Route
+                path="/participantDetail"
+                element={
+                  <ParticipantDetails
+                  id={selectedParticipantId}
+                 />
+                }
+              />
+               {/* Widok listy projektów */}
+              <Route
+                path="/projects"
+                element={
+                  <Projects
+                    setSelectedProject={setSelectedProject}
+                    projects={projects}
+                    setProjects={setProjects}
+                  />
+                }
+              />
+              {/* Widok szczegółów projektu */}
+              <Route
+                path="/projects/:id"
+                element={
+                  <ProjectDetails
+                    selectedProject={selectedProject}
+                    setSelectedProject={setSelectedProject}
+                    onUpdate={handleUpdateProject}
+                  />
+                }
+              />
+            </Routes>
+
               {view === "settings" && isAdmin && <Settings setView={setView} />}
               {view === "addUser" && isAdmin && <AddUser onUserAdd={onUserAdd} />}
               {view === "home" && <div>Witaj, {user?.name || "Gościu"}!</div>}
-              {view === "projects" && (
+              {/* {view === "projects" && (
                 <Projects
                   setView={setView} // Przekazujemy setView
                   setSelectedProject={setSelectedProject} // Przekazujemy funkcję ustawiania projektu
                   projects={projects}
                   setProjects={setProjects} // Przekazujemy funkcję aktualizacji projektów
                 />
-              )}
-               {view === "trainers" && (
+              )} */}
+              {/*  {view === "trainers" && (
                   <Trainers onViewChange={(newView, trainerId) => handleViewDetails(newView, trainerId)} />
                 )}
                 {view === "trainerDetails" && selectedTrainerId && (
                   <TrainerDetails trainerId={selectedTrainerId} />
-                )}
-              {view === "participants" && (
+                )} */}
+          {/*     {view === "participants" && (
                 <Participants onViewChange={handleViewChange} />
-              )}
-              {view === "trainingTypes" && <TrainingTypes />}
+              )} */}
+           {/*    {view === "trainingTypes" && <TrainingTypes />} */}
               {view === "participantDetail" && selectedParticipantId && (
                 <ParticipantDetails
                   id={selectedParticipantId}
                   onViewChange={handleViewChange}
                 />
               )}
-              {view === "projectDetails" && (
+              {/* {view === "projectDetails" && (
                 <ProjectDetails
                   project={selectedProject}
                   onBack={() => setView("projects")}
                   onUpdate={updateProjectInState}
                 />
-              )}
+              )} */}
               {view === "projectParticipants" && (
                 <ProjectParticipants
                   project={selectedProject}
@@ -182,6 +228,7 @@ function App() {
           </div>
         </>
       )}
+      </Router>
     </div>
   );
 }
