@@ -39,6 +39,8 @@ function ProjectParticipants({ projectId, setView, setSelectedParticipant }) {
   const fetchProjectParticipants = async () => {
     try {
       const response = await axios.get(`/projects/${projectId}/participants`);
+      console.log('uczniowie',response.data)
+      
       if (response.data.success) {
         setProjectParticipants(response.data.participants);
       }

@@ -15,6 +15,27 @@ router.get("/", authenticateUser, async (req, res) => {
   }
 });
 
+// Pobieranie uczestników projektu
+router.get("/:projectId/participants", async (req, res) => {
+  const { projectId } = req.params;
+
+  const query = `
+    SELECT p.id, p.firstName, p.lastName
+    FROM participants p
+    INNER JOIN project_participants pp ON p.id = pp.participant_id
+    WHERE pp.project_id = ?
+  `;
+
+  try {
+    const [rows] = await db.promise().query(query, [projectId]);
+    console.log('rows-',req.)
+    res.json({ success: true, participants: rows });
+  } catch (error) {
+    console.error("Błąd podczas pobierania uczestników projektu:", error);
+    res.status(500).json({ success: false, message: "Błąd serwera." });
+  }
+});
+
 // Pobranie wszystkich typów szkoleń
 router.get("/trainingTypes", async (req, res) => {
   console.log('wojtek')
@@ -158,7 +179,9 @@ router.delete("/:id", authenticateUser, authorizeRole("admin"), async (req, res)
 router.put("/updateProject/:id", authenticateUser, authorizeRole("admin"), async (req, res) => {
   const projectId = req.params.id; // ID projektu z URL
   const { name, types } = req.body; // Dane przesłane w żądaniu
-  //console.log('req.body',req.body)
+
+  console.log("req.body update", req.body);
+
   if (!name) {
     return res.status(400).json({ success: false, message: "Nazwa projektu jest wymagana." });
   }
@@ -167,14 +190,34 @@ router.put("/updateProject/:id", authenticateUser, authorizeRole("admin"), async
     // Aktualizacja nazwy projektu
     await db.promise().query("UPDATE projects SET name = ? WHERE id = ?", [name, projectId]);
 
-    // Aktualizacja typów projektu
-    await db.promise().query("DELETE FROM project_training_types WHERE project_id = ?", [projectId]);
+    // Pobierz istniejące typy dla projektu
+    const [existingTypes] = await db.promise().query(
+      "SELECT training_type_id, planned_hours FROM project_training_types WHERE project_id = ?",
+      [projectId]
+    );
 
-    if (types && types.length > 0) {
-      const typeInsertPromises = types.map((typeId) => {
+    const existingTypeIds = existingTypes.map((row) => row.training_type_id);
+
+    // Typy do dodania
+    const typesToAdd = types.filter((typeId) => !existingTypeIds.includes(typeId));
+
+    // Typy do usunięcia
+    const typesToRemove = existingTypeIds.filter((typeId) => !types.includes(typeId));
+
+    // Usuń typy, które zostały usunięte w aktualizacji
+    if (typesToRemove.length > 0) {
+      await db.promise().query(
+        "DELETE FROM project_training_types WHERE project_id = ? AND training_type_id IN (?)",
+        [projectId, typesToRemove]
+      );
+    }
+
+    // Dodaj nowe typy
+    if (typesToAdd.length > 0) {
+      const typeInsertPromises = typesToAdd.map((typeId) => {
         return db.promise().query(
-          "INSERT INTO project_training_types (project_id, training_type_id) VALUES (?, ?)",
-          [projectId, typeId]
+          "INSERT INTO project_training_types (project_id, training_type_id, planned_hours) VALUES (?, ?, ?)",
+          [projectId, typeId, 0] // Domyślna wartość planned_hours (np. 0 lub null)
         );
       });
       await Promise.all(typeInsertPromises);
@@ -186,6 +229,7 @@ router.put("/updateProject/:id", authenticateUser, authorizeRole("admin"), async
     res.status(500).json({ success: false, message: "Błąd serwera." });
   }
 });
+
 
 // Pobranie typów przypisanych do projektu
 router.get("/project_training_types/:projectId", async (req, res) => {
@@ -238,25 +282,7 @@ router.post("/:id/participants", async (req, res) => {
 
 
 
-// Pobieranie uczestników projektu
-router.get("/:projectId/participants", async (req, res) => {
-  const { projectId } = req.params;
 
-  const query = `
-    SELECT p.id, p.firstName, p.lastName
-    FROM participants p
-    INNER JOIN project_participants pp ON p.id = pp.participant_id
-    WHERE pp.project_id = ?
-  `;
-
-  try {
-    const [rows] = await db.promise().query(query, [projectId]);
-    res.json({ success: true, participants: rows });
-  } catch (error) {
-    console.error("Błąd podczas pobierania uczestników projektu:", error);
-    res.status(500).json({ success: false, message: "Błąd serwera." });
-  }
-});
 
 // Usuwanie uczestnika z projektu
 router.delete("/:projectId/participants/:participantId", async (req, res) => {

@@ -12,14 +12,14 @@ function ProjectDetails({ onUpdate }) {
   const [allTypes, setAllTypes] = useState([]); // Pełna lista typów
   const [trainingHours, setTrainingHours] = useState([]); // Godziny dla typów
   const [editingHours, setEditingHours] = useState({}); // Bieżące edytowane godziny
-
+  const [shouldRefresh, setShouldRefresh] = useState(false);
   useEffect(() => {
     fetchAllTypes();
     fetchProject();
     //
     fetchProjectTypes();
     fetchTrainingHours();
-  }, [id],onUpdate); // ID projektu jako zależność
+  }, [id, shouldRefresh]);
 
   const fetchAllTypes = async () => {
     try {
@@ -77,6 +77,7 @@ console.log('project',project)
       });
       if (response.data.success) {
         alert("Zapisano zmiany!");
+        setShouldRefresh((prev) => !prev); // Odśwież dane projektu
         onUpdate({ ...project, name: editedName, types: editedTypes });
         setIsEditing(false);
       }
