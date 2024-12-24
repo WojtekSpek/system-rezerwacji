@@ -21,7 +21,7 @@ function Projects({ setView, setSelectedProject }) {
 console.log('projects',projects)
   const handleViewDetails = (project) => {
     setSelectedProject(project); // Ustaw wybrany projekt w stanie
-    navigate(`/projects/${project}`); // Nawiguj do szczegółów projektu
+    navigate(`/projects/${project}/details`); // Nawiguj do szczegółów projektu
     console.log('projec',project)
   };
 

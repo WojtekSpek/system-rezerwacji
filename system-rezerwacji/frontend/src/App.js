@@ -4,11 +4,14 @@ import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
 import LeftPanel from "./components/LeftPanel";
 import TopBar from "./components/TopBar";
 import Projects from "./components/Projects";
-import ProjectDetails from "./components/ProjectDetails";
 import ProjectParticipants from "./components/ProjectParticipants";
+import ProjectDetails from "./components/ProjectDetails";
+import ProjectParticipantDetails from "./components/ProjectParticipantDetails";
 import ProjectTrainers from "./components/ProjectTrainers";
 import Participants from "./components/Participants";
+import ParticipantDetails from "./components/ParticipantDetails";
 import Trainers from "./components/Trainers";
+import TrainerDetails from "./components/TrainerDetails";
 import TrainingTypes from "./components/TrainingTypes";
 import Login from "./components/Login";
 
@@ -20,7 +23,7 @@ function App() {
   const [user, setUser] = useState(null); // Użytkownik
   const [selectedProject, setSelectedProject] = useState(null); // Wybrany projekt
   const [selectedTab, setSelectedTab] = useState("projectDetails"); // Wybrane podmenu
-
+  const [selectedParticipant, setSelectedParticipant] = useState(null);
   // Sprawdzenie sesji po załadowaniu aplikacji
   useEffect(() => {
     const checkSession = async () => {
@@ -93,28 +96,34 @@ function App() {
                       />
                     }
                   />
-
-                  {/* Szczegóły projektu */}
                   <Route
-                    path="/projects/:id"
+                    path="/projects/:id/participants"
                     element={
-                      selectedProject ? (
-                        <>
-                          {selectedTab === "projectDetails" && (
-                            <ProjectDetails project={selectedProject} />
-                          )}
-                          {selectedTab === "projectParticipants" && (
-                            <ProjectParticipants project={selectedProject} />
-                          )}
-                          {selectedTab === "projectTrainers" && (
-                            <ProjectTrainers project={selectedProject} />
-                          )}
-                        </>
-                      ) : (
-                        <div>Wybierz projekt, aby zobaczyć szczegóły.</div>
-                      )
+                      <ProjectParticipants
+                        setSelectedParticipant={setSelectedParticipant}
+                      />
                     }
                   />
+                  <Route
+                    path="/projects/:id/participant/:participantId/details"
+                    element={<ProjectParticipantDetails />}
+                  />
+                <Route
+                    path="/participant/:participantId/details"
+                    element={<ParticipantDetails />}
+                  />
+
+                  <Route
+                    path="/trainer/:trainersId"
+                    element={<TrainerDetails />}
+                  />
+                  {/* Szczegóły projektu */}
+                  <Route path="/projects/:id">
+                    <Route path="details" element={<ProjectDetails />} />
+                    <Route path="participants" element={<ProjectParticipants />} />
+                    <Route path="trainers" element={<ProjectTrainers />} />
+                  </Route>
+
 
                   {/* Pozostałe sekcje */}
                   <Route path="/participants" element={<Participants />} />

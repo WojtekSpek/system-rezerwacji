@@ -18,7 +18,7 @@ router.get("/", authenticateUser, async (req, res) => {
 // Pobieranie uczestników projektu
 router.get("/:projectId/participants", async (req, res) => {
   const { projectId } = req.params;
-
+   console.log('odebrane',projectId)
   const query = `
     SELECT p.id, p.firstName, p.lastName
     FROM participants p
@@ -28,7 +28,7 @@ router.get("/:projectId/participants", async (req, res) => {
 
   try {
     const [rows] = await db.promise().query(query, [projectId]);
-    console.log('rows-',req.)
+    //console.log('rows-',req)
     res.json({ success: true, participants: rows });
   } catch (error) {
     console.error("Błąd podczas pobierania uczestników projektu:", error);
@@ -38,7 +38,7 @@ router.get("/:projectId/participants", async (req, res) => {
 
 // Pobranie wszystkich typów szkoleń
 router.get("/trainingTypes", async (req, res) => {
-  console.log('wojtek')
+  //console.log('wojtek')
   try {
     const [rows] = await db.promise().query(
       "SELECT id, type FROM training_types"
@@ -79,7 +79,7 @@ router.get("/:id", async (req, res) => {
 
   try {
     const [rows] = await db.promise().execute(query, [projectId]);
-    console.log("Wynik zapytania:", rows);
+    //console.log("Wynik zapytania:", rows);
   
     if (Array.isArray(rows) && rows.length > 0) {
       res.json({
@@ -180,7 +180,7 @@ router.put("/updateProject/:id", authenticateUser, authorizeRole("admin"), async
   const projectId = req.params.id; // ID projektu z URL
   const { name, types } = req.body; // Dane przesłane w żądaniu
 
-  console.log("req.body update", req.body);
+  //console.log("req.body update", req.body);
 
   if (!name) {
     return res.status(400).json({ success: false, message: "Nazwa projektu jest wymagana." });

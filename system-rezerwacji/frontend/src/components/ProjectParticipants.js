@@ -1,12 +1,25 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
+import { useParams } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 
-function ProjectParticipants({ projectId, setView, setSelectedParticipant }) {
+function ProjectParticipants({setView, setSelectedParticipant }) {
   const [searchQuery, setSearchQuery] = useState(""); // Wartość inputu do wyszukiwania
   const [filteredParticipants, setFilteredParticipants] = useState([]); // Wyniki filtrowania
   const [projectParticipants, setProjectParticipants] = useState([]); // Uczestnicy przypisani do projektu
   const [hoursByParticipant, setHoursByParticipant] = useState({}); // Godziny uczestników
-  console.log('hoursByParticipant',hoursByParticipant)
+  const {id} = useParams(); // Pobiera ID projektu z URL
+  const projectId = id; // Pobiera ID projektu z URL
+ 
+  const navigate = useNavigate();
+
+  const handleViewDetails = (participantId) => {
+    setSelectedParticipant(participantId); // Ustaw wybranego uczestnika
+    navigate(`/projects/${projectId}/participant/${participantId}/details`); // Nawiguj do szczegółów uczestnika
+  };
+
+
+  console.log('projectId',projectId)
   // Pobierz godziny dla uczestnika
   const fetchParticipantHours = async (participantId) => {
     try {
@@ -120,10 +133,7 @@ function ProjectParticipants({ projectId, setView, setSelectedParticipant }) {
            <div>
               <span
                 className="cursor-pointer text-blue-600 hover:underline"
-                onClick={() => {
-                  setSelectedParticipant(participant);
-                  setView("projectParticipantDetails");
-                }}
+                onClick={() => handleViewDetails(participant.id)}
               >
                        
                 {participant.firstName} {participant.lastName}

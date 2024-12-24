@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
+import { useNavigate } from "react-router-dom";
 
 function Participants({ onViewChange }) {
   
@@ -21,10 +22,12 @@ function Participants({ onViewChange }) {
     email: "",
     disabilityLevel: "",
   });
+  const navigate = useNavigate(); // Hook do nawigacji
 
-    const goToDetails = (id) => {
-      onViewChange("participantDetail", id);
-    };
+  const handleViewDetails = (id) => {
+    navigate(`/participant/${id}/Details`);
+  };
+   
 
     const genders = ["Mężczyzna", "Kobieta"];
 
@@ -215,7 +218,7 @@ console.log(errors);
                     </span>
                   </div>
                   <button
-                    onClick={() => goToDetails(participant.id)}
+                    onClick={() => handleViewDetails(participant.id)}
                     className="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600"
                   >
                     Szczegóły

@@ -8,10 +8,6 @@ function Trainers() {
   const [trainerTypes, setTrainerTypes] = useState([]); // Lista typów szkoleń
   const [selectedTypes, setSelectedTypes] = useState([]); // Typy szkoleń dla danego szkoleniowca
   const [successMessage, setSuccessMessage] = useState(""); // Komunikat o sukcesie
-  const [editingTrainerId, setEditingTrainerId] = useState(null); // ID edytowanego szkoleniowca
-  const [editingName, setEditingName] = useState(""); // Edytowane imię i nazwisko
-  const [editingTypes, setEditingTypes] = useState([]); // Edytowane typy szkoleń
-  
   const navigate = useNavigate(); // Hook do nawigacji
 
   // Pobierz listę szkoleniowców i typów szkoleń z backendu
@@ -42,7 +38,42 @@ function Trainers() {
     }
   };
 
-  // Przejście do szczegółów trenera
+  const handleAddTrainer = async () => {
+    if (!trainerName || selectedTypes.length === 0) {
+      alert("Wypełnij wszystkie pola!");
+      return;
+    }
+
+    try {
+      const response = await axios.post("http://localhost:5000/trainers/addTrainer", {
+        name: trainerName,
+        types: selectedTypes,
+      });
+
+      if (response.data.success) {
+        setSuccessMessage("Szkoleniowiec został pomyślnie dodany!");
+        fetchTrainers(); // Odśwież listę szkoleniowców
+        setTrainerName(""); // Wyczyść formularz
+        setSelectedTypes([]);
+      }
+    } catch (error) {
+      console.error("Błąd podczas dodawania szkoleniowca:", error);
+    }
+  };
+
+  const handleDeleteTrainer = async (trainerId) => {
+    if (!window.confirm("Czy na pewno chcesz usunąć tego szkoleniowca?")) return;
+
+    try {
+      const response = await axios.delete(`http://localhost:5000/trainers/deleteTrainer/${trainerId}`);
+      if (response.data.success) {
+        fetchTrainers(); // Odśwież listę szkoleniowców
+      }
+    } catch (error) {
+      console.error("Błąd podczas usuwania szkoleniowca:", error);
+    }
+  };
+
   const handleViewDetails = (trainerId) => {
     navigate(`/trainer/${trainerId}`);
   };
@@ -61,7 +92,7 @@ function Trainers() {
           onChange={(e) => setTrainerName(e.target.value)}
           className="border border-gray-300 p-2 rounded w-full mb-2"
         />
-        <h4 className="font-semibold mb-2">Typy szkoleń:</h4>
+         <h4 className="font-semibold mb-2">Typy szkoleń:</h4>
         <div className="flex flex-wrap gap-2 mb-4">
           {trainerTypes.map((type) => (
             <label key={type.id} className="flex items-center gap-2">
@@ -81,7 +112,7 @@ function Trainers() {
           ))}
         </div>
         <button
-          onClick={() => alert("Funkcja dodawania niezaimplementowana!")}
+          onClick={handleAddTrainer}
           className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
         >
           Dodaj szkoleniowca
@@ -99,12 +130,21 @@ function Trainers() {
               <span>{trainer.name}</span>
               <span>{trainer.email}</span>
               <span>{trainer.phone}</span>
-              <button
-                onClick={() => handleViewDetails(trainer.id)}
-                className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-400"
-              >
-                Zobacz szczegóły
-              </button>
+              <span>{trainer.types?.join(", ") || "Brak typów"}</span>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => handleViewDetails(trainer.id)}
+                  className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-400"
+                >
+                  Zobacz szczegóły
+                </button>
+                <button
+                  onClick={() => handleDeleteTrainer(trainer.id)}
+                  className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
+                >
+                  Usuń
+                </button>
+              </div>
             </div>
           </li>
         ))}

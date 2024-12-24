@@ -7,6 +7,7 @@ import 'react-big-calendar/lib/css/react-big-calendar.css';
 import Calendar1 from "./ProjectParticipantDetails/Calendar1";
 import EditEventModal from "./ProjectParticipantDetails/EditEventModal";
 import TotalHours from "./ProjectParticipantDetails/TotalHours"; // Import komponentu
+import { useParams } from "react-router-dom";
 
 moment.locale("pl"); // Ustaw język polski
 
@@ -15,7 +16,7 @@ const localizer = momentLocalizer(moment);
 
 
 
-function ProjectParticipantDetails({ participantId, projectId, onBack}) {
+function ProjectParticipantDetails({onBack}) {
   const [participant, setParticipant] = useState(null); // Dane uczestnika w ramach projektu
   const [activeTab, setActiveTab] = useState("Dane osobowe"); // Domyślna zakładka
  
@@ -28,10 +29,10 @@ function ProjectParticipantDetails({ participantId, projectId, onBack}) {
   const [newEvent, setNewEvent] = useState({ start: "", end: "", title: "" }); // Nowe wydarzenie
   const [projectTypes, setProjectTypes] = useState([]); // Typy przypisane do uczestnika w projekcie
   const [projectTypesAll, setProjectTypesAll] = useState([]); // Typy przypisane do uczestnika w projekcie
- /*  const currentType = projectTypesAll.find((type) => type.name === activeTab);
-  const typeId = currentType?.id;
- console.log('currentType',typeId) */
- const [selectedEvent, setSelectedEvent] = useState(null); // Wydarzenie do edycji
+  const {id} = useParams(); // Pobiera ID projektu z URL
+  const projectId = id; // Pobiera ID projektu z URL
+  const {participantId} = useParams(); // Pobiera ID projektu z URL
+  const [selectedEvent, setSelectedEvent] = useState(null); // Wydarzenie do edycji
   const [showEditModal, setShowEditModal] = useState(false); // Kontrola widoczności modala
   const [eventData, setEventData] = useState({
     title: "",

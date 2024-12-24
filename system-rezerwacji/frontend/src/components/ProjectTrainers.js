@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
+import { useParams } from "react-router-dom";
 
-function ProjectTrainers({ projectId }) {
+function ProjectTrainers() {
   const [projectTypes, setProjectTypes] = useState([]); // Typy projektu
   const [trainersByType, setTrainersByType] = useState({}); // Szkoleniowcy przypisani do typów
   const [searchQueries, setSearchQueries] = useState({}); // Oddzielne inputy dla typów
   const [filteredTrainers, setFilteredTrainers] = useState({}); // Filtrowana lista szkoleniowców
-
+  const {id} = useParams(); // Pobiera ID projektu z URL
+  const projectId = id; // Pobiera ID projektu z URL
   useEffect(() => {
     fetchProjectTypes();
   }, [projectId]);
