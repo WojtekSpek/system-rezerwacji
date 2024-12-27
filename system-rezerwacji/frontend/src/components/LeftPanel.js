@@ -82,6 +82,26 @@ function LeftPanel({ selectedProject, setSelectedProject, selectedTab, setSelect
               Szkoleniowcy
             </NavLink>
           </li>
+          <li className="cursor-pointer p-2 hover:bg-gray-700">
+            <NavLink
+              to={`/projects/${selectedProject}/Group`}
+              className={({ isActive }) =>
+                isActive ? "bg-gray-600 font-bold" : "hover:bg-gray-700"
+              }
+            >
+              Zajęcia grupowe
+            </NavLink>
+          </li>
+          <li className="cursor-pointer p-2 hover:bg-gray-700">
+            <NavLink
+              to={`/projects/${selectedProject}/notes`}
+              className={({ isActive }) =>
+                isActive ? "bg-gray-600 font-bold" : "hover:bg-gray-700"
+              }
+            >
+              Notatki
+            </NavLink>
+          </li>
         </ul>
       </div>
     )}

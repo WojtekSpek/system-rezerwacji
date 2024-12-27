@@ -4,8 +4,11 @@ import axios from "axios";
 import "react-big-calendar/lib/css/react-big-calendar.css";
 import { Calendar as BigCalendar, momentLocalizer } from "react-big-calendar";
 import moment from "moment";
-const localizer = momentLocalizer(moment);
+import ReactModal from "react-modal";
 
+const localizer = momentLocalizer(moment);
+ReactModal.setAppElement("#root"); // Ustawienie głównego elementu aplikacji
+moment.locale("pl"); // Ustaw język polski
 
 function TrainerDetails() {
   const { trainersId } = useParams();
@@ -18,6 +21,12 @@ function TrainerDetails() {
   const [availableTypes, setAvailableTypes] = useState([]);
   const [activeTab, setActiveTab] = useState("Dane osobowe"); // Domyślna zakładka
   const [events, setEvents] = useState([]); // Wydarzenia dla kalendarza
+  const [selectedEvent, setSelectedEvent] = useState(null); // Wybrane wydarzenie
+  const [isModalOpen, setIsModalOpen] = useState(false); // Widoczność modalu
+  const [participant, setParticipant] = useState(null);
+
+  
+  console.log('event.participantId',events)
 
   useEffect(() => {
     fetchTrainerDetails();
@@ -27,6 +36,21 @@ function TrainerDetails() {
     
   }, []);
 
+  const messages = {
+    allDay: "Cały dzień",
+    previous: "Poprzedni",
+    next: "Następny",
+    today: "Dzisiaj",
+    month: "Miesiąc",
+    week: "Tydzień",
+    day: "Dzień",
+    agenda: "Agenda",
+    date: "Data",
+    time: "Czas",
+    event: "Wydarzenie",
+    noEventsInRange: "Brak wydarzeń w tym zakresie.",
+    showMore: (count) => `+ Pokaż więcej (${count})`,
+  };
 
   const fetchEvents = async () => {
     try {
@@ -39,6 +63,7 @@ function TrainerDetails() {
             ...event,
             start: new Date(event.start),
             end: new Date(event.end),
+            participantId: event.participant_id, // Przypisanie participantId z API
           }))
         );
       }
@@ -46,7 +71,19 @@ function TrainerDetails() {
       console.error("Error fetching events:", error);
     }
   };
-
+  const fetchParticipant = async (participantId) => {
+    console.log('tratata')
+    try {
+      const response = await axios.get(
+        `http://localhost:5000/participants/${participantId}`
+      ); // API endpoint zwracający szczegóły uczestnika
+      if (response.data.success) {
+        setParticipant(response.data.participant);
+      }
+    } catch (error) {
+      console.error("Błąd podczas pobierania szczegółów uczestnika:", error);
+    }
+  };
 
   const fetchFiles = async () => {
     try {
@@ -143,6 +180,15 @@ function TrainerDetails() {
       case "Dane osobowe":
         return (
           <div>
+            <button
+              onClick={() => {
+                setIsEditing(!isEditing);
+                setEditedTrainer(trainer);
+              }}
+              className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 float-right"
+            >
+              {isEditing ? "Cancel" : "Edit"}
+            </button>
             <div className="mb-4">
               <h3 className="font-semibold">Name:</h3>
               <p>{trainer.name}</p>
@@ -152,11 +198,11 @@ function TrainerDetails() {
               <p>{trainer.email}</p>
             </div>
             <div className="mb-4">
-              <h3 className="font-semibold">Phone:</h3>
+              <h3 className="font-semibold">Tel:</h3>
               <p>{trainer.phone}</p>
             </div>
             <div className="mb-4">
-              <h3 className="font-semibold">Training Types:</h3>
+              <h3 className="font-semibold">Typy szkoleń:</h3>
               <p>{trainer.types?.join(", ") || "No types assigned"}</p>
             </div>
           </div>
@@ -210,14 +256,77 @@ function TrainerDetails() {
           case "Kalendarz":
             return (
               <div>
-                <h3 className="font-semibold">Kalendarz:</h3>
+                <h2 className="text-2xl font-bold mb-4">Kalendarz trenera</h2>
                 <BigCalendar
                   localizer={localizer}
                   events={events}
                   startAccessor="start"
                   endAccessor="end"
                   style={{ height: 500 }}
+                  messages={messages} // Przekazanie tłumaczeń
+                  onSelectEvent={(event) => {
+                    setSelectedEvent(event);
+                    setIsModalOpen(true);
+                    if (event.participantId) {
+                      fetchParticipant(event.participantId); // Pobierz dane uczestnika
+                    }
+                  }}
                 />
+
+                {/* Modal ze szczegółami wydarzenia */}
+                <ReactModal
+                  isOpen={isModalOpen}
+                  onRequestClose={() => {
+                    setIsModalOpen(false);
+                    setParticipant(null); // Wyczyść dane uczestnika po zamknięciu
+                  }}
+                  className="relative bg-white p-6 rounded shadow-lg max-w-lg mx-auto mt-20 z-50"
+                  overlayClassName="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-40"
+                >
+                  {selectedEvent && (
+                    <div>
+                      <button
+                        onClick={() => {
+                          setIsModalOpen(false);
+                          setParticipant(null); // Wyczyść dane uczestnika po zamknięciu
+                        }}
+                        className="absolute top-2 right-2 text-gray-500 hover:text-gray-700"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          strokeWidth={1.5}
+                          stroke="currentColor"
+                          className="w-6 h-6"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M6 18L18 6M6 6l12 12"
+                          />
+                        </svg>
+                      </button>
+                      <h3 className="text-xl font-bold mb-4 text-center">
+                        Szczegóły wydarzenia
+                      </h3>
+                      <p><strong>Tytuł:</strong> {selectedEvent.title}</p>
+                      <p><strong>Opis:</strong> {selectedEvent.description || "Brak opisu"}</p>
+                      <p><strong>Data rozpoczęcia:</strong> {selectedEvent.start.toLocaleString()}</p>
+                      <p><strong>Data zakończenia:</strong> {selectedEvent.end.toLocaleString()}</p>
+                      {participant ? (
+                        <div className="mt-4">
+                          <p>
+                            <strong>Uczestnik:</strong> {participant.firstName} {participant.lastName}
+                          </p>
+                        </div>
+                      ) : (
+                        <p className="mt-4">Ładowanie danych uczestnika...</p>
+                      )}
+                    </div>
+                  )}
+                </ReactModal>
+
               </div>
             );
           default:
@@ -232,16 +341,8 @@ function TrainerDetails() {
   return (
     <div className="p-4 w-full">
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold mb-4">Trainer Details</h2>
-        <button
-          onClick={() => {
-            setIsEditing(!isEditing);
-            setEditedTrainer(trainer);
-          }}
-          className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
-        >
-          {isEditing ? "Cancel" : "Edit"}
-        </button>
+        <h2 className="text-2xl font-bold mb-4">{trainer.name}</h2>
+        
       </div>
 
       <div className="flex gap-4 border-b mb-4">
@@ -266,70 +367,79 @@ function TrainerDetails() {
       </div>
 
       {isEditing ? (
-        <div>
-          <div className="mb-4">
-            <label className="font-semibold">Name:</label>
-            <input
-              type="text"
-              value={editedTrainer.name}
-              onChange={(e) =>
-                setEditedTrainer({ ...editedTrainer, name: e.target.value })
-              }
-              className="border border-gray-300 p-2 rounded w-full"
-            />
-          </div>
-          <div className="mb-4">
-            <label className="font-semibold">Email:</label>
-            <input
-              type="email"
-              value={editedTrainer.email}
-              onChange={(e) =>
-                setEditedTrainer({ ...editedTrainer, email: e.target.value })
-              }
-              className="border border-gray-300 p-2 rounded w-full"
-            />
-          </div>
-          <div className="mb-4">
-            <label className="font-semibold">Phone:</label>
-            <input
-              type="text"
-              value={editedTrainer.phone}
-              onChange={(e) =>
-                setEditedTrainer({ ...editedTrainer, phone: e.target.value })
-              }
-              className="border border-gray-300 p-2 rounded w-full"
-            />
-          </div>
-          <div className="mb-4">
-            <label className="font-semibold">Training Types:</label>
-            <div className="flex flex-wrap gap-2 mt-2">
-              {availableTypes.map((type) => (
-                <label key={type.id} className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={editedTrainer.types?.includes(type.type)}
-                    onChange={(e) => {
-                      const updatedTypes = e.target.checked
-                        ? [...(editedTrainer.types || []), type.type]
-                        : (editedTrainer.types || []).filter((t) => t !== type.type);
-                      setEditedTrainer({ ...editedTrainer, types: updatedTypes });
-                    }}
-                  />
-                  {type.type}
-                </label>
-              ))}
+          <div>
+            <div className="mb-4">
+              <label className="font-semibold">Name:</label>
+              <input
+                type="text"
+                value={editedTrainer.name}
+                onChange={(e) =>
+                  setEditedTrainer({ ...editedTrainer, name: e.target.value })
+                }
+                className="border border-gray-300 p-2 rounded w-full"
+              />
+            </div>
+            <div className="mb-4">
+              <label className="font-semibold">Email:</label>
+              <input
+                type="email"
+                value={editedTrainer.email}
+                onChange={(e) =>
+                  setEditedTrainer({ ...editedTrainer, email: e.target.value })
+                }
+                className="border border-gray-300 p-2 rounded w-full"
+              />
+            </div>
+            <div className="mb-4">
+              <label className="font-semibold">Tel:</label>
+              <input
+                type="text"
+                value={editedTrainer.phone}
+                onChange={(e) =>
+                  setEditedTrainer({ ...editedTrainer, phone: e.target.value })
+                }
+                className="border border-gray-300 p-2 rounded w-full"
+              />
+            </div>
+            <div className="mb-4">
+              <label className="font-semibold">Typy szkoleń:</label>
+              <div className="flex flex-wrap gap-2 mt-2">
+                {availableTypes.map((type) => (
+                  <label key={type.id} className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={editedTrainer.types?.includes(type.type)}
+                      onChange={(e) => {
+                        const updatedTypes = e.target.checked
+                          ? [...(editedTrainer.types || []), type.type]
+                          : (editedTrainer.types || []).filter((t) => t !== type.type);
+                        setEditedTrainer({ ...editedTrainer, types: updatedTypes });
+                      }}
+                    />
+                    {type.type}
+                  </label>
+                ))}
+              </div>
+            </div>
+            <div className="flex flex-row-reverse gap-4">
+              <button
+                onClick={handleSave}
+                className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
+              >
+                Save
+              </button>
+              <button
+                onClick={() => setIsEditing(false)} // Ustaw isEditing na false
+                className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600"
+              >
+                Cancel
+              </button>
             </div>
           </div>
-          <button
-            onClick={handleSave}
-            className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
-          >
-            Save
-          </button>
-        </div>
-      ) : (
-        renderTabContent()
-      )}
+        ) : (
+          renderTabContent()
+        )}
+
     </div>
   );
 }

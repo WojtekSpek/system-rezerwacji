@@ -10,6 +10,8 @@ const userRoutes = require("./routes/user");
 const trainersRoutes = require("./routes/trainers");
 const filesRoutes = require("./routes/files");
 const calendarRoutes = require("./routes/calendar");
+const commentaryRoutes = require("./routes/Commentary");
+const groupRoutes = require("./routes/group");
 
 const app = express();
 const PORT = 5000;
@@ -46,7 +48,8 @@ app.use("/users", userRoutes);
 app.use("/trainers", trainersRoutes);
 app.use("/files", filesRoutes);
 app.use("/calendar", calendarRoutes);
-
+app.use("/comments", commentaryRoutes);
+app.use("/group", groupRoutes);
 
 // Uruchomienie serwera
 app.listen(PORT, () => {

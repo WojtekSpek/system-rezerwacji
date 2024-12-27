@@ -9,7 +9,7 @@ router.get("/:trainersId/events", async (req, res) => {
 
   try {
     const query = `
-      SELECT id, title, description, start, end
+      SELECT id, title, description, start, end,participant_id
       FROM events
       WHERE project_trainer_id = ?
     `;

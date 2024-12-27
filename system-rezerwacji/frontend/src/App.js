@@ -8,6 +8,9 @@ import ProjectParticipants from "./components/ProjectParticipants";
 import ProjectDetails from "./components/ProjectDetails";
 import ProjectParticipantDetails from "./components/ProjectParticipantDetails";
 import ProjectTrainers from "./components/ProjectTrainers";
+import ProjectNotes from "./components/ProjectNotes";
+import ProjectGroup from "./components/ProjectGroup";
+import ProjectGroupTrainingDetails from "./components/GroupTrainingDetails";
 import Participants from "./components/Participants";
 import ParticipantDetails from "./components/ParticipantDetails";
 import Trainers from "./components/Trainers";
@@ -112,7 +115,7 @@ function App() {
                     path="/participant/:participantId/details"
                     element={<ParticipantDetails />}
                   />
-
+                  <Route path="/Group/:id" element={<GroupTrainingDetails />} />
                   <Route
                     path="/trainer/:trainersId"
                     element={<TrainerDetails />}
@@ -122,6 +125,8 @@ function App() {
                     <Route path="details" element={<ProjectDetails />} />
                     <Route path="participants" element={<ProjectParticipants />} />
                     <Route path="trainers" element={<ProjectTrainers />} />
+                    <Route path="group" element={<ProjectGroup />} />
+                    <Route path="notes" element={<ProjectNotes/>} />
                   </Route>
 
 

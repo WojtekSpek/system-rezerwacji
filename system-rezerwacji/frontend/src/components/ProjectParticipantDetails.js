@@ -8,6 +8,7 @@ import Calendar1 from "./ProjectParticipantDetails/Calendar1";
 import EditEventModal from "./ProjectParticipantDetails/EditEventModal";
 import TotalHours from "./ProjectParticipantDetails/TotalHours"; // Import komponentu
 import { useParams } from "react-router-dom";
+import Commentary from "./Commentary";
 
 moment.locale("pl"); // Ustaw język polski
 
@@ -347,6 +348,15 @@ function ProjectParticipantDetails({onBack}) {
         </div>
           
         );
+        case "Aktywność":
+        return (
+            <div>
+            {/* <h2 className="text-2xl font-bold mb-4">Szczegóły projektu</h2> */}
+      {/* Inne szczegóły projektu */}
+      <Commentary entityId={projectId} entityType="participant" />
+        </div>
+          
+        );
       case "Pliki":
         return (
             <div>
@@ -490,6 +500,12 @@ function ProjectParticipantDetails({onBack}) {
           className={`pb-2 ${activeTab === "Pliki" ? "border-b-2 border-blue-500" : ""}`}
         >
           Pliki
+        </button>
+        <button
+          onClick={() => setActiveTab("Aktywność")}
+          className={`pb-2 ${activeTab === "Aktywność" ? "border-b-2 border-blue-500" : ""}`}
+        >
+          Aktywności
         </button>
         {/* Zakładki dynamiczne */}
         {projectTypes.map((type) => (
