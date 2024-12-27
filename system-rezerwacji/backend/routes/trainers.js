@@ -2,7 +2,32 @@ const express = require("express");
 const router = express.Router();
 const db = require("../config/database");
 const { authenticateUser, authorizeRole } = require("../middlewares/auth");
+router.get("/trainersType", async (req, res) => {
+  const { typeId } = req.query; // Pobierz typeId z query params
+console.log('typeId',typeId)
+  if (!typeId) {
+    return res.status(400).json({ success: false, message: "typeId jest wymagane." });
+  }
 
+  try {
+    const [rows] = await db.promise().query(
+      `SELECT t.id, t.name 
+       FROM trainers t
+       INNER JOIN trainer_types tt ON t.id = tt.trainer_id
+       WHERE tt.type_id = ?`,
+      [typeId]
+    );
+
+    res.json({
+      success: true,
+      trainers: rows,
+    });
+    console.log('rows_type',rows);
+  } catch (error) {
+    console.error("Błąd podczas pobierania szkoleniowców:", error);
+    res.status(500).json({ success: false, message: "Błąd serwera." });
+  }
+});
 // Endpoint: Pobierz wydarzenia dla trenera
 router.get("/:trainersId/events", async (req, res) => {
   const { trainersId } = req.params;
@@ -247,30 +272,5 @@ router.post("/addTrainingType", (req, res) => {
       }
     });
   });
-  router.get("/trainersType", async (req, res) => {
-    const { typeId } = req.query; // Pobierz typeId z query params
-  
-    if (!typeId) {
-      return res.status(400).json({ success: false, message: "typeId jest wymagane." });
-    }
-  
-    try {
-      const [rows] = await db.promise().query(
-        `SELECT t.id, t.name 
-         FROM trainers t
-         INNER JOIN trainer_types tt ON t.id = tt.trainer_id
-         WHERE tt.type_id = ?`,
-        [typeId]
-      );
-  
-      res.json({
-        success: true,
-        trainers: rows,
-      });
-      console.log('rows_type',rows);
-    } catch (error) {
-      console.error("Błąd podczas pobierania szkoleniowców:", error);
-      res.status(500).json({ success: false, message: "Błąd serwera." });
-    }
-  });
+ 
   module.exports = router;

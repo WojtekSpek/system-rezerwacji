@@ -3,7 +3,7 @@ import axios from "axios";
 //import Commentary from "./Commentary";
 import { useParams, useNavigate } from "react-router-dom";
 
-function GroupTrainings({ }) {
+function GroupTrainings({setSelectedProject}) {
   const [trainings, setTrainings] = useState([]);
   const [newTraining, setNewTraining] = useState({ name: "", hours: 0 });
   const { id } = useParams(); // Pobiera ID projektu z URL
@@ -13,6 +13,12 @@ function GroupTrainings({ }) {
   useEffect(() => {
     fetchTrainings();
   }, []);
+
+  const handleViewDetails = (trainingid) => {
+    //setSelectedProject({projectId}); 
+    console.log('trainingid',trainingid)
+    navigate(`/projects/${projectId}/Group/${trainingid}`); 
+  };
 
   const fetchTrainings = async () => {
     try {
@@ -65,7 +71,7 @@ function GroupTrainings({ }) {
             <h4 className="font-bold">{training.name}</h4>
             <p>Liczba godzin: {training.hours}</p>
             <button
-              onClick={() => window.location.href = `/Group/${training.id}`}
+             onClick={() => handleViewDetails(training.id)}
               className="text-blue-500 hover:underline mt-2"
             >
               Szczegóły

@@ -4,14 +4,77 @@ import { useParams } from "react-router-dom";
 
 function ProjectTrainers() {
   const [projectTypes, setProjectTypes] = useState([]); // Typy projektu
+  const [projectGroups, setProjectGroups] = useState([]); // Grupy projektu
   const [trainersByType, setTrainersByType] = useState({}); // Szkoleniowcy przypisani do typów
+  const [trainersByGroup, setTrainersByGroup] = useState({}); // Szkoleniowcy przypisani do grup
   const [searchQueries, setSearchQueries] = useState({}); // Oddzielne inputy dla typów
+  const [groupSearchQueries, setGroupSearchQueries] = useState({}); // Wyszukiwanie dla grup
+  const [typeSearchQueries, setTypeSearchQueries] = useState({}); // Wyszukiwanie dla typów
+  const [filteredGroupTrainers, setFilteredGroupTrainers] = useState({}); // Wyniki wyszukiwania dla grup
+  const [filteredTypeTrainers, setFilteredTypeTrainers] = useState({});   // Wyniki wyszukiwania dla typów
   const [filteredTrainers, setFilteredTrainers] = useState({}); // Filtrowana lista szkoleniowców
   const {id} = useParams(); // Pobiera ID projektu z URL
   const projectId = id; // Pobiera ID projektu z URL
+  
   useEffect(() => {
     fetchProjectTypes();
+    fetchProjectGroups();
   }, [projectId]);
+
+  const fetchProjectGroups = async () => {
+    try {
+      const response = await axios.get(`/group/group-trainings/${projectId}`);
+     console.log('response',response)
+      if (response.data.success) {
+        setProjectGroups(response.data.trainings);
+        fetchAllTrainersForGroups(response.data.trainings);
+      }
+    } catch (error) {
+      console.error("Błąd podczas pobierania grup projektu:", error);
+    }
+  };
+
+  const fetchAllTrainersForGroups = async (groups) => {
+    const trainersData = {};
+    try {
+      for (const group of groups) {
+        const response = await axios.get(`/group/${projectId}/group-trainers/${group.id}`);
+        if (response.data.success) {
+          trainersData[group.id] = response.data.trainers;
+        }
+      }
+      setTrainersByGroup(trainersData);
+    } catch (error) {
+      console.error("Błąd podczas pobierania szkoleniowców dla grup:", error);
+    }
+  };
+
+  const addTrainerToGroup = async (trainerId, groupId) => {
+    try {
+      const response = await axios.post(`/group/${projectId}/group-trainers`, {
+        trainerId,
+        groupId,
+      });
+      if (response.data.success) {
+        fetchAllTrainersForGroups(projectGroups);
+        alert("Szkoleniowiec został przypisany do grupy!");
+      }
+    } catch (error) {
+      console.error("Błąd podczas przypisywania szkoleniowca do grupy:", error);
+    }
+  };
+
+  const removeTrainerFromGroup = async (trainerId, groupId) => {
+    try {
+      const response = await axios.delete(`/projects/${projectId}/group-trainers/${groupId}/${trainerId}`);
+      if (response.data.success) {
+        fetchAllTrainersForGroups(projectGroups);
+        alert("Szkoleniowiec został usunięty z grupy!");
+      }
+    } catch (error) {
+      console.error("Błąd podczas usuwania szkoleniowca z grupy:", error);
+    }
+  };
 
   const fetchProjectTypes = async () => {
     try {
@@ -64,19 +127,47 @@ function ProjectTrainers() {
     }
   };
 
-  const searchAvailableTrainers = async (typeId, query) => {
+  const searchAvailableTrainers = async (id, query, context) => {
     try {
-      const response = await axios.get(`/trainers/trainersType`, {
-        params: { typeId },
-      });
+      // Przygotowanie parametrów zapytania
+      const params = {
+        query: query.trim(), // Usuń białe znaki z zapytania
+      };
+  
+      // Dodaj odpowiedni parametr na podstawie kontekstu
+      if (context === "group") {
+        params.groupId = id; // Wyszukiwanie dla grupy
+      } else if (context === "type") {
+        params.typeId = id; // Wyszukiwanie dla typu szkolenia
+      } else {
+        throw new Error("Nieznany kontekst wyszukiwania: " + context);
+      }
+  
+      // Wysłanie zapytania do backendu
+      const response = await axios.get(`/trainers/trainersType`, { params });
+  
       if (response.data.success) {
         const filtered = response.data.trainers.filter((trainer) =>
           trainer.name.toLowerCase().includes(query.toLowerCase())
         );
-        setFilteredTrainers((prev) => ({ ...prev, [typeId]: filtered }));
+  
+        // Zapisanie wyników do odpowiedniego stanu
+        if (context === "group") {
+          setFilteredGroupTrainers((prev) => ({ ...prev, [id]: filtered }));
+        } else if (context === "type") {
+          setFilteredTypeTrainers((prev) => ({ ...prev, [id]: filtered }));
+        }
+      } else {
+        console.warn(
+          "Backend zwrócił odpowiedź, ale oznaczył ją jako niepowodzenie:",
+          response.data
+        );
       }
     } catch (error) {
-      console.error("Błąd podczas wyszukiwania szkoleniowców:", error);
+      console.error(
+        "Błąd podczas wyszukiwania szkoleniowców:",
+        error.response?.data || error.message
+      );
     }
   };
 
@@ -109,17 +200,17 @@ function ProjectTrainers() {
               <h4 className="font-semibold mb-2">Dodaj szkoleniowca:</h4>
               <input
                 type="text"
-                placeholder="Wyszukaj szkoleniowca..."
-                value={searchQueries[type.id] || ""} // Oddzielny stan dla każdego inputu
+                placeholder="Wyszukaj szkoleniowca dla typu..."
+                value={typeSearchQueries[type.id] || ""} // Korzystaj z typowego stanu
                 onChange={(e) => {
                   const query = e.target.value;
-                  setSearchQueries((prev) => ({ ...prev, [type.id]: query }));
-                  searchAvailableTrainers(type.id, query); // Wywołaj wyszukiwanie
+                  setTypeSearchQueries((prev) => ({ ...prev, [type.id]: query })); // Aktualizuj typowy stan
+                  searchAvailableTrainers(type.id, query, "type");
                 }}
                 className="border border-gray-300 p-2 rounded w-full mb-2"
               />
               <ul>
-                {filteredTrainers[type.id]?.map((trainer) => (
+                {filteredTypeTrainers[type.id]?.map((trainer) => (
                   <li key={trainer.id} className="flex justify-between items-center p-2 border-b">
                     <span>{trainer.name}</span>
                     <button
@@ -134,6 +225,56 @@ function ProjectTrainers() {
                       {trainersByType[type.id]?.some((t) => t.id === trainer.id)
                         ? "Dodano"
                         : "Dodaj"}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </li>
+        ))}
+      </ul>
+      {/* Sekcja dla grup */}
+      <h3 className="text-xl font-semibold mt-8 mb-2">Grupy projektu</h3>
+      <ul className="space-y-4">
+        {projectGroups.map((group) => (
+          <li key={group.id} className="bg-white p-4 rounded shadow hover:shadow-md">
+            <h4 className="text-lg font-semibold mb-2">{group.name}</h4>
+
+            <ul>
+              {trainersByGroup[group.id]?.map((trainer) => (
+                <li key={trainer.id} className="flex justify-between items-center p-2 border-b">
+                  <span>{trainer.name}</span>
+                  <button
+                    onClick={() => removeTrainerFromGroup(trainer.id, group.id)}
+                    className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600"
+                  >
+                    Usuń
+                  </button>
+                </li>
+              )) || <p>Brak przypisanych szkoleniowców</p>}
+            </ul>
+
+            <div className="mt-4">
+            <input
+              type="text"
+              placeholder="Wyszukaj szkoleniowca w grupie..."
+              value={groupSearchQueries[group.id] || ""} // Korzystaj z grupowego stanu
+              onChange={(e) => {
+                const query = e.target.value;
+                setGroupSearchQueries((prev) => ({ ...prev, [group.id]: query })); // Aktualizuj grupowy stan
+                searchAvailableTrainers(group.id, query, "group");
+              }}
+              className="border border-gray-300 p-2 rounded w-full mb-2"
+            />
+              <ul>
+              {filteredGroupTrainers[group.id]?.map((trainer) => (
+                  <li key={trainer.id} className="flex justify-between items-center p-2 border-b">
+                    <span>{trainer.name}</span>
+                    <button
+                      onClick={() => addTrainerToGroup(trainer.id, group.id)}
+                      className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded"
+                    >
+                      Dodaj
                     </button>
                   </li>
                 ))}

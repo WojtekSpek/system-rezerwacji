@@ -2,6 +2,23 @@ const express = require('express');
 const router = express.Router();
 const db = require('../config/database');
 
+router.get("/group-events/:trainingId", async (req, res) => {
+  const { trainingId } = req.params;
+
+  try {
+    const query = `
+      SELECT * FROM events
+      WHERE type = 'group_training'
+    `;
+    const [events] = await db.promise().query(query);
+
+    res.json({ success: true, events });
+  } catch (error) {
+    console.error("Błąd podczas pobierania wydarzeń grupowych:", error);
+    res.status(500).json({ success: false, message: "Błąd serwera." });
+  }
+});
+
 // Pobieranie doradców zawodowych
 router.get('/projects/:projectId/advisors', async (req, res) => {
   const { projectId } = req.params;
@@ -108,6 +125,51 @@ router.get("/events/:projectId", async (req, res) => {
   }
 });
 
+router.post("/group-events", async (req, res) => {
+  const { title, start, end, description, trainingId, projectId } = req.body;
+
+  try {
+    // Dodaj główne wydarzenie grupowe
+    const [groupEventResult] = await db.promise().query(
+      `INSERT INTO events (title, start, end, description, project_id, isGroupEvent, groupParticipantIds, type)
+       VALUES (?, ?, ?, ?, ?, ?, NULL, 'group_training')`,
+      [title, start, end, description, projectId, true]
+    );
+
+    const groupEventId = groupEventResult.insertId;
+
+    // Pobierz uczestników szkolenia grupowego
+    const [participants] = await db.query(
+      `SELECT participantId FROM group_training_participants WHERE trainingId = ?`,
+      [trainingId]
+    );
+
+    if (participants.length > 0) {
+      // Dodaj wydarzenie indywidualne dla każdego uczestnika
+      const individualEvents = participants.map((participant) => [
+        title,
+        start,
+        end,
+        description,
+        projectId,
+        false, // Nie jest grupowym wydarzeniem
+        participant.participantId,
+        "individual_training", // Typ wydarzenia
+      ]);
+
+      await db.query(
+        `INSERT INTO events (title, start, end, description, project_id, isGroupEvent, participant_id, type)
+         VALUES ?`,
+        [individualEvents]
+      );
+    }
+
+    res.json({ success: true, message: "Wydarzenie grupowe zostało utworzone." });
+  } catch (error) {
+    console.error("Błąd podczas tworzenia wydarzenia grupowego:", error);
+    res.status(500).json({ success: false, message: "Błąd serwera." });
+  }
+});
 
   // Dodawanie wydarzenia
 router.post("/events", async (req, res) => {
@@ -120,6 +182,10 @@ router.post("/events", async (req, res) => {
       projectTrainerId: req.body.projectTrainerId, // to musi być poprawne id
       projectId: req.body.projectId,
       type: req.body.type,
+      isGroupEvent,
+      participantId, // Używane dla indywidualnych wydarzeń
+      groupParticipantIds, // Używane dla grupowych wydarzeń
+
     });
     console.log('body', req.body)
     if (!title || !start || !end || !projectId) {
@@ -128,10 +194,12 @@ router.post("/events", async (req, res) => {
   
     try {
       const query = `
-        INSERT INTO events (title, description, start, end, project_trainer_id, project_id, type)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO events (title, start, end, description, project_id, type, participant_id, isGroupEvent, groupParticipantIds)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
       `;
-      const [result] = await db.promise().query(query, [title, description, start, end, projectTrainerId, projectId,type]);
+      const [result] = await db.promise().query(query, [title, description, start, end, projectTrainerId, projectId,type,participantId || null,
+        isGroupEvent || false,
+        groupParticipantIds ? JSON.stringify(groupParticipantIds) : null,]);
   
       res.json({
         success: true,
