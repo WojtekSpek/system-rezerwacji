@@ -3,12 +3,13 @@ import axios from "axios";
 
 function AddUser() {
   const [username, setUsername] = useState("");
-  const [password, setPassword] = useState(""); // Pole hasła
+  const [password, setPassword] = useState("");
+  const [email, setEmail] = useState(""); // Dodano pole email
   const [role, setRole] = useState("");
   const [users, setUsers] = useState([]);
   const [successMessage, setSuccessMessage] = useState("");
-  const [editUser, setEditUser] = useState(null); // Do edycji użytkownika
-
+  const [editUser, setEditUser] = useState(null);
+console.log(users)
   // Pobierz użytkowników z backendu
   useEffect(() => {
     fetchUsers();
@@ -17,7 +18,7 @@ function AddUser() {
   const fetchUsers = async () => {
     try {
       const response = await axios.get("http://localhost:5000/users", {
-        withCredentials: true, // Włącz przesyłanie ciasteczek
+        withCredentials: true,
       });
       if (response.data.success) {
         setUsers(response.data.users);
@@ -28,17 +29,19 @@ function AddUser() {
   };
 
   const handleAddOrUpdate = async () => {
-    if (!username || !password || !role) {
+    if (!username || !password || !email || !role) {
       alert("Wypełnij wszystkie pola!");
       return;
     }
 
     try {
       if (editUser) {
+        console.log('email',email)
         // Edycja istniejącego użytkownika
-        const response = await axios.put("http://localhost:5000/updateUser", {
+        const response = await axios.put("http://localhost:5000/users/updateUser", {
           id: editUser.id,
           username,
+          email, // Aktualizacja email
           password,
           role,
         });
@@ -48,8 +51,9 @@ function AddUser() {
         }
       } else {
         // Dodanie nowego użytkownika
-        const response = await axios.post("http://localhost:5000/addUser", {
+        const response = await axios.post("http://localhost:5000/users/addUser", {
           username,
+          email, // Dodanie email
           password,
           role,
         });
@@ -70,7 +74,7 @@ function AddUser() {
     if (!window.confirm("Czy na pewno chcesz usunąć tego użytkownika?")) return;
 
     try {
-      const response = await axios.delete(`http://localhost:5000/deleteUser/${id}`);
+      const response = await axios.delete(`http://localhost:5000/users/deleteUser/${id}`);
       if (response.data.success) {
         setSuccessMessage("Użytkownik został pomyślnie usunięty!");
         fetchUsers();
@@ -83,12 +87,14 @@ function AddUser() {
   const handleEdit = (user) => {
     setEditUser(user);
     setUsername(user.username);
+    setEmail(user.email); // Ustaw email podczas edycji
     setPassword(""); // Hasło zawsze trzeba wprowadzić od nowa
     setRole(user.role);
   };
 
   const clearForm = () => {
     setUsername("");
+    setEmail(""); // Wyczyść pole email
     setPassword("");
     setRole("");
     setEditUser(null);
@@ -112,6 +118,13 @@ function AddUser() {
           placeholder="Nazwa użytkownika"
           value={username}
           onChange={(e) => setUsername(e.target.value)}
+          className="border border-gray-300 p-2 rounded"
+        />
+        <input
+          type="email"
+          placeholder="Email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
           className="border border-gray-300 p-2 rounded"
         />
         <input
@@ -154,6 +167,7 @@ function AddUser() {
             <li key={user.id} className="py-2 flex justify-between items-center">
               <div>
                 <span>{user.username}</span> <span className="text-gray-500 italic">({user.role})</span>
+                <span className="block text-sm text-gray-500">{user.email}</span>
               </div>
               <div className="flex gap-2">
                 <button

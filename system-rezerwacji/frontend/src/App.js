@@ -17,6 +17,10 @@ import Trainers from "./components/Trainers";
 import TrainerDetails from "./components/TrainerDetails";
 import TrainingTypes from "./components/TrainingTypes";
 import Login from "./components/Login";
+import Adminsetting from "./components/Settings";
+import AdminAddUser from "./components/AddUser";
+import AdminTrainingTypes from "./components/TrainingTypes";
+import AdminSkillSettings from "./components/SkillSettings";
 
 axios.defaults.withCredentials = true; // Włącz przesyłanie ciasteczek
 axios.defaults.baseURL = "http://localhost:5000"; // Adres backendu
@@ -27,28 +31,59 @@ function App() {
   const [selectedProject, setSelectedProject] = useState(null); // Wybrany projekt
   const [selectedTab, setSelectedTab] = useState("projectDetails"); // Wybrane podmenu
   const [selectedParticipant, setSelectedParticipant] = useState(null);
+  const [isAdmin, setIsAdmin] = useState(false); // Czy użytkownik jest adminem
+  const [isLoading, setIsLoading] = useState(true); // Czy dane użytkownika są ładowane
+
   // Sprawdzenie sesji po załadowaniu aplikacji
-  useEffect(() => {
-    const checkSession = async () => {
-      try {
-        const response = await axios.get("/users/session");
-        if (response.data.success) {
-          setUser(response.data.user);
-          setIsLoggedIn(true);
-        }
-      } catch (error) {
-        console.error("Błąd podczas sprawdzania sesji:", error);
-      }
-    };
-    checkSession();
-  }, []);
+ 
 
-  // Obsługa logowania
-  const handleLogin = async (username, role) => {
-    setUser({ name: username, role });
+// Funkcja sprawdzająca sesję
+const checkSession = async () => {
+  console.log("Rozpoczynam sprawdzanie sesji...");
+  try {
+    const response = await axios.get("/users/session");
+    console.log("Dane zwrócone z /users/session:", response.data);
+
+    if (response.data.success) {
+      setUser(response.data.user);
+      setIsLoggedIn(true);
+      setIsAdmin(response.data.user.role === "admin");
+    } else {
+      setUser(null);
+      setIsLoggedIn(false);
+      setIsAdmin(false);
+    }
+  } catch (error) {
+    console.error("Błąd podczas sprawdzania sesji:", error);
+  } finally {
+    setIsLoading(false);
+    console.log("Kończę sprawdzanie sesji...");
+  }
+};
+
+useEffect(() => {
+  checkSession();
+}, []);
+
+// Obsługa logowania
+const handleLogin = async (username, role) => {
+  try {
+    const loggedInUser = { name: username, role };
+    setUser(loggedInUser);
     setIsLoggedIn(true);
-  };
+    setIsAdmin(role === "admin");
 
+    // Wymuś ponowne sprawdzenie sesji
+    await checkSession();
+  } catch (error) {
+    console.error("Błąd podczas logowania:", error);
+  }
+};
+
+  // Oczekiwanie na zakończenie ładowania danych użytkownika
+  if (isLoading) {
+    return <div>Ładowanie danych użytkownika...</div>;
+  }
   // Obsługa wylogowania
   const handleLogout = async () => {
     try {
@@ -69,8 +104,9 @@ function App() {
           <>
             <TopBar
               user={user}
-              isAdmin={user?.role === "admin"}
+              isAdmin={isAdmin}
               onLogout={handleLogout}
+              selectedProject={selectedProject} // Dodano
             />
             <div className="main-layout flex">
               {/* Panel boczny */}
@@ -135,6 +171,10 @@ function App() {
                   <Route path="/participants" element={<Participants />} />
                   <Route path="/trainers" element={<Trainers />} />
                   <Route path="/trainingTypes" element={<TrainingTypes />} />
+                  <Route path="/settings" element={<Adminsetting/>} />
+                  <Route path="/AddUser" element={<AdminAddUser/>} />
+                  <Route path="/TrainingTypes" element={<AdminTrainingTypes/>} />
+                  <Route path="/SkillSettings" element={<AdminSkillSettings/>} />
                 </Routes>
               </div>
             </div>

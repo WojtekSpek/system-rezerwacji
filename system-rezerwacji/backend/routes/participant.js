@@ -14,6 +14,7 @@ router.get("/", authenticateUser, async (req, res) => {
     res.status(500).json({ success: false, message: "Błąd serwera." });
   }
 });
+
 router.post("/addParticipant", authenticateUser, async (req, res) => {
     const {
       firstName,
@@ -76,7 +77,88 @@ router.post("/addParticipant", authenticateUser, async (req, res) => {
       res.status(500).json({ success: false, message: "Błąd serwera." });
     }
   });
-
+  router.put("/editParticipant/:id", authenticateUser, async (req, res) => {
+    const {
+      firstName,
+      lastName,
+      pesel,
+      gender,
+      voivodeship,
+      city,
+      postalCode,
+      street,
+      houseNumber,
+      apartmentNumber,
+      phoneNumber,
+      email,
+      disabilityLevel,
+    } = req.body;
+  
+    const updatedBy = req.user.username; // Nazwa użytkownika edytującego uczestnika
+    const participantId = req.params.id; // ID uczestnika, którego dane będą edytowane
+  
+    const query = `
+      UPDATE participants
+      SET 
+        firstName = ?,
+        lastName = ?,
+        pesel = ?,
+        gender = ?,
+        voivodeship = ?,
+        city = ?,
+        postalCode = ?,
+        street = ?,
+        houseNumber = ?,
+        apartmentNumber = ?,
+        phoneNumber = ?,
+        email = ?,
+        disabilityLevel = ?,
+        updated_by = ?
+      WHERE id = ?
+    `;
+  
+    try {
+      const [result] = await db.promise().query(query, [
+        firstName,
+        lastName,
+        pesel,
+        gender,
+        voivodeship,
+        city,
+        postalCode,
+        street,
+        houseNumber,
+        apartmentNumber,
+        phoneNumber,
+        email,
+        disabilityLevel,
+        updatedBy,
+        participantId,
+      ]);
+  
+      if (result.affectedRows === 0) {
+        return res.status(404).json({ success: false, message: "Uczestnik nie został znaleziony." });
+      }
+  
+      res.json({ success: true, message: "Dane uczestnika zostały zaktualizowane!" });
+    } catch (error) {
+      console.error("Błąd podczas edycji uczestnika:", error);
+  
+      // Obsługa błędu unikalności
+      if (error.code === "ER_DUP_ENTRY") {
+        const duplicateField = error.sqlMessage.includes("email")
+          ? "email"
+          : "pesel";
+        return res.status(400).json({
+          success: false,
+          message: `Uczestnik z tym ${duplicateField} już istnieje.`,
+        });
+      }
+  
+      res.status(500).json({ success: false, message: "Błąd serwera." });
+    }
+  });
+  
 
   router.get("/:projectId/participants/:participantId/hours", async (req, res) => {
     const { projectId, participantId } = req.params;

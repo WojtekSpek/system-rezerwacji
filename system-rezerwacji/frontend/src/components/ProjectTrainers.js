@@ -66,7 +66,7 @@ function ProjectTrainers() {
 
   const removeTrainerFromGroup = async (trainerId, groupId) => {
     try {
-      const response = await axios.delete(`/projects/${projectId}/group-trainers/${groupId}/${trainerId}`);
+      const response = await axios.delete(`group/projects/${projectId}/group-trainers/${groupId}/${trainerId}`);
       if (response.data.success) {
         fetchAllTrainersForGroups(projectGroups);
         alert("Szkoleniowiec został usunięty z grupy!");
@@ -129,37 +129,31 @@ function ProjectTrainers() {
 
   const searchAvailableTrainers = async (id, query, context) => {
     try {
-      // Przygotowanie parametrów zapytania
-      const params = {
-        query: query.trim(), // Usuń białe znaki z zapytania
-      };
+      const params = { query: query.trim() };
   
-      // Dodaj odpowiedni parametr na podstawie kontekstu
+      // Dodanie odpowiednich parametrów w zależności od kontekstu
       if (context === "group") {
-        params.groupId = id; // Wyszukiwanie dla grupy
+        params.groupId = id;
       } else if (context === "type") {
-        params.typeId = id; // Wyszukiwanie dla typu szkolenia
-      } else {
-        throw new Error("Nieznany kontekst wyszukiwania: " + context);
+        params.typeId = id;
       }
   
-      // Wysłanie zapytania do backendu
+      // Wysłanie zapytania
       const response = await axios.get(`/trainers/trainersType`, { params });
-  
+      console.log('response.data',response.data)
       if (response.data.success) {
-        const filtered = response.data.trainers.filter((trainer) =>
-          trainer.name.toLowerCase().includes(query.toLowerCase())
-        );
-  
-        // Zapisanie wyników do odpowiedniego stanu
+        const filtered = response.data.trainers; // Bez dodatkowego filtrowania
+        console.log("Przefiltrowani trenerzy:", filtered);
+        // Obsługa wyników w zależności od kontekstu
         if (context === "group") {
           setFilteredGroupTrainers((prev) => ({ ...prev, [id]: filtered }));
+          console.log("Stan filteredGroupTrainers:", filteredGroupTrainers);
         } else if (context === "type") {
           setFilteredTypeTrainers((prev) => ({ ...prev, [id]: filtered }));
         }
       } else {
         console.warn(
-          "Backend zwrócił odpowiedź, ale oznaczył ją jako niepowodzenie:",
+          "Wynik zapytania do backendu wskazuje niepowodzenie:",
           response.data
         );
       }
@@ -170,6 +164,8 @@ function ProjectTrainers() {
       );
     }
   };
+  
+  
 
   return (
     <div className="p-4 w-full">
@@ -234,7 +230,7 @@ function ProjectTrainers() {
         ))}
       </ul>
       {/* Sekcja dla grup */}
-      <h3 className="text-xl font-semibold mt-8 mb-2">Grupy projektu</h3>
+      <h3 className="text-xl font-semibold mt-8 mb-2">Zajęcia grupowe</h3>
       <ul className="space-y-4">
         {projectGroups.map((group) => (
           <li key={group.id} className="bg-white p-4 rounded shadow hover:shadow-md">
@@ -257,29 +253,30 @@ function ProjectTrainers() {
             <div className="mt-4">
             <input
               type="text"
-              placeholder="Wyszukaj szkoleniowca w grupie..."
-              value={groupSearchQueries[group.id] || ""} // Korzystaj z grupowego stanu
+              placeholder="Wyszukaj szkoleniowca (po imieniu lub umiejętnościach)..."
+              value={groupSearchQueries[group.id] || ""}
               onChange={(e) => {
                 const query = e.target.value;
-                setGroupSearchQueries((prev) => ({ ...prev, [group.id]: query })); // Aktualizuj grupowy stan
+                setGroupSearchQueries((prev) => ({ ...prev, [group.id]: query }));
                 searchAvailableTrainers(group.id, query, "group");
               }}
               className="border border-gray-300 p-2 rounded w-full mb-2"
             />
-              <ul>
+            <ul>
               {filteredGroupTrainers[group.id]?.map((trainer) => (
-                  <li key={trainer.id} className="flex justify-between items-center p-2 border-b">
-                    <span>{trainer.name}</span>
-                    <button
-                      onClick={() => addTrainerToGroup(trainer.id, group.id)}
-                      className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded"
-                    >
-                      Dodaj
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </div>
+                <li key={trainer.id} className="flex justify-between items-center p-2 border-b">
+                  <span>{trainer.name}</span>
+                  <button
+                    onClick={() => addTrainerToGroup(trainer.id, group.id)}
+                    className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded"
+                  >
+                    Dodaj
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+
           </li>
         ))}
       </ul>

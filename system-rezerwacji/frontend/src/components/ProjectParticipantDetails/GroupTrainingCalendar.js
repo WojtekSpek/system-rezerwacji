@@ -9,7 +9,7 @@ import CreateEventModal from "./CreateEventModalGroup";
 
 const localizer = momentLocalizer(moment);
 
-function GroupTrainingCalendar({ }) {
+function GroupTrainingCalendar({trainers,groupName,groupParticipantIds}) {
   const [events, setEvents] = useState([]);
   const [selectedEvent, setSelectedEvent] = useState(null); // Wybrane wydarzenie
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -19,10 +19,16 @@ function GroupTrainingCalendar({ }) {
   const navigate = useNavigate();
   const projectId = id;
   const trainingId = id_gr;
+  const [selectedSlot, setSelectedSlot] = useState(null); // Przechowuje dane o zaznaczeniu
+ console.log('groupParticipantIds',groupParticipantIds)
+
 
   useEffect(() => {
     fetchEvents();
+    
   }, [trainingId]);
+
+  // Funkcja wywoływana po zaznaczeniu w kalendarzu
 
   const fetchEvents = async () => {
     try {
@@ -37,41 +43,49 @@ function GroupTrainingCalendar({ }) {
     }
   };
   const handleAddEvent = async (newEventData) => {
-   
-        // Dodawanie wydarzenia grupowego
-        const groupEventData = {
-          title: newEventData.title,
-          start: newEventData.start,
-          end: newEventData.end,
-          description: newEventData.description,
-          trainingId: newEventData.trainingId,
-          projectId: projectId,
-        };
-    
-        try {
-          const response = await axios.post("/calendar/group-events", groupEventData);
-          if (response.data.success) {
+    const groupTrainerId = newEventData.groupTrainerId; // Sprawdź, czy klucz istnieje
+    //const groupParticipantIds = newEventData.groupParticipantIds; // Upewnij się, że dane istnieją
+
+    const groupEventData = {
+        title: newEventData.title,
+        start: newEventData.start,
+        end: newEventData.end,
+        description: newEventData.description,
+        trainingId: newEventData.trainingId,
+        projectId: projectId,
+        group_trainer_id: newEventData.group_trainer_id,
+        groupParticipantIds:JSON.stringify(groupParticipantIds),
+    };
+
+    try {
+        const response = await axios.post("/calendar/group-events", groupEventData);
+        if (response.data.success) {
             alert("Wydarzenie grupowe zostało dodane!");
             setEvents((prevEvents) => [...prevEvents, { ...newEventData, isGroupEvent: true }]);
-          } else {
+        } else {
             alert("Nie udało się dodać wydarzenia grupowego.");
-          }
-        } catch (error) {
-          console.error("Błąd podczas dodawania wydarzenia grupowego:", error);
-          alert("Wystąpił błąd podczas zapisu.");
         }
-       
-    };
+    } catch (error) {
+        console.error("Błąd podczas dodawania wydarzenia grupowego:", error);
+        alert("Wystąpił błąd podczas zapisu.");
+    }
+};
+
+
   const handleSelectEvent = (event) => {
     setSelectedEvent(event);
     // Możesz otworzyć modal edycji tutaj, jeśli potrzeba
   };
 
   const handleSelectSlot = (slotInfo) => {
+    setSelectedSlot({
+      start: slotInfo.start,
+      end: slotInfo.end,
+    });
     setSelectedEvent({
       title: "",
       start: slotInfo.start,
-      end: moment(slotInfo.start).add(1, "hours").toDate(),
+      end: slotInfo.end,
       trainingId,
     });
     setShowCreateModal(true);
@@ -120,7 +134,6 @@ function GroupTrainingCalendar({ }) {
       end: new Date(event.end),
     }));
   }, [events]);
-
   return (
     <div>
       <h3 className="text-lg font-bold mb-4">Kalendarz szkoleń grupowych</h3>
@@ -135,17 +148,23 @@ function GroupTrainingCalendar({ }) {
         onSelectSlot={handleSelectSlot}
         eventPropGetter={eventStyleGetter} // Przypisanie stylu do wydarzenia
         messages={messages} // Przekazanie tłumaczeń
+        
       />
 
       {showCreateModal && (
             <CreateEventModal
             show={showCreateModal}
+            start={selectedSlot.start}
+             end={selectedSlot.end}
             eventData={selectedEvent}
+            trainers={trainers}
+            groupName={groupName}
             onSave={(eventData) => {
                 console.log("Zapisano wydarzenie:", eventData); // Debuguj dane zapisywane z modala
                 handleAddEvent(eventData); // Wywołaj funkcję dodawania wydarzenia
                 setSelectedEvent(null); // Nowe wydarzenie, brak `eventData`
                 setShowCreateModal(false); // Zamknij modal po zapisie
+                
             }}
             onClose={() => setShowCreateModal(false)}
             />

@@ -1,21 +1,41 @@
 import React, { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import axios from "axios";
 
-function ParticipantDetails({ id, onViewChange }) {
-  //const { id } = useParams();
- // const navigate = useNavigate();
+function ParticipantDetails() {
+  const { participantId } = useParams();
   const [participant, setParticipant] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
   const [updatedParticipant, setUpdatedParticipant] = useState({});
+  const [errors, setErrors] = useState({});
+
+  const genders = ["Mężczyzna", "Kobieta"];
+  const voivodeships = [
+    "Dolnośląskie",
+    "Kujawsko-Pomorskie",
+    "Lubelskie",
+    "Lubuskie",
+    "Łódzkie",
+    "Małopolskie",
+    "Mazowieckie",
+    "Opolskie",
+    "Podkarpackie",
+    "Podlaskie",
+    "Pomorskie",
+    "Śląskie",
+    "Świętokrzyskie",
+    "Warmińsko-Mazurskie",
+    "Wielkopolskie",
+    "Zachodniopomorskie",
+  ];
 
   useEffect(() => {
     fetchParticipantDetails();
-  }, [id]);
+  }, [participantId]);
 
   const fetchParticipantDetails = async () => {
     try {
-      const response = await axios.get(`http://localhost:5000/participants/${id}`);
+      const response = await axios.get(`http://localhost:5000/participants/${participantId}`);
       if (response.data.success) {
         setParticipant(response.data.participant);
         setUpdatedParticipant(response.data.participant);
@@ -25,16 +45,38 @@ function ParticipantDetails({ id, onViewChange }) {
     }
   };
 
+  const validateForm = () => {
+    const newErrors = {};
+
+    if (!updatedParticipant.firstName?.trim()) newErrors.firstName = "Imię jest wymagane.";
+    if (!updatedParticipant.lastName?.trim()) newErrors.lastName = "Nazwisko jest wymagane.";
+    if (!/^\d{11}$/.test(updatedParticipant.pesel)) newErrors.pesel = "PESEL musi mieć dokładnie 11 cyfr.";
+    if (!updatedParticipant.gender) newErrors.gender = "Wybór płci jest wymagany.";
+    if (!updatedParticipant.voivodeship) newErrors.voivodeship = "Wybór województwa jest wymagany.";
+    if (!updatedParticipant.city?.trim()) newErrors.city = "Miasto jest wymagane.";
+    if (!/^\d{2}-\d{3}$/.test(updatedParticipant.postalCode)) newErrors.postalCode = "Kod pocztowy musi mieć format xx-xxx.";
+    if (!updatedParticipant.street?.trim()) newErrors.street = "Ulica jest wymagana.";
+    if (!updatedParticipant.houseNumber?.trim()) newErrors.houseNumber = "Numer domu jest wymagany.";
+    if (!/^\d{9}$/.test(updatedParticipant.phoneNumber)) newErrors.phoneNumber = "Numer telefonu musi mieć dokładnie 9 cyfr.";
+    if (!/\S+@\S+\.\S+/.test(updatedParticipant.email)) newErrors.email = "Podaj poprawny adres e-mail.";
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setUpdatedParticipant((prev) => ({ ...prev, [name]: value }));
+    setErrors((prevErrors) => ({ ...prevErrors, [name]: "" }));
   };
 
   const saveChanges = async () => {
+    if (!validateForm()) return;
+
     try {
-      const response = await axios.put(`http://localhost:5000/participants/${id}`, updatedParticipant);
+      const response = await axios.put(`http://localhost:5000/participants/editParticipant/${participantId}`, updatedParticipant);
       if (response.data.success) {
-        alert("Dane zostały zaktualizowane!");
+        alert("Dane uczestnika zostały zaktualizowane!");
         setIsEditing(false);
         fetchParticipantDetails();
       }
@@ -45,111 +87,117 @@ function ParticipantDetails({ id, onViewChange }) {
 
   return (
     <div className="p-4">
-    
+      <h2 className="text-2xl font-bold mb-4">Szczegóły uczestnika</h2>
       {participant ? (
-        <div>
-          <h2 className="text-2xl font-bold mb-4">Szczegóły uczestnika</h2>
-          {!isEditing ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <strong>Imię:</strong> {participant?.firstName || "Brak danych"}
+        !isEditing ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <strong>Imię:</strong> {participant?.firstName || "Brak danych"}
+            </div>
+            <div>
+              <strong>Nazwisko:</strong> {participant?.lastName || "Brak danych"}
+            </div>
+            <div>
+              <strong>PESEL:</strong> {participant?.pesel || "Brak danych"}
+            </div>
+            <div>
+              <strong>Płeć:</strong> {participant?.gender || "Brak danych"}
+            </div>
+            <div>
+              <strong>Województwo:</strong> {participant?.voivodeship || "Brak danych"}
+            </div>
+            <div>
+              <strong>Miasto:</strong> {participant?.city || "Brak danych"}
+            </div>
+            <div>
+              <strong>Kod pocztowy:</strong> {participant?.postalCode || "Brak danych"}
+            </div>
+            <div>
+              <strong>Ulica:</strong> {participant?.street || "Brak danych"}
+            </div>
+            <div>
+              <strong>Numer domu:</strong> {participant?.houseNumber || "Brak danych"}
+            </div>
+            <div>
+              <strong>Numer mieszkania:</strong> {participant?.apartmentNumber || "Brak danych"}
+            </div>
+            <div>
+              <strong>Numer telefonu:</strong> {participant?.phoneNumber || "Brak danych"}
+            </div>
+            <div>
+              <strong>Email:</strong> {participant?.email || "Brak danych"}
+            </div>
+            <div>
+              <strong>Stopień niepełnosprawności:</strong> {participant?.disabilityLevel || "Brak danych"}
+            </div>
+            <button
+              onClick={() => setIsEditing(true)}
+              className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 mt-4"
+            >
+              Edytuj
+            </button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 gap-4">
+            {[
+              { label: "Imię", name: "firstName", type: "text" },
+              { label: "Nazwisko", name: "lastName", type: "text" },
+              { label: "PESEL", name: "pesel", type: "text" },
+              { label: "Płeć", name: "gender", type: "select", options: genders },
+              { label: "Województwo", name: "voivodeship", type: "select", options: voivodeships },
+              { label: "Miasto", name: "city", type: "text" },
+              { label: "Kod pocztowy", name: "postalCode",type: "text"  },
+              { label: "Ulica", name: "street",type: "text"  },
+              { label: "Numer domu", name: "houseNumber" ,type: "text" },
+              { label: "Numer mieszkania", name: "apartmentNumber",type: "text"  },
+              { label: "Numer telefonu", name: "phoneNumber" ,type: "text" },
+              { label: "Email", name: "email",type: "text"  },
+              { label: "Stopień niepełnosprawności", name: "disabilityLevel" ,type: "text" },
+            ].map(({ label, name, type, options }) => (
+              <div key={name}>
+                <label className="block mb-1">{label}:</label>
+                {type === "select" ? (
+                  <select
+                    name={name}
+                    value={updatedParticipant[name] || ""}
+                    onChange={handleInputChange}
+                    className="border border-gray-300 p-2 rounded w-full"
+                  >
+                    <option value="">Wybierz</option>
+                    {options.map((option) => (
+                      <option key={option} value={option}>
+                        {option}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <input
+                    type={type}
+                    name={name}
+                    value={updatedParticipant[name] || ""}
+                    onChange={handleInputChange}
+                    className="border border-gray-300 p-2 rounded w-full"
+                  />
+                )}
+                {errors[name] && <p className="text-red-500 text-sm">{errors[name]}</p>}
               </div>
-              <div>
-                <strong>Nazwisko:</strong> {participant?.lastName || "Brak danych"}
-              </div>
-              <div>
-                <strong>PESEL:</strong> {participant?.pesel || "Brak danych"}
-              </div>
-              <div>
-                <strong>Płeć:</strong> {participant?.gender || "Brak danych"}
-              </div>
-              <div>
-                <strong>Województwo:</strong> {participant?.voivodeship || "Brak danych"}
-              </div>
-              <div>
-                <strong>Miasto:</strong> {participant?.city || "Brak danych"}
-              </div>
-              <div>
-                <strong>Kod pocztowy:</strong> {participant?.postalCode || "Brak danych"}
-              </div>
-              <div>
-                <strong>Ulica:</strong> {participant?.street || "Brak danych"}
-              </div>
-              <div>
-                <strong>Numer domu:</strong> {participant?.houseNumber || "Brak danych"}
-              </div>
-              <div>
-                <strong>Numer mieszkania:</strong> {participant?.apartmentNumber || "Brak danych"}
-              </div>
-              <div>
-                <strong>Numer telefonu:</strong> {participant?.phoneNumber || "Brak danych"}
-              </div>
-              <div>
-                <strong>Email:</strong> {participant?.email || "Brak danych"}
-              </div>
-              <div>
-                <strong>Stopień niepełnosprawności:</strong> {participant?.disabilityLevel || "Brak danych"}
-              </div>
-              
-          
+            ))}
+            <div className="mt-4 flex justify-between col-span-2">
               <button
-                onClick={() => setIsEditing(true)}
-                className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 mt-4 w-20"
+                onClick={() => setIsEditing(false)}
+                className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-400"
               >
-                Edytuj
+                Anuluj
+              </button>
+              <button
+                onClick={saveChanges}
+                className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
+              >
+                Zapisz
               </button>
             </div>
-          ) : (
-            <div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block mb-1">Imię:</label>
-                  <input
-                    type="text"
-                    name="firstName"
-                    value={updatedParticipant.firstName}
-                    onChange={handleInputChange}
-                    className="border border-gray-300 p-2 rounded w-full"
-                  />
-                </div>
-                <div>
-                  <label className="block mb-1">Nazwisko:</label>
-                  <input
-                    type="text"
-                    name="lastName"
-                    value={updatedParticipant.lastName}
-                    onChange={handleInputChange}
-                    className="border border-gray-300 p-2 rounded w-full"
-                  />
-                </div>
-                <div>
-                  <label className="block mb-1">Email:</label>
-                  <input
-                    type="email"
-                    name="email"
-                    value={updatedParticipant.email}
-                    onChange={handleInputChange}
-                    className="border border-gray-300 p-2 rounded w-full"
-                  />
-                </div>
-              </div>
-              <div className="mt-4 flex justify-between">
-                <button
-                  onClick={() => setIsEditing(false)}
-                  className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-400"
-                >
-                  Anuluj
-                </button>
-                <button
-                  onClick={saveChanges}
-                  className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
-                >
-                  Zapisz
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
+          </div>
+        )
       ) : (
         <p>Ładowanie danych uczestnika...</p>
       )}

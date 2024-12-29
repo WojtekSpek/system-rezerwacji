@@ -17,15 +17,77 @@ function TrainerDetails() {
   const [file, setFile] = useState(null); // Wybrany plik do dodania
   const [trainer, setTrainer] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
-  const [editedTrainer, setEditedTrainer] = useState({});
+  //const [editedTrainer, setEditedTrainer] = useState({});
   const [availableTypes, setAvailableTypes] = useState([]);
   const [activeTab, setActiveTab] = useState("Dane osobowe"); // Domyślna zakładka
   const [events, setEvents] = useState([]); // Wydarzenia dla kalendarza
   const [selectedEvent, setSelectedEvent] = useState(null); // Wybrane wydarzenie
   const [isModalOpen, setIsModalOpen] = useState(false); // Widoczność modalu
   const [participant, setParticipant] = useState(null);
-
+  const [skills, setSkills] = useState([]); // Wszystkie dostępne umiejętności
+  const [trainerSkills, setTrainerSkills] = useState([]); // Umiejętności przypisane do trenera
+  const [skillSearchQuery, setSkillSearchQuery] = useState("");
+  const [filteredSkills, setFilteredSkills] = useState([]);
+  const [editedTrainer, setEditedTrainer] = useState({
+    ...trainer,
+    skills: trainer?.skills || [], // Ustaw domyślnie pustą tablicę
+  });
+  const fetchTrainerSkills = async () => {
+    try {
+      const response = await axios.get(`/skills/${id}/skills`);
+      if (response.data.success) {
+        setTrainerSkills(response.data.skills);
+      }
+    } catch (error) {
+      console.error("Błąd podczas pobierania umiejętności trenera:", error);
+    }
+  };
+  // Wyszukiwanie umiejętności
+  const handleSkillSearch = async (query) => {
+    if (!query) {
+      setFilteredSkills([]);
+      return;
+    }
+    try {
+      const response = await axios.get("/skills/search", { params: { query } });
+      if (response.data.success) {
+        setFilteredSkills(response.data.skills);
+      }
+    } catch (error) {
+      console.error("Błąd podczas wyszukiwania umiejętności:", error);
+    }
+  };
   
+  const handleAddSkill = (skill) => {
+    // Upewnij się, że `skills` jest tablicą
+    if (!Array.isArray(editedTrainer.skills)) {
+      setEditedTrainer((prev) => ({ ...prev, skills: [] }));
+    }
+  
+    // Jeśli umiejętność już istnieje, nie dodawaj jej ponownie
+    if ((editedTrainer.skills || []).some((s) => s.id === skill.id)) {
+      alert("Ta umiejętność jest już dodana.");
+      return;
+    }
+  
+    // Dodaj nową umiejętność
+    setEditedTrainer((prev) => ({
+      ...prev,
+      skills: [...(prev.skills || []), skill], // Bezpiecznie dodaj do istniejącej tablicy
+    }));
+  };
+  
+  
+  
+  // Usuwanie umiejętności
+  const handleRemoveSkill = (skillId) => {
+    setEditedTrainer((prev) => ({
+      ...prev,
+      skills: prev.skills.filter((skill) => skill.id !== skillId),
+    }));
+  };
+
+
   console.log('event.participantId',events)
 
   useEffect(() => {
@@ -33,6 +95,7 @@ function TrainerDetails() {
     fetchAvailableTypes();
     fetchFiles();
     fetchEvents();
+    fetchTrainerSkills();
     
   }, []);
 
@@ -166,14 +229,17 @@ function TrainerDetails() {
         editedTrainer,
         { withCredentials: true }
       );
-      if (response.data.success) {
-        setTrainer(editedTrainer);
-        setIsEditing(false);
-      }
-    } catch (error) {
-      console.error("Error saving trainer data:", error);
+       if (response.data.success) {
+      alert("Dane zostały zapisane.");
+      await fetchTrainerDetails(); // Ponowne pobranie szczegółów trenera
+      await fetchTrainerSkills(); // Ponowne pobranie umiejętności trenera
+      setIsEditing(false);
     }
-  };
+  } catch (error) {
+    console.error("Error saving trainer data:", error);
+    alert("Wystąpił błąd podczas zapisywania danych.");
+  }
+};
 
   const renderTabContent = () => {
     switch (activeTab) {
@@ -183,7 +249,10 @@ function TrainerDetails() {
             <button
               onClick={() => {
                 setIsEditing(!isEditing);
-                setEditedTrainer(trainer);
+                setEditedTrainer({
+                  ...trainer,
+                  skills: trainerSkills || [], // Przypisz umiejętności do edytowanego trenera
+                });
               }}
               className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 float-right"
             >
@@ -204,6 +273,14 @@ function TrainerDetails() {
             <div className="mb-4">
               <h3 className="font-semibold">Typy szkoleń:</h3>
               <p>{trainer.types?.join(", ") || "No types assigned"}</p>
+            </div>
+            <div className="mb-4">
+              <h3 className="font-semibold">Umiejętności:</h3>
+              <ul>
+                {trainerSkills.map((skill) => (
+                  <li key={skill.id}>{skill.name}</li>
+                ))}
+              </ul>
             </div>
           </div>
         );
@@ -421,6 +498,60 @@ function TrainerDetails() {
                 ))}
               </div>
             </div>
+            <div className="mb-4">
+              <label className="font-semibold">Umiejętności:</label>
+              <div className="flex flex-col gap-2">
+                {/* Wyszukiwanie umiejętności */}
+                <div className="relative">
+                <input
+                  type="text"
+                  placeholder="Wyszukaj umiejętność..."
+                  value={skillSearchQuery}
+                  onChange={(e) => {
+                    setSkillSearchQuery(e.target.value);
+                    handleSkillSearch(e.target.value); // Wywołaj wyszukiwanie
+                  }}
+                  onBlur={() => setFilteredSkills([])} // Ukryj listę po opuszczeniu pola
+                  className="border border-gray-300 p-2 rounded w-full"
+                />
+                {/* Lista podpowiedzi */}
+                {filteredSkills.length > 0 && skillSearchQuery && (
+                  <ul className="absolute bg-white border border-gray-300 rounded w-full mt-1 z-10">
+                    {filteredSkills.map((skill) => (
+                      <li
+                        key={skill.id}
+                        className="p-2 hover:bg-gray-100 cursor-pointer"
+                        onMouseDown={() => handleAddSkill(skill)} // Zapobiegaj zamykaniu listy na kliknięcie
+                      >
+                        {skill.name}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+
+
+                {/* Lista dodanych umiejętności */}
+                <div className="flex flex-wrap gap-2">
+                  {(editedTrainer.skills || []).map((skill) => (
+                    <div
+                      key={skill.id}
+                      className="bg-blue-100 text-blue-700 px-3 py-1 rounded flex items-center gap-2"
+                    >
+                      {skill.name}
+                      <button
+                        className="text-red-500 hover:text-red-700"
+                        onClick={() => handleRemoveSkill(skill.id)}
+                      >
+                        &times;
+                      </button>
+                    </div>
+                  ))}
+                  {editedTrainer.skills?.length === 0 && <p>Brak przypisanych umiejętności</p>}
+                </div>
+              </div>
+            </div>
+
             <div className="flex flex-row-reverse gap-4">
               <button
                 onClick={handleSave}

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import GenericList from "./GenericList";
 
 function Participants({ onViewChange }) {
   
@@ -23,7 +24,18 @@ function Participants({ onViewChange }) {
     disabilityLevel: "",
   });
   const navigate = useNavigate(); // Hook do nawigacji
-
+  const filterParticipants = () => {
+    if (!searchQuery.trim()) {
+      return participants; // Jeśli brak zapytania, zwracamy pełną listę
+    }
+    
+    const query = searchQuery.toLowerCase();
+    return participants.filter((participant) =>
+      `${participant.firstName} ${participant.lastName}`.toLowerCase().includes(query) ||
+      participant.pesel?.toLowerCase().includes(query) ||
+      participant.email?.toLowerCase().includes(query)
+    );
+  };
   const handleViewDetails = (id) => {
     navigate(`/participant/${id}/Details`);
   };
@@ -183,7 +195,33 @@ function Participants({ onViewChange }) {
         }
       }
   };
+  const searchFunction = (participant, query) => {
+    query = query.toLowerCase();
+    return (
+      participant.firstName.toLowerCase().includes(query) ||
+      participant.lastName.toLowerCase().includes(query) ||
+      participant.pesel?.includes(query) ||
+      participant.email?.toLowerCase().includes(query)
+    );
+  };
 
+  /* const renderItem = (participant) => (
+    <>
+      
+      <td style={{ width: 10 || "auto" }} className="border px-4 py-2">{participant.firstName}</td>
+      <td className="border px-4 py-2">{participant.lastName}</td>
+      <td className="border px-4 py-2">{participant.phoneNumber}</td>
+      <td className="border px-4 py-2">{participant.email}</td>
+      <td>
+        <button
+          onClick={() => navigate(`/participant/${participant.id}/Details`)}
+          className="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600"
+        >
+          Szczegóły
+        </button>
+      </td>
+    </>
+  ); */
 console.log(errors);
   return (
     <div className="p-4 w-full">
@@ -199,33 +237,34 @@ console.log(errors);
               Dodaj uczestnika
             </button>
           </div>
-          <input
-            type="text"
-            placeholder="Szukaj uczestnika..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="border border-gray-300 p-2 rounded w-full mb-4"
-          />
-          <ul>
-              {participants.map((participant) => (
-                <li
-                  key={participant.id}
-                  className="flex justify-between items-center bg-gray-50 p-4 rounded mb-2 shadow hover:shadow-md"
-                >
-                  <div>
-                    <span className="text-lg font-medium">
-                      {participant.firstName} {participant.lastName}
-                    </span>
-                  </div>
+          
+          <GenericList
+            items={participants}
+            columns={[
+              { key: "firstName", label: "Imię" },
+              { key: "lastName", label: "Nazwisko" },
+              { key: "pesel", label: "Tel" },
+              { key: "email", label: "Email" },
+              { key: "actions", label: "Akcje" }, // Dodatkowa kolumna
+            ]}
+            renderItem={(participant) => (
+              <>
+                <td className="border px-4 py-2">{participant.firstName}</td>
+                <td className="border px-4 py-2">{participant.lastName}</td>
+                <td className="border px-4 py-2">{participant.phoneNumber}</td>
+                <td className="border px-4 py-2">{participant.email}</td>
+                <td className="border px-4 py-2">
                   <button
                     onClick={() => handleViewDetails(participant.id)}
-                    className="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600"
+                    className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
                   >
                     Szczegóły
                   </button>
-                </li>
-              ))}
-            </ul>
+                </td>
+              </>
+            )}
+            searchFunction={searchFunction}
+          />
         </>
       ) : (
         // Widok formularza dodawania uczestnika

@@ -7,6 +7,8 @@ import Calendar2 from "./ProjectParticipantDetails/GroupTrainingCalendar";
 function ProjectGroupTrainingDetails() {
   const [activeTab, setActiveTab] = useState("details");
   const [projectParticipants, setProjectParticipants] = useState([]); // Uczestnicy projektu
+  const [groupParticipantIds, setGroupParticipantIds] = useState([]);
+  const [groupTrainers, setGroupTrainers] = useState([]); // Szkoleniowcy dla grupy
   const [trainingParticipants, setTrainingParticipants] = useState([]); // Uczestnicy szkolenia
   const [searchQuery, setSearchQuery] = useState(""); // Wyszukiwanie uczestników
   const { id } = useParams(); // ID projektu z URL
@@ -14,14 +16,33 @@ function ProjectGroupTrainingDetails() {
   const navigate = useNavigate();
   const projectId = id;
   const trainingId = id_gr;
-
+  const [groupName, setGroupName] = useState("");
   useEffect(() => {
     fetchProjectParticipants();
     fetchTrainingParticipants();
+    fetchGroupTrainers();
+    loadGroupName();
   }, []);
+  console.log('groupParticipantIds',groupParticipantIds)
+  const loadGroupName = async () => {
+    const name = await fetchGroupName(trainingId);
+    if (name) {
+      setGroupName(name); // Ustaw nazwę grupy w stanie
+    }
+  };
 
-  
-  
+  const fetchGroupName = async (groupId) => {
+    try {
+      const response = await axios.get(`/group/${groupId}/name`);
+      if (response.data.success) {
+        return response.data.name;
+      } else {
+        console.error("Błąd: Nie udało się pobrać nazwy grupy.");
+      }
+    } catch (error) {
+      console.error("Błąd podczas pobierania nazwy grupy:", error);
+    }
+  };
 
   // Pobieranie uczestników przypisanych do projektu
   const fetchProjectParticipants = async () => {
@@ -41,7 +62,8 @@ function ProjectGroupTrainingDetails() {
       const response = await axios.get(`group/group-trainings/${trainingId}/participants`);
       if (response.data.success) {
         setTrainingParticipants(response.data.participants);
-
+        // Ustawienie listy ID uczestników w stanie
+        setGroupParticipantIds(response.data.participants.map((p) => p.id));
         // Usunięcie uczestników już przypisanych do szkolenia z listy projektu
         setProjectParticipants((prev) =>
           prev.filter(
@@ -86,10 +108,24 @@ function ProjectGroupTrainingDetails() {
       console.error("Błąd podczas usuwania uczestnika ze szkolenia:", error);
     }
   };
-
+  const fetchGroupTrainers = async () => {
+    try {
+      const response = await axios.get(
+        `/group/${projectId}/group-trainers/${trainingId}`
+      );
+      
+      if (response.data.success) {
+        setGroupTrainers(response.data.trainers);
+        
+      }
+    } catch (error) {
+      console.error("Błąd podczas pobierania szkoleniowców:", error);
+    }
+  };
+  console.log('groupTrainers',groupTrainers)
   return (
     <div className="p-4">
-      <h3 className="text-lg font-bold mb-4">Szczegóły szkolenia grupowego</h3>
+      <h3 className="text-lg font-bold mb-4">Szczegóły szkolenia grupowego - {groupName}</h3>
       <div className="flex gap-4 border-b mb-4">
         <button
           onClick={() => setActiveTab("details")}
@@ -180,7 +216,11 @@ function ProjectGroupTrainingDetails() {
 
       {activeTab === "calendar" && <div>Kalendarz zajęć
         
-        <Calendar2 />
+        <Calendar2 
+          trainers={groupTrainers} 
+          groupName={groupName}
+          groupParticipantIds={groupParticipantIds}
+          />
         
         </div>}
     </div>

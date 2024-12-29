@@ -34,8 +34,23 @@ router.post("/logout", (req, res) => {
       res.json({ success: true, message: "Wylogowano pomyślnie." });
     });
   });
-  
+  router.get("/", async (req, res) => {
+    try {
+      const [rows] = await db.promise().query("SELECT id, username, role, email FROM users");
+      res.json({
+        success: true,
+        users: rows, // Lista użytkowników
+      });
+    } catch (error) {
+      console.error("Błąd podczas pobierania listy użytkowników:", error);
+      res.status(500).json({
+        success: false,
+        message: "Błąd serwera podczas pobierania użytkowników.",
+      });
+    }
+  }); 
 router.get("/session", (req, res) => {
+  console.log("Sprawdzanie sesji:", req.session);
     if (req.session && req.session.user) {
       res.json({ success: true, user: req.session.user });
     } else {
@@ -72,15 +87,20 @@ router.get("/session", (req, res) => {
     });
   });
   router.put("/updateUser", (req, res) => {
-    const { id, username, password, role } = req.body;
-    const sql = "UPDATE users SET username = ?, password = ?, role = ? WHERE id = ?";
-    db.query(sql, [username, password, role, id], (err, result) => {
-      if (err) {
-        console.error("Błąd aktualizacji użytkownika:", err);
-        res.status(500).json({ success: false });
-      } else {
-        res.json({ success: true });
-      }
-    });
+    const { id, username, email, password, role } = req.body;
+      console.log('req.body',req.body)
+        if (!id || !username || !email || !password || !role) {
+          return res.status(400).json({ success: false, message: "Wszystkie pola są wymagane." });
+        }
+
+        try {
+          const query = `UPDATE users SET username = ?, email = ?, password = ?, role = ? WHERE id = ?`;
+           db.promise().query(query, [username, email, password, role, id]);
+
+          res.json({ success: true, message: "Użytkownik został zaktualizowany." });
+        } catch (error) {
+          console.error("Błąd podczas aktualizacji użytkownika:", error);
+          res.status(500).json({ success: false, message: "Błąd serwera." });
+        }
   });
 module.exports = router;

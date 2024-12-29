@@ -3,7 +3,7 @@ import axios from "axios";
 import { useParams } from "react-router-dom";
 import { useNavigate } from "react-router-dom";
 
-function ProjectParticipants({setView, setSelectedParticipant }) {
+function ProjectParticipants({setView, setSelectedParticipant,setSelectedProject }) {
   const [searchQuery, setSearchQuery] = useState(""); // Wartość inputu do wyszukiwania
   const [filteredParticipants, setFilteredParticipants] = useState([]); // Wyniki filtrowania
   const [projectParticipants, setProjectParticipants] = useState([]); // Uczestnicy przypisani do projektu
@@ -15,6 +15,7 @@ function ProjectParticipants({setView, setSelectedParticipant }) {
 
   const handleViewDetails = (participantId) => {
     setSelectedParticipant(participantId); // Ustaw wybranego uczestnika
+    //setSelectedProject({projectId}); 
     navigate(`/projects/${projectId}/participant/${participantId}/details`); // Nawiguj do szczegółów uczestnika
   };
 

@@ -2,32 +2,65 @@ const express = require("express");
 const router = express.Router();
 const db = require("../config/database");
 const { authenticateUser, authorizeRole } = require("../middlewares/auth");
+
 router.get("/trainersType", async (req, res) => {
-  const { typeId } = req.query; // Pobierz typeId z query params
-console.log('typeId',typeId)
-  if (!typeId) {
-    return res.status(400).json({ success: false, message: "typeId jest wymagane." });
+  const { query, typeId } = req.query;
+
+  if (!query) {
+    return res.status(400).json({
+      success: false,
+      message: "Query parameter jest wymagany.",
+    });
   }
 
   try {
-    const [rows] = await db.promise().query(
-      `SELECT t.id, t.name 
-       FROM trainers t
-       INNER JOIN trainer_types tt ON t.id = tt.trainer_id
-       WHERE tt.type_id = ?`,
-      [typeId]
-    );
+    const params = [`%${query}%`, `%${query}%`];
+    const queryCondition = `
+      (t.name LIKE ? OR s.name LIKE ?)
+      
+      ${typeId ? "AND tt.type_id = ?" : ""}
+    `;
 
+    
+    if (typeId) params.push(typeId);
+
+    const [rows] = await db.promise().query(
+      `
+      SELECT DISTINCT t.id, t.name
+      FROM trainers t
+      LEFT JOIN trainer_skills ts ON ts.trainer_id = t.id
+      LEFT JOIN skills s ON s.id = ts.skill_id
+      LEFT JOIN trainer_types tt ON tt.trainer_id = t.id
+     
+      WHERE ${queryCondition}
+      `,
+      params
+    );
+console.log('query',
+  `
+  SELECT DISTINCT t.id, t.name
+  FROM trainers t
+  LEFT JOIN trainer_skills ts ON ts.trainer_id = t.id
+  LEFT JOIN skills s ON s.id = ts.skill_id
+  LEFT JOIN trainer_types tt ON tt.trainer_id = t.id
+  
+  WHERE ${queryCondition}
+  `,
+  params)
     res.json({
       success: true,
       trainers: rows,
     });
-    console.log('rows_type',rows);
   } catch (error) {
-    console.error("Błąd podczas pobierania szkoleniowców:", error);
-    res.status(500).json({ success: false, message: "Błąd serwera." });
+    console.error("Błąd podczas wyszukiwania szkoleniowców:", error);
+    res.status(500).json({
+      success: false,
+      message: "Błąd serwera.",
+    });
   }
 });
+
+
 // Endpoint: Pobierz wydarzenia dla trenera
 router.get("/:trainersId/events", async (req, res) => {
   const { trainersId } = req.params;
@@ -125,25 +158,11 @@ router.post("/Types", authenticateUser, authorizeRole("admin"),  (req, res) => {
     });
   });
   
-  // Edytowanie szkoleniowca
   router.put("/editTrainer/:id", async (req, res) => {
     const trainerId = req.params.id;
-    const { name, email, phone, types } = req.body; // Destrukturyzacja danych
+    const { name, email, phone, types, skills } = req.body;
   
     console.log("Otrzymane req.body:", req.body);
-    console.log("Otrzymane req.params.id:", trainerId);
-  
-    // Pobierz listę dostępnych typów z bazy danych
-    const [validTypes] = await db.promise().query("SELECT type FROM training_types");
-    const validTypeSet = new Set(validTypes.map((t) => t.type)); // Szybsza walidacja za pomocą Set
-  
-    const invalidTypes = types.filter((type) => !validTypeSet.has(type));
-    if (invalidTypes.length > 0) {
-      console.error("Nieprawidłowe dane typu:", invalidTypes);
-      return res
-        .status(400)
-        .json({ success: false, message: `Nieprawidłowe typy: ${invalidTypes.join(", ")}` });
-    }
   
     try {
       // Zaktualizuj dane trenera
@@ -154,13 +173,36 @@ router.post("/Types", authenticateUser, authorizeRole("admin"),  (req, res) => {
   
       // Usuń istniejące typy i dodaj nowe
       await db.promise().query("DELETE FROM trainer_types WHERE trainer_id = ?", [trainerId]);
-      const typeInsertPromises = types.map((type) =>
-        db.promise().query(
-          "INSERT INTO trainer_types (trainer_id, type) VALUES (?, ?)",
-          [trainerId, type]
-        )
-      );
-      await Promise.all(typeInsertPromises);
+  
+      if (types && types.length > 0) {
+        // Pobierz wszystkie typy z bazy danych
+        const [allTypes] = await db.promise().query("SELECT id, type FROM training_types");
+  
+        // Dopasuj nazwy typów do ich ID
+        const validTypes = types
+          .map((typeName) => allTypes.find((type) => type.type === typeName))
+          .filter(Boolean); // Usuń niedopasowane nazwy
+  
+        console.log("validTypes: ", validTypes);
+  
+        if (validTypes.length > 0) {
+          const typeInsertQuery = "INSERT INTO trainer_types (trainer_id, type_id, type) VALUES (?, ?, ?)";
+          const typeInsertPromises = validTypes.map((typeObj) =>
+            db.promise().query(typeInsertQuery, [trainerId, typeObj.id, typeObj.type])
+          );
+          await Promise.all(typeInsertPromises);
+        }
+      }
+  
+      // Usuń istniejące umiejętności i dodaj nowe
+      await db.promise().query("DELETE FROM trainer_skills WHERE trainer_id = ?", [trainerId]);
+      if (skills && skills.length > 0) {
+        const skillInsertQuery = "INSERT INTO trainer_skills (trainer_id, skill_id) VALUES (?, ?)";
+        const skillInsertPromises = skills.map((skill) =>
+          db.promise().query(skillInsertQuery, [trainerId, skill.id])
+        );
+        await Promise.all(skillInsertPromises);
+      }
   
       res.json({ success: true, message: "Dane trenera zostały zaktualizowane." });
     } catch (error) {
@@ -169,6 +211,8 @@ router.post("/Types", authenticateUser, authorizeRole("admin"),  (req, res) => {
     }
   });
   
+  
+
   router.get("/Types", (req, res) => {
     const query = "SELECT * FROM training_types";
     db.query(query, (err, results) => {

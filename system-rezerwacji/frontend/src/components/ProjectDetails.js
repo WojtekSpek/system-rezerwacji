@@ -13,14 +13,43 @@ function ProjectDetails({ onUpdate }) {
   const [trainingHours, setTrainingHours] = useState([]); // Godziny dla typów
   const [editingHours, setEditingHours] = useState({}); // Bieżące edytowane godziny
   const [shouldRefresh, setShouldRefresh] = useState(false);
+  const [groupHours, setGroupHours] = useState([]); // Czas zajęć grupowych
+const [editingGroupHours, setEditingGroupHours] = useState({}); // Bieżące edytowane godziny zajęć grupowych
   useEffect(() => {
     fetchAllTypes();
     fetchProject();
-    //
+    
     fetchProjectTypes();
     fetchTrainingHours();
+    fetchGroupHours(); // Dodano pobieranie godzin zajęć grupowych
+    console.log('groupHours',groupHours)
+    setShouldRefresh(false); // Resetuj flagę po odświeżeniu
   }, [id, shouldRefresh]);
 
+
+  const fetchGroupHours = async () => {
+    try {
+      const response = await axios.get(`/group/${id}/group-training/hours`);
+      if (response.data.success) {
+        setGroupHours(response.data.groupHours);
+        console.log("Pobrane godziny zajęć grupowych:", response.data.groupHours);
+      }
+    } catch (error) {
+      console.error("Błąd podczas pobierania godzin zajęć grupowych:", error);
+    }
+  };
+  const handleUpdateGroupHours = async (groupId, newHours) => {
+    try {
+      await axios.put(`/group/${id}/group-training/${groupId}`, {
+        plannedHours: newHours,
+      });
+      fetchGroupHours(); // Odśwież dane
+      alert("Godziny zajęć grupowych zostały zaktualizowane!");
+    } catch (error) {
+      console.error("Błąd podczas aktualizacji godzin zajęć grupowych:", error);
+      alert("Nie udało się zaktualizować godzin zajęć grupowych.");
+    }
+  };
   const fetchAllTypes = async () => {
     try {
       const url = "/projects/trainingTypes";
@@ -71,21 +100,23 @@ console.log('project',project)
 
   const handleSave = async () => {
     try {
-      const response = await axios.put(`/projects/updateProject/${id}`, {
-        name: editedName,
-        types: editedTypes,
-      });
-      if (response.data.success) {
-        alert("Zapisano zmiany!");
-        setShouldRefresh((prev) => !prev); // Odśwież dane projektu
-        onUpdate({ ...project, name: editedName, types: editedTypes });
-        setIsEditing(false);
-      }
+        const response = await axios.put(`/projects/updateProject/${id}`, {
+            name: editedName,
+            types: editedTypes,
+        });
+
+        if (response.data?.success) {
+            alert("Zapisano zmiany!");
+            await fetchProject(); // Pobierz aktualne dane projektu
+            setIsEditing(false);
+        } else {
+            throw new Error("Odpowiedź serwera wskazuje na niepowodzenie");
+        }
     } catch (error) {
-      console.error("Błąd podczas zapisywania projektu:", error);
-      alert("Nie udało się zapisać zmian.");
+        console.error("Błąd podczas zapisywania projektu:", error);
+        alert("Nie udało się zapisać zmian.");
     }
-  };
+};
 
 // Pobierz planned_hours
 const fetchTrainingHours = async () => {
@@ -292,6 +323,74 @@ const handleUpdateHours = async (typeId, newHours) => {
           </div>
         ))}
       </div>
+        {/* Sekcja Czas zajęć grupowych */}
+        <div className="mt-6 p-4 bg-white shadow rounded">
+          <h3 className="text-xl font-semibold mb-4">Czas zajęć grupowych</h3>
+          {groupHours.map((group) => (
+            <div key={group.groupId} className="flex justify-between items-center mb-2">
+              <div className="w-1/3">
+                <span className="font-medium">{group.groupName}</span>
+              </div>
+              {editingGroupHours[group.groupId] !== undefined ? (
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    value={editingGroupHours[group.groupId]}
+                    onChange={(e) =>
+                      setEditingGroupHours({
+                        ...editingGroupHours,
+                        [group.groupId]: parseInt(e.target.value, 10) || 0,
+                      })
+                    }
+                    className="border p-1 rounded w-16"
+                  />
+                  <button
+                    onClick={() => {
+                      handleUpdateGroupHours(group.groupId, editingGroupHours[group.groupId]);
+                      setEditingGroupHours({ ...editingGroupHours, [group.groupId]: undefined });
+                    }}
+                    className="bg-green-500 text-white px-2 py-1 rounded"
+                  >
+                    Zapisz
+                  </button>
+                  <button
+                    onClick={() =>
+                      setEditingGroupHours({
+                        ...editingGroupHours,
+                        [group.groupId]: undefined,
+                      })
+                    }
+                    className="bg-gray-400 text-white px-2 py-1 rounded hover:bg-gray-500"
+                  >
+                    Anuluj
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <div className="flex justify-center">
+                    <span>{group.hours || 0} godzin</span>
+                  </div>
+                  <div className="w-1/3 text-right">
+                    <button
+                      onClick={() => {
+                        setEditingGroupHours({
+                          ...editingGroupHours,
+                          [group.groupId]: group.hours || 0,
+                        });
+                      }}
+                      className="bg-blue-500 text-white px-2 py-1 rounded"
+                    >
+                      Edytuj
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          ))}
+        </div>
+
+
+
     </div>
   );
 }
