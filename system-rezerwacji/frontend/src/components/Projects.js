@@ -10,6 +10,7 @@ function Projects({ setView, setSelectedProject }) {
   const [trainingTypes, setTrainingTypes] = useState([]); // Lista typów szkoleń
   const [user, setUser] = useState(null); // Przechowuj dane użytkownika
    const [showAddForm, setShowAddForm] = useState(false);
+   const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "http://localhost:5000";
 
   useEffect(() => {
     fetchProjects();
@@ -105,7 +106,7 @@ function Projects({ setView, setSelectedProject }) {
     };
     const fetchUser = async () => {
       try {
-        const response = await axios.get("http://localhost:5000/users/session", {
+        const response = await axios.get( `${API_BASE_URL}/users/session`, {
           withCredentials: true,
         });
         if (response.data.success) {
