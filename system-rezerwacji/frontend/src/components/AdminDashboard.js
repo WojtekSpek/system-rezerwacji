@@ -6,6 +6,8 @@ function AdminDashboard() {
   const [newUsername, setNewUsername] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [message, setMessage] = useState("");
+  const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "http://localhost:5000";
+
 
   // Pobieranie listy użytkowników
   useEffect(() => {
@@ -14,7 +16,7 @@ function AdminDashboard() {
 
   const fetchUsers = async () => {
     try {
-      const response = await axios.get("http://localhost:5000/users");
+      const response = await axios.get(`${API_BASE_URL}/users`);
       setUsers(response.data);
     } catch (err) {
       console.error("Błąd podczas pobierania użytkowników:", err);
@@ -28,7 +30,7 @@ function AdminDashboard() {
     }
 
     try {
-      const response = await axios.post("http://localhost:5000/add-user", {
+      const response = await axios.post(`${API_BASE_URL}/add-user`, {
         username: newUsername,
         password: newPassword,
         role: "user",

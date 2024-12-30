@@ -24,6 +24,8 @@ function Participants({ onViewChange }) {
     disabilityLevel: "",
   });
   const navigate = useNavigate(); // Hook do nawigacji
+  const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "http://localhost:5000";
+
   const filterParticipants = () => {
     if (!searchQuery.trim()) {
       return participants; // Jeśli brak zapytania, zwracamy pełną listę
@@ -70,7 +72,7 @@ function Participants({ onViewChange }) {
 
   const fetchParticipants = async () => {
     try {
-      const response = await axios.get("http://localhost:5000/participants");
+      const response = await axios.get(`${API_BASE_URL}/participants`);
       if (response.data.success) {
         setParticipants(response.data.participants);
       }
@@ -144,7 +146,7 @@ function Participants({ onViewChange }) {
 
     try {
         const response = await axios.post(
-            "http://localhost:5000/participants/addParticipant",
+            "${API_BASE_URL}/participants/addParticipant",
             newParticipant,
             { withCredentials: true }
       );

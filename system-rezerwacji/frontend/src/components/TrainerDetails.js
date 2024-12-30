@@ -28,6 +28,8 @@ function TrainerDetails() {
   const [trainerSkills, setTrainerSkills] = useState([]); // Umiejętności przypisane do trenera
   const [skillSearchQuery, setSkillSearchQuery] = useState("");
   const [filteredSkills, setFilteredSkills] = useState([]);
+  const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "http://localhost:5000";
+
   const [editedTrainer, setEditedTrainer] = useState({
     ...trainer,
     skills: trainer?.skills || [], // Ustaw domyślnie pustą tablicę
@@ -117,7 +119,7 @@ function TrainerDetails() {
 
   const fetchEvents = async () => {
     try {
-      const response = await axios.get(`http://localhost:5000/trainers/${id}/events`, {
+      const response = await axios.get(`${API_BASE_URL}/trainers/${id}/events`, {
         withCredentials: true,
       });
       if (response.data.success) {
@@ -138,7 +140,7 @@ function TrainerDetails() {
     console.log('tratata')
     try {
       const response = await axios.get(
-        `http://localhost:5000/participants/${participantId}`
+        `${API_BASE_URL}/participants/${participantId}`
       ); // API endpoint zwracający szczegóły uczestnika
       if (response.data.success) {
         setParticipant(response.data.participant);
@@ -197,7 +199,7 @@ function TrainerDetails() {
 
   const fetchTrainerDetails = async () => {
     try {
-      const response = await axios.get(`http://localhost:5000/trainers/${id}`, {
+      const response = await axios.get(`${API_BASE_URL}/trainers/${id}`, {
         withCredentials: true,
       });
       if (response.data.success) {
@@ -210,7 +212,7 @@ function TrainerDetails() {
 
   const fetchAvailableTypes = async () => {
     try {
-      const response = await axios.get("http://localhost:5000/trainers/trainingTypes", {
+      const response = await axios.get(`${API_BASE_URL}/trainers/trainingTypes`, {
         withCredentials: true,
       });
       if (response.data.success) {
@@ -225,7 +227,7 @@ function TrainerDetails() {
     console.log("Saving trainer:", editedTrainer);
     try {
       const response = await axios.put(
-        `http://localhost:5000/trainers/editTrainer/${id}`,
+        `${API_BASE_URL}/trainers/editTrainer/${id}`,
         editedTrainer,
         { withCredentials: true }
       );

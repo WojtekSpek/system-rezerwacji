@@ -6,6 +6,8 @@ function TrainingTypes() {
   const [newType, setNewType] = useState(""); // Nowy typ szkolenia
   const [successMessage, setSuccessMessage] = useState("");
   const [editType, setEditType] = useState(null); // Typ szkolenia do edycji
+  const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "http://localhost:5000";
+
   // Pobierz typy szkoleń z backendu
   useEffect(() => {
     fetchTrainingTypes();
@@ -14,7 +16,7 @@ function TrainingTypes() {
 
   const fetchTrainingTypes = async () => {
     try {
-        const response = await axios.get("http://localhost:5000/trainers/trainingTypes", {
+        const response = await axios.get(`${API_BASE_URL}/trainers/trainingTypes`, {
           withCredentials: true, // Włącz przesyłanie ciasteczek
         });
         console.log("Otrzymane dane:", response.data);
@@ -34,7 +36,7 @@ function TrainingTypes() {
     }
 
     try {
-      const response = await axios.post("http://localhost:5000/trainers/addTrainingType", {
+      const response = await axios.post(`${API_BASE_URL}/trainers/addTrainingType`, {
         withCredentials: true,
         type: newType,
       });
@@ -52,7 +54,7 @@ function TrainingTypes() {
     if (!window.confirm("Czy na pewno chcesz usunąć ten typ szkolenia?")) return;
 
     try {
-      const response = await axios.delete(`http://localhost:5000/trainers/deleteTrainingType/${id}`);
+      const response = await axios.delete(`${API_BASE_URL}/trainers/deleteTrainingType/${id}`);
       if (response.data.success) {
         setSuccessMessage("Typ szkolenia został usunięty.");
         fetchTrainingTypes();
@@ -69,7 +71,7 @@ function TrainingTypes() {
     }
 
     try {
-      const response = await axios.put("http://localhost:5000/trainers/updateTrainingType", editType);
+      const response = await axios.put(`${API_BASE_URL}/trainers/updateTrainingType`, editType);
       if (response.data.success) {
         setSuccessMessage("Typ szkolenia został zaktualizowany.");
         setEditType(null); // Wyjście z trybu edycji

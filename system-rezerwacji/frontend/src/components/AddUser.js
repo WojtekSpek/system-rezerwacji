@@ -9,6 +9,8 @@ function AddUser() {
   const [users, setUsers] = useState([]);
   const [successMessage, setSuccessMessage] = useState("");
   const [editUser, setEditUser] = useState(null);
+  const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "http://localhost:5000";
+
 console.log(users)
   // Pobierz użytkowników z backendu
   useEffect(() => {
@@ -17,7 +19,7 @@ console.log(users)
 
   const fetchUsers = async () => {
     try {
-      const response = await axios.get("http://localhost:5000/users", {
+      const response = await axios.get(`${API_BASE_URL}/users`, {
         withCredentials: true,
       });
       if (response.data.success) {
@@ -38,7 +40,7 @@ console.log(users)
       if (editUser) {
         console.log('email',email)
         // Edycja istniejącego użytkownika
-        const response = await axios.put("http://localhost:5000/users/updateUser", {
+        const response = await axios.put(`${API_BASE_URL}/users/updateUser`, {
           id: editUser.id,
           username,
           email, // Aktualizacja email
@@ -51,7 +53,7 @@ console.log(users)
         }
       } else {
         // Dodanie nowego użytkownika
-        const response = await axios.post("http://localhost:5000/users/addUser", {
+        const response = await axios.post(`${API_BASE_URL}/users/addUser`, {
           username,
           email, // Dodanie email
           password,
@@ -74,7 +76,7 @@ console.log(users)
     if (!window.confirm("Czy na pewno chcesz usunąć tego użytkownika?")) return;
 
     try {
-      const response = await axios.delete(`http://localhost:5000/users/deleteUser/${id}`);
+      const response = await axios.delete(`${API_BASE_URL}/users/deleteUser/${id}`);
       if (response.data.success) {
         setSuccessMessage("Użytkownik został pomyślnie usunięty!");
         fetchUsers();

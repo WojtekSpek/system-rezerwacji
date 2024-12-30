@@ -30,7 +30,7 @@ function Projects({ setView, setSelectedProject }) {
 
   const fetchProjects = async () => {
       try {
-        const response = await axios.get("http://localhost:5000/projects", {
+        const response = await axios.get(`${API_BASE_URL}/projects`, {
           withCredentials: true,
         });
         
@@ -49,7 +49,7 @@ function Projects({ setView, setSelectedProject }) {
       }
 
       try {
-        const response = await axios.post("http://localhost:5000/projects/addProject", {
+        const response = await axios.post(`${API_BASE_URL}/projects/addProject`, {
           name: newProjectName,
           trainingTypes: selectedTrainingTypes, // Przekazanie zaznaczonych typów szkoleń
           createdBy: user?.username,
@@ -69,7 +69,7 @@ function Projects({ setView, setSelectedProject }) {
     if (!window.confirm("Czy na pewno chcesz usunąć ten projekt?")) return;
 
     try {
-      const response = await axios.delete(`http://localhost:5000/projects/${id}`, {
+      const response = await axios.delete(`${API_BASE_URL}/projects/${id}`, {
         withCredentials: true,
       });
 
@@ -86,7 +86,7 @@ function Projects({ setView, setSelectedProject }) {
   };
     const fetchTrainingTypes = async () => {
       try {
-        const response = await axios.get("http://localhost:5000/trainers/Types", {
+        const response = await axios.get(`${API_BASE_URL}/trainers/Types`, {
           withCredentials: true,
         });
         if (response.data.success) {

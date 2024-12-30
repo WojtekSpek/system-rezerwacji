@@ -10,6 +10,8 @@ function Trainers() {
   const [selectedTypes, setSelectedTypes] = useState([]); // Typy szkoleń dla danego szkoleniowca
   const [successMessage, setSuccessMessage] = useState(""); // Komunikat o sukcesie
   const [showAddForm, setShowAddForm] = useState(false);
+  const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "http://localhost:5000";
+
   const navigate = useNavigate(); // Hook do nawigacji
 
   // Pobierz listę szkoleniowców i typów szkoleń z backendu
@@ -20,7 +22,7 @@ function Trainers() {
 
   const fetchTrainers = async () => {
     try {
-      const response = await axios.get("http://localhost:5000/trainers");
+      const response = await axios.get(`${API_BASE_URL}/trainers`);
       if (response.data.success) {
         setTrainers(response.data.trainers);
       }
@@ -31,7 +33,7 @@ function Trainers() {
 
   const fetchTrainingTypes = async () => {
     try {
-      const response = await axios.get("http://localhost:5000/trainers/Types");
+      const response = await axios.get("${API_BASE_URL}/trainers/Types");
       if (response.data.success) {
         setTrainerTypes(response.data.data);
       }
@@ -47,7 +49,7 @@ function Trainers() {
     }
 
     try {
-      const response = await axios.post("http://localhost:5000/trainers/addTrainer", {
+      const response = await axios.post(`${API_BASE_URL}/trainers/addTrainer`, {
         name: trainerName,
         types: selectedTypes,
       });
@@ -67,7 +69,7 @@ function Trainers() {
     if (!window.confirm("Czy na pewno chcesz usunąć tego szkoleniowca?")) return;
 
     try {
-      const response = await axios.delete(`http://localhost:5000/trainers/deleteTrainer/${trainerId}`);
+      const response = await axios.delete(`${API_BASE_URL}/trainers/deleteTrainer/${trainerId}`);
       if (response.data.success) {
         fetchTrainers(); // Odśwież listę szkoleniowców
       }

@@ -8,6 +8,8 @@ function ParticipantDetails() {
   const [isEditing, setIsEditing] = useState(false);
   const [updatedParticipant, setUpdatedParticipant] = useState({});
   const [errors, setErrors] = useState({});
+  const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "http://localhost:5000";
+
 
   const genders = ["Mężczyzna", "Kobieta"];
   const voivodeships = [
@@ -35,7 +37,7 @@ function ParticipantDetails() {
 
   const fetchParticipantDetails = async () => {
     try {
-      const response = await axios.get(`http://localhost:5000/participants/${participantId}`);
+      const response = await axios.get(`${API_BASE_URL}/participants/${participantId}`);
       if (response.data.success) {
         setParticipant(response.data.participant);
         setUpdatedParticipant(response.data.participant);
@@ -74,7 +76,7 @@ function ParticipantDetails() {
     if (!validateForm()) return;
 
     try {
-      const response = await axios.put(`http://localhost:5000/participants/editParticipant/${participantId}`, updatedParticipant);
+      const response = await axios.put(`${API_BASE_URL}/participants/editParticipant/${participantId}`, updatedParticipant);
       if (response.data.success) {
         alert("Dane uczestnika zostały zaktualizowane!");
         setIsEditing(false);
