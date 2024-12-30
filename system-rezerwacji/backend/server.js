@@ -40,7 +40,7 @@ app.use(session({
   cookie: {
     secure: true, // true, jeśli używasz HTTPS
     httpOnly: true,
-    sameSite: "lax",
+    sameSite: "None",
   },
 }));
 app.use((req, res, next) => {
