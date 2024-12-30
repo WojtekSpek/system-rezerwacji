@@ -44,7 +44,7 @@ app.use(session({
   },
 }));
 app.use((req, res, next) => {
-  console.log("Sesja użytkownika:", req.session); // Debuguj obiekt sesji
+  console.log("Cookies w żądaniu:", req.cookies);
   next();
 });
 
