@@ -24,7 +24,7 @@ const db = require("./config/database"); // upewnij się, że masz ten plik
 
 // Konfiguracja CORS
 app.use(cors({
-  origin: ["http://system-rezerwacji:10000" ], // Zmienna URL twojego frontendu
+  origin: ["http://system-rezerwacji:10000", "http://localhost:3000" ], // Zmienna URL twojego frontendu
   credentials: true,
 }));
 
@@ -40,7 +40,7 @@ app.use(session({
   cookie: {
     secure: false, // true, jeśli używasz HTTPS
     httpOnly: true,
-    sameSite: "None",
+    sameSite: "lax",
   },
 }));
 app.use((req, res, next) => {
