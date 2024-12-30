@@ -5,7 +5,7 @@ const { authenticateUser, authorizeRole } = require("../middlewares/auth");
 
 router.post("/login", async (req, res) => {
   const { username, password } = req.body;
-     
+   console.log ('req.body',req.body)  
   try {
     const [rows] = await db.promise().query(
       "SELECT * FROM users WHERE username = ? AND password = ?",
