@@ -30,9 +30,7 @@ function Projects({ setView, setSelectedProject }) {
 
   const fetchProjects = async () => {
       try {
-        const response = await axios.get(`${API_BASE_URL}/projects`, {
-         /*  withCredentials: true, */
-        });
+        const response = await axios.get(`${API_BASE_URL}/projects`);
         
         if (response.data.success) {
           setProjects(response.data.projects);
