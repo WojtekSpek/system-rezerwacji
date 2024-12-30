@@ -43,6 +43,10 @@ app.use(session({
     sameSite: "lax",
   },
 }));
+app.use((req, res, next) => {
+  console.log("Sesja użytkownika:", req.session); // Debuguj obiekt sesji
+  next();
+});
 
 console.log("DB_HOST:", process.env.DB_HOST);
 console.log("DB_USER:", process.env.DB_USER);
