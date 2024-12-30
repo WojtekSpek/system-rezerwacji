@@ -24,7 +24,7 @@ const db = require("./config/database"); // upewnij się, że masz ten plik
 
 // Konfiguracja CORS
 app.use(cors({
-  origin: `${API_BASE_URL}`,
+  origin: ["https://system-rezerwacji.onrender.com"], // Zmienna URL twojego frontendu
   credentials: true,
 }));
 
