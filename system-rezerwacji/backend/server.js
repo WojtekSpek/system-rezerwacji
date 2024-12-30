@@ -16,7 +16,7 @@ const groupRoutes = require("./routes/group");
 const skillsRoutes = require("./routes/skills");
 
 const app = express();
-const PORT = 5000;
+//const PORT = 5000;
 
 // Konfiguracja bazy danych
 const db = require("./config/database"); // upewnij się, że masz ten plik
