@@ -24,9 +24,20 @@ const db = require("./config/database"); // upewnij się, że masz ten plik
 
 // Konfiguracja CORS
 app.use(cors({
-  origin: ["https://system-rezerwacji-1.onrender.com","https://system-rezerwacji.onrender.com","http://localhost:3000" ], // Zmienna URL twojego frontendu
+  origin: ["https://system-rezerwacji-1.onrender.com","https://system-rezerwacji.onrender.com",,"http://localhost:3000" ], // Zmienna URL twojego frontendu
   credentials: true,
 }));
+
+const path = require("path");
+
+// Serve static files from the React app
+app.use(express.static(path.join(__dirname, "../frontend/build")));
+
+// Catch-all handler for any requests that don’t match API routes
+app.get("*", (req, res) => {
+  res.sendFile(path.join(__dirname, "../frontend/build", "index.html"));
+});
+
 
 // Middleware
 app.use(bodyParser.json());
