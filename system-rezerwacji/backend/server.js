@@ -16,7 +16,7 @@ const groupRoutes = require("./routes/group");
 const skillsRoutes = require("./routes/skills");
 
 const app = express();
-//const PORT = 5000;
+const PORT = 5000;
 
 // Konfiguracja bazy danych
 const db = require("./config/database"); // upewnij się, że masz ten plik
@@ -60,7 +60,7 @@ app.use("/group", groupRoutes);
 app.use("/skills", skillsRoutes);
 
 // Uruchomienie serwera
-const PORT = process.env.PORT || 5000;
+
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
 });
