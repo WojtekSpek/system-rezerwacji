@@ -33,7 +33,7 @@ function Trainers() {
 
   const fetchTrainingTypes = async () => {
     try {
-      const response = await axios.get("${API_BASE_URL}/trainers/Types");
+      const response = await axios.get(`${API_BASE_URL}/trainers/Types`);
       if (response.data.success) {
         setTrainerTypes(response.data.data);
       }
