@@ -55,6 +55,6 @@ app.use("/group", groupRoutes);
 app.use("/skills", skillsRoutes);
 
 // Uruchomienie serwera
-app.listen(PORT, () => {
+app.listen(process.env.PORT, () => {
   console.log(`Serwer działa na porcie ${process.env.PORT}`);
 });
