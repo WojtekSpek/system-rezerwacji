@@ -17,14 +17,14 @@ const skillsRoutes = require("./routes/skills");
 const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "http://localhost:3000";
 
 const app = express();
-const PORT = 3380;
+const PORT = 5000;
 
 // Konfiguracja bazy danych
 const db = require("./config/database"); // upewnij się, że masz ten plik
 
 // Konfiguracja CORS
 app.use(cors({
-  origin: `API_BASE_URL`,
+  origin: `${API_BASE_URL}`,
   credentials: true,
 }));
 
