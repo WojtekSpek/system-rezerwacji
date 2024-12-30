@@ -14,6 +14,7 @@ const calendarRoutes = require("./routes/calendar");
 const commentaryRoutes = require("./routes/Commentary");
 const groupRoutes = require("./routes/group");
 const skillsRoutes = require("./routes/skills");
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "http://localhost:3000";
 
 const app = express();
 const PORT = 5000;
@@ -23,7 +24,7 @@ const db = require("./config/database"); // upewnij się, że masz ten plik
 
 // Konfiguracja CORS
 app.use(cors({
-  origin: "http://localhost:3000",
+  origin: `API_BASE_URL`,
   credentials: true,
 }));
 
