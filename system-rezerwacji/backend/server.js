@@ -23,9 +23,11 @@ const PORT = process.env.PORT || 5000; // Lokalnie 5000, na Render użyje zmienn
 const db = require("./config/database"); // upewnij się, że masz ten plik
 
 // Konfiguracja CORS
+const cors = require("cors");
+
 app.use(cors({
-  origin: ["https://system-rezerwacji.onrender.com","https://system-rezerwacji-1.onrender.com", "http://system-rezerwacji:10000","http://localhost:3000" ,"http://localhost:10000"], // Zmienna URL twojego frontendu
-  credentials: true,
+  origin: ["https://system-rezerwacji.onrender.com", "http://localhost:3000"], // Adresy frontendu
+  credentials: true, // Wymagane, aby ciasteczka działały
 }));
 
 // Middleware
