@@ -17,7 +17,7 @@ const skillsRoutes = require("./routes/skills");
 const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "http://localhost:3000";
 
 const app = express();
-const PORT = 5000;
+const PORT = process.env.PORT || 5000; // Lokalnie 5000, na Render użyje zmiennej środowiskowej PORT
 
 // Konfiguracja bazy danych
 const db = require("./config/database"); // upewnij się, że masz ten plik
