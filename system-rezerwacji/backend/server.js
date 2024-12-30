@@ -22,8 +22,7 @@ const PORT = process.env.PORT || 5000; // Lokalnie 5000, na Render użyje zmienn
 // Konfiguracja bazy danych
 const db = require("./config/database"); // upewnij się, że masz ten plik
 
-// Konfiguracja CORS
-const cors = require("cors");
+
 
 app.use(cors({
   origin: ["https://system-rezerwacji.onrender.com", "http://localhost:3000"], // Adresy frontendu
