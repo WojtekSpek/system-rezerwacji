@@ -72,7 +72,7 @@ function Participants({ onViewChange }) {
 
   const fetchParticipants = async () => {
     try {
-      const response = await axios.get(`${API_BASE_URL}/participants`, data, {
+      const response = await axios.get(`${API_BASE_URL}/participants`, {
         withCredentials: true, // Umożliwia przesyłanie ciasteczek
       });
       if (response.data.success) {
