@@ -15,6 +15,7 @@ function Login({ onLogin }) {
         { username, password },
         { withCredentials: true } // Przesyłanie ciasteczek sesji
       );
+      console.log ('sdsds',response )
       if (response.data.success) {
         onLogin(response.data.username, response.data.role); // Wywołanie funkcji `onLogin`
       } else {
