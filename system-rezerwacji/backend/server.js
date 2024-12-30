@@ -44,7 +44,8 @@ app.use(session({
   },
 }));
 app.use((req, res, next) => {
-  console.log("Cookies w żądaniu:", req.cookies);
+  console.log("Ciasteczko w żądaniu:", req.headers.cookie);
+  console.log("Sesja użytkownika:", req.session);
   next();
 });
 
