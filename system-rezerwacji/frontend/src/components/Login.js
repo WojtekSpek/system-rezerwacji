@@ -5,13 +5,13 @@ function Login({ onLogin }) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
-
+  const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "http://localhost:5000";
   const handleLogin = async (e) => {
     e.preventDefault();
 
     try {
       const response = await axios.post(
-        "http://localhost:5000/users/login",
+        "${API_BASE_URL}/users/login",
         { username, password },
         { withCredentials: true } // Przesyłanie ciasteczek sesji
       );
