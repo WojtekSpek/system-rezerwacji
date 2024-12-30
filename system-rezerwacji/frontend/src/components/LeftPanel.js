@@ -1,5 +1,7 @@
 import React from "react";
 import { NavLink, useLocation } from "react-router-dom";
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faGraduationCap, faFolderOpen, faPersonChalkboard } from '@fortawesome/free-solid-svg-icons'; // Import ikony
 
 function LeftPanel({ selectedProject, setSelectedProject, selectedTab, setSelectedTab }) {
   const location = useLocation(); // Pobiera bieżący URL
@@ -18,7 +20,7 @@ function LeftPanel({ selectedProject, setSelectedProject, selectedTab, setSelect
         >
           {({ isActive }) => (
             <li className={`menu-item ${isActive ? "bg-gray-600 font-bold" : "hover:bg-gray-700"}`}>
-              <a className="block px-4 py-2">Projekty</a>
+              <a className="block px-4 py-2"><FontAwesomeIcon icon={faFolderOpen} style={{ marginRight: '8px', color: 'white' }} />Projekty</a>
             </li>
           )}
         </NavLink>
@@ -29,7 +31,7 @@ function LeftPanel({ selectedProject, setSelectedProject, selectedTab, setSelect
         >
           {({ isActive }) => (
             <li className={`menu-item ${isActive ? "bg-gray-600 font-bold" : "hover:bg-gray-700"}`}>
-              <a className="block px-4 py-2">Szkoleniowcy</a>
+              <a className="block px-4 py-2"><FontAwesomeIcon icon={faPersonChalkboard} style={{ marginRight: '8px', color: 'white' }} />Szkoleniowcy</a>
             </li>
           )}
         </NavLink>
@@ -40,7 +42,7 @@ function LeftPanel({ selectedProject, setSelectedProject, selectedTab, setSelect
         >
           {({ isActive }) => (
             <li className={`menu-item ${isActive ? "bg-gray-600 font-bold" : "hover:bg-gray-700"}`}>
-              <a className="block px-4 py-2">Uczestnicy</a>
+              <a className="block px-4 py-2"><FontAwesomeIcon icon={faGraduationCap} style={{ marginRight: '8px', color: 'white' }} />Uczestnicy</a>
             </li>
           )}
         </NavLink>
@@ -64,6 +66,7 @@ function LeftPanel({ selectedProject, setSelectedProject, selectedTab, setSelect
         
         <NavLink
           to={`/projects/${selectedProject.id}/participants`}
+          
           className={({ isActive }) => (isActive ? "active-li" : "")}
         >
           {({ isActive }) => (

@@ -144,11 +144,11 @@ const handleLogin = async (username, role) => {
                     }
                   />
                   <Route
-                    path="/projects/:id/participant/:participantId/details"
+                    path="/projects/:id/participants/:participantId/details"
                     element={<ProjectParticipantDetails />}
                   />
                 <Route
-                    path="/participant/:participantId/details"
+                    path="/participants/:participantId/details"
                     element={<ParticipantDetails />}
                   />
                   

@@ -16,7 +16,7 @@ function ProjectParticipants({setView, setSelectedParticipant,setSelectedProject
   const handleViewDetails = (participantId) => {
     setSelectedParticipant(participantId); // Ustaw wybranego uczestnika
     //setSelectedProject({projectId}); 
-    navigate(`/projects/${projectId}/participant/${participantId}/details`); // Nawiguj do szczegółów uczestnika
+    navigate(`/projects/${projectId}/participants/${participantId}/details`); // Nawiguj do szczegółów uczestnika
   };
 
 

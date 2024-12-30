@@ -1,6 +1,8 @@
 
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faUser } from '@fortawesome/free-solid-svg-icons'; // Import ikony
 
 function TopBar({ user, isAdmin, onLogout,selectedProject }) {
     console.log("Dane użytkownika w TopBar:", isAdmin);
@@ -18,14 +20,14 @@ function TopBar({ user, isAdmin, onLogout,selectedProject }) {
   return (
     <div className="bg-blue-500 text-white p-4 flex justify-between items-center">
       <h1 className="text-xl font-bold">System Szkoleń</h1>
-      <span>Witaj, {user?.username || "Gościu"}!</span>
-      {isAdmin && <span> (Admin)</span>}
+     {/*  <span>Witaj, {user?.username || "Gościu"}!</span> */}
+     {/*  {isAdmin && <span> (Admin)</span>} */}
       <h1 className="text-lg font-bold">
        {selectedProject ? `Projekt: ${selectedProject.name}` : ""}
       </h1>
       
       <div className="flex items-center space-x-4">
-        <span>{user.name}</span>
+        <span><FontAwesomeIcon icon={faUser} style={{ marginRight: '8px', color: 'white' }} />{user.username}</span>
         {isAdmin && (
           <button
             onClick={onSettingsClick}
