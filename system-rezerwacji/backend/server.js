@@ -55,7 +55,7 @@ app.use(session({
   cookie: {
     secure: false, // true, jeśli używasz HTTPS
     httpOnly: true,
-    sameSite: "Strict",
+    sameSite: "None",
     maxAge: 24 * 60 * 60 * 1000, // 24 godziny w milisekundach
   },
 }));
