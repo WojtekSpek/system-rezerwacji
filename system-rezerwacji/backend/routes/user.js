@@ -5,7 +5,13 @@ const { authenticateUser, authorizeRole } = require("../middlewares/auth");
 
 router.post("/login", async (req, res) => {
   const { username, password } = req.body;
-   console.log ('req.body',req.body)  
+
+  console.log("Żądanie logowania:", req.body); // Debugowanie danych wejściowych
+
+  if (!username || !password) {
+    return res.status(400).json({ success: false, message: "Brak nazwy użytkownika lub hasła." });
+  }
+
   try {
     const [rows] = await db.promise().query(
       "SELECT * FROM users WHERE username = ? AND password = ?",
@@ -14,16 +20,22 @@ router.post("/login", async (req, res) => {
 
     if (rows.length > 0) {
       const user = rows[0];
-      req.session.user = { id: user.id, username: user.username, role: user.role }; // Zapisz użytkownika w sesji
-      res.json({ success: true, user: req.session.user });
+      
+      // Zapisz użytkownika w sesji
+      req.session.user = { id: user.id, username: user.username, role: user.role };
+
+      console.log("Sesja użytkownika po zalogowaniu:", req.session.user); // Debugowanie sesji
+
+      return res.json({ success: true, user: req.session.user });
     } else {
-      res.status(401).json({ success: false, message: "Nieprawidłowe dane logowania." });
+      return res.status(401).json({ success: false, message: "Nieprawidłowe dane logowania." });
     }
   } catch (error) {
     console.error("Błąd podczas logowania:", error);
-    res.status(500).json({ success: false, message: "Błąd serwera." });
+    return res.status(500).json({ success: false, message: "Błąd serwera." });
   }
 });
+
 
 router.post("/logout", (req, res) => {
     req.session.destroy((err) => {
