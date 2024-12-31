@@ -53,7 +53,7 @@ app.use(session({
   resave: false,
   saveUninitialized: false,
   cookie: {
-    secure: false, // true, jeśli używasz HTTPS
+    secure: true, // true, jeśli używasz HTTPS
     httpOnly: true,
     sameSite: "None",
     maxAge: 24 * 60 * 60 * 1000, // 24 godziny w milisekundach
