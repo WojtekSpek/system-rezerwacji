@@ -29,7 +29,11 @@ app.use(cors({
 }));
 
 const path = require("path");
-
+app.use((req, res, next) => {
+  console.log("Cookies w żądaniu:", req.cookies);
+  console.log("Sesja użytkownika:", req.session);
+  next();
+});
 // Serve static files from the React app
 app.use(express.static(path.join(__dirname, "../frontend/build")));
 
