@@ -21,7 +21,7 @@ import Adminsetting from "./components/Settings";
 import AdminAddUser from "./components/AddUser";
 import AdminTrainingTypes from "./components/TrainingTypes";
 import AdminSkillSettings from "./components/SkillSettings";
-//const API_BASE_URL = "https://system-rezerwacji-1.onrender.com";
+const API_BASE_URL = "https://system-rezerwacji-1.onrender.com";
 
 axios.defaults.withCredentials = true; // Włącz przesyłanie ciasteczek
 //axios.defaults.baseURL = `${API_BASE_URL}`; // Adres backendu
@@ -42,7 +42,7 @@ function App() {
 const checkSession = async () => {
   console.log("Rozpoczynam sprawdzanie sesji...");
   try {
-    const response = await axios.get("https://system-rezerwacji-1.onrender.com/users/session");
+    const response = await axios.get(`${API_BASE_URL}/users/session`);
     console.log("Dane zwrócone z /users/session:", response.data);
 
     if (response.data.success) {
