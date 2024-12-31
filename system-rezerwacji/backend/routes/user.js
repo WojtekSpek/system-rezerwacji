@@ -25,6 +25,7 @@ router.post("/login", async (req, res) => {
       req.session.user = { id: user.id, username: user.username, role: user.role };
 
       console.log("Sesja użytkownika po zalogowaniu:", req.session.user); // Debugowanie sesji
+      console.log("Nagłówki odpowiedzi przed wysłaniem:", res.getHeaders());
 
       return res.json({ success: true, user: req.session.user });
     } else {
