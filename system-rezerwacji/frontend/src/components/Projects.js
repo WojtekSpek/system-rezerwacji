@@ -10,8 +10,8 @@ function Projects({ setView, setSelectedProject }) {
   const [trainingTypes, setTrainingTypes] = useState([]); // Lista typów szkoleń
   const [user, setUser] = useState(null); // Przechowuj dane użytkownika
    const [showAddForm, setShowAddForm] = useState(false);
-   const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "http://localhost:5000";
-
+  // const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "http://localhost:5000";
+   const API_BASE_URL = "https://system-rezerwacji-1.onrender.com";
   useEffect(() => {
     fetchProjects();
     fetchUser();
