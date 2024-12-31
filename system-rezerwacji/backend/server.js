@@ -52,7 +52,7 @@ app.use(session({
     secure: true, // true, jeśli używasz HTTPS
     httpOnly: true,
     sameSite: "Lax",
-    domain: ".onrender.com", // Ustaw domenę nadrzędną
+    maxAge: 24 * 60 * 60 * 1000, // 24 godziny w milisekundach
   },
 }));
 app.use((req, res, next) => {
