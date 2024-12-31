@@ -21,7 +21,7 @@ import Adminsetting from "./components/Settings";
 import AdminAddUser from "./components/AddUser";
 import AdminTrainingTypes from "./components/TrainingTypes";
 import AdminSkillSettings from "./components/SkillSettings";
-const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "http://localhost:5000";
+const API_BASE_URL = "https://system-rezerwacji-1.onrender.com";
 
 axios.defaults.withCredentials = true; // Włącz przesyłanie ciasteczek
 axios.defaults.baseURL = `${API_BASE_URL}`; // Adres backendu
