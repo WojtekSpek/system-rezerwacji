@@ -49,7 +49,7 @@ app.use(session({
   resave: false,
   saveUninitialized: false,
   cookie: {
-    secure: true, // true, jeśli używasz HTTPS
+    secure: false, jeśli używasz HTTPS
     httpOnly: true,
     sameSite: "None",
     domain: ".onrender.com", // Ustaw domenę nadrzędną
