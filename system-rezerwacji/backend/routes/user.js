@@ -3,9 +3,15 @@ const router = express.Router();
 const db = require("../config/database");
 const { authenticateUser, authorizeRole } = require("../middlewares/auth");
 
-router.post("/login", async (req, res) => {
+router.post("/login",  async (req, res) => {
   const { username, password } = req.body;
-   console.log ('req.body',req.body)  
+
+  console.log("Żądanie logowania:", req.body); // Debugowanie danych wejściowych
+
+  if (!username || !password) {
+    return res.status(400).json({ success: false, message: "Brak nazwy użytkownika lub hasła." });
+  }
+
   try {
     const [rows] = await db.promise().query(
       "SELECT * FROM users WHERE username = ? AND password = ?",
@@ -14,16 +20,23 @@ router.post("/login", async (req, res) => {
 
     if (rows.length > 0) {
       const user = rows[0];
-      req.session.user = { id: user.id, username: user.username, role: user.role }; // Zapisz użytkownika w sesji
-      res.json({ success: true, user: req.session.user });
+      
+      // Zapisz użytkownika w sesji
+      req.session.user = { id: user.id, username: user.username, role: user.role };
+
+      console.log("Sesja użytkownika po zalogowaniu:", req.session.user); // Debugowanie sesji
+      console.log("Nagłówki odpowiedzi przed wysłaniem:", res.getHeaders());
+
+      return res.json({ success: true, user: req.session.user });
     } else {
-      res.status(401).json({ success: false, message: "Nieprawidłowe dane logowania." });
+      return res.status(401).json({ success: false, message: "Nieprawidłowe dane logowania." });
     }
   } catch (error) {
     console.error("Błąd podczas logowania:", error);
-    res.status(500).json({ success: false, message: "Błąd serwera." });
+    return res.status(500).json({ success: false, message: "Błąd serwera." });
   }
 });
+
 
 router.post("/logout", (req, res) => {
     req.session.destroy((err) => {
@@ -49,7 +62,7 @@ router.post("/logout", (req, res) => {
       });
     }
   }); 
-router.get("/session", (req, res) => {
+router.get("/session",authenticateUser, authorizeRole("admin"),  (req, res) => {
   console.log("Sprawdzanie sesji:", req.session);
     if (req.session && req.session.user) {
       res.json({ success: true, user: req.session.user });

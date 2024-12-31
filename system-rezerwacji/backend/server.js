@@ -24,12 +24,16 @@ const db = require("./config/database"); // upewnij się, że masz ten plik
 
 // Konfiguracja CORS
 app.use(cors({
-  origin: ["https://system-rezerwacji-1.onrender.com","https://system-rezerwacji.onrender.com",,"http://localhost:3000" ], // Zmienna URL twojego frontendu
+  origin: ["https://system-rezerwacji-1.onrender.com","https://system-rezerwacji.onrender.com"], // Zmienna URL twojego frontendu
   credentials: true,
 }));
 
 const path = require("path");
-
+app.use((req, res, next) => {
+  console.log("Cookies w żądaniu:", req.cookies);
+  console.log("Sesja użytkownika:", req.session);
+  next();
+});
 // Serve static files from the React app
 app.use(express.static(path.join(__dirname, "../frontend/build")));
 
@@ -49,10 +53,10 @@ app.use(session({
   resave: false,
   saveUninitialized: false,
   cookie: {
-    secure: true, // true, jeśli używasz HTTPS
+    secure: false, // true, jeśli używasz HTTPS
     httpOnly: true,
     sameSite: "None",
-    domain: ".onrender.com", // Ustaw domenę nadrzędną
+    maxAge: 24 * 60 * 60 * 1000, // 24 godziny w milisekundach
   },
 }));
 app.use((req, res, next) => {
