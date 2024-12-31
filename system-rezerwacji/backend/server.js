@@ -51,8 +51,8 @@ app.use(session({
   cookie: {
     secure: true,//eśli używasz HTTPS
     httpOnly: true,
-    sameSite: "Lax",
-    domain: ".onrender.com", // Ustaw domenę nadrzędną
+    sameSite: "None",
+    //domain: ".onrender.com", // Ustaw domenę nadrzędną
   },
 }));
 app.use((req, res, next) => {
