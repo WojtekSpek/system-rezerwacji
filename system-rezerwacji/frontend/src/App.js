@@ -42,11 +42,7 @@ function App() {
 const checkSession = async () => {
   console.log("Rozpoczynam sprawdzanie sesji...");
   try {
-<<<<<<< HEAD
     const response = await axios.get(`${API_BASE_URL}/users/session`);
-=======
-    const response = await axios.get('https://system-rezerwacji-1.onrender.com/users/session');
->>>>>>> 953984a422f2f8b9ed15602c0b04164bcbcc1c97
     console.log("Dane zwrócone z /users/session:", response.data);
 
     if (response.data.success) {
