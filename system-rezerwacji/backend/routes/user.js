@@ -3,7 +3,7 @@ const router = express.Router();
 const db = require("../config/database");
 const { authenticateUser, authorizeRole } = require("../middlewares/auth");
 
-router.post("/login", async (req, res) => {
+router.post("/login",authenticateUser, authorizeRole("admin"),  async (req, res) => {
   const { username, password } = req.body;
 
   console.log("Żądanie logowania:", req.body); // Debugowanie danych wejściowych
@@ -62,7 +62,7 @@ router.post("/logout", (req, res) => {
       });
     }
   }); 
-router.get("/session", (req, res) => {
+router.get("/session",authenticateUser, authorizeRole("admin"),  (req, res) => {
   console.log("Sprawdzanie sesji:", req.session);
     if (req.session && req.session.user) {
       res.json({ success: true, user: req.session.user });
