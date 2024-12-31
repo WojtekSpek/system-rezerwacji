@@ -24,7 +24,7 @@ const db = require("./config/database"); // upewnij się, że masz ten plik
 
 // Konfiguracja CORS
 app.use(cors({
-  origin: ["https://system-rezerwacji-1.onrender.com","https://system-rezerwacjiGFG.onrender.com"], // Zmienna URL twojego frontendu
+  origin: ["https://system-rezerwacji-1.onrender.com","https://system-rezerwacji.onrender.com"], // Zmienna URL twojego frontendu
   credentials: true,
 })); 
 
@@ -51,7 +51,7 @@ app.use(session({
   cookie: {
     secure: false,//eśli używasz HTTPS
     httpOnly: true,
-    sameSite: "Lax",
+    sameSite: "None",
     domain: ".onrender.com", // Ustaw domenę nadrzędną
   },
 }));
