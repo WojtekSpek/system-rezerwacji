@@ -42,7 +42,7 @@ function App() {
 const checkSession = async () => {
   console.log("Rozpoczynam sprawdzanie sesji...");
   try {
-    const response = await axios.get(`${API_BASE_URL}/users/session`);
+    const response = await axios.get(`${API_BASE_URL}/users/session`, { withCredentials: true });
     console.log("Dane zwrócone z /users/session:", response.data);
 
     if (response.data.success) {
