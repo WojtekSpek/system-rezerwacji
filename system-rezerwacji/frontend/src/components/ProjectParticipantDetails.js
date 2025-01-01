@@ -42,6 +42,7 @@ function ProjectParticipantDetails({onBack}) {
     end: "",
     trainerId: "",
   });
+  const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "http://localhost:5000";
 
   const messages = {
     allDay: "Cały dzień",
@@ -137,23 +138,26 @@ function ProjectParticipantDetails({onBack}) {
     };
 
     const typeId = getTypeIdByName(activeTab); */
-    console.log("Type ID dla aktywnego typu:", typeId);
+    console.log("Type ID dla aktywnego typu:", currentType);
 
     const getEventStyle = (event) => {
       console.log("Wywołanie getEventStyle dla wydarzenia:", event);
-      console.log("activeTab", activeTab);
-      const trainerColors = {
-        1: "#f56c6c", // Trener 1 - czerwony
-        2: "#67c23a", // Trener 2 - zielony
-        3: "#ff9900", // Trener 3 - pomarańczowy
-      };
-
-      if (event.typeName?.trim().toLowerCase() === activeTab?.trim().toLowerCase()) {
+    
+      // Definicja kolorów
+      const colors = ["#f56c6c", "#67c23a", "#6f5126", "#409eff", "#e6a23c", "#909399"];
+    
+      // Użyj currentType.id do wyboru koloru
+      const tabId = currentType?.id || 0; // Jeśli brak id, ustaw 0
+      const assignedColor = colors[tabId % colors.length]; // Modulo zapewnia cykliczność kolorów
+    console.log('tabId',tabId)
+    console.log('tcolors.length',colors.length)
+    console.log('tcolors.length',colors.length)
+      if (event.typeName?.trim().toLowerCase() === currentType?.name?.trim().toLowerCase()) {
         // Kolorowe wydarzenie dla aktywnej zakładki
-        console.log('jestem tu');
+        console.log('jaki to kolor ',assignedColor)
         return {
           style: {
-            backgroundColor: trainerColors[event.projectTrainerId] || "#cccccc",
+            backgroundColor: assignedColor,
             color: "white",
             borderRadius: "5px",
             border: "none",
@@ -162,8 +166,7 @@ function ProjectParticipantDetails({onBack}) {
           },
         };
       } else {
-        // Zaszarzałe dla nieaktywnej zakładki
-        console.log('albo')
+        // Zaszarzałe wydarzenie dla nieaktywnej zakładki
         return {
           style: {
             backgroundColor: "#d3d3d3",
@@ -177,10 +180,11 @@ function ProjectParticipantDetails({onBack}) {
       }
     };
     
+    
 
     const fetchEvents = async () => {
       try {
-        const response = await axios.get(`calendar/events/${projectId}`);
+        const response = await axios.get(`calendar/events/${projectId}/${participantId}`);
         if (response.data.success) {
           console.log('event response.data',response.data)
           setEvents(
@@ -215,7 +219,7 @@ function ProjectParticipantDetails({onBack}) {
  // Pobierz pliki uczestnika
  const fetchFiles = async () => {
     try {
-      const response = await axios.get(`/files/${projectId}/${participantId}`);
+      const response = await axios.get(`/files/participant/${projectId}/${participantId}`);
       if (response.data.success) {
         setUploadedFiles(response.data.files);
       }
@@ -234,7 +238,7 @@ function ProjectParticipantDetails({onBack}) {
     formData.append("file", file);
 
     try {
-      const response = await axios.post(`/files/${projectId}/${participantId}`, formData, {
+      const response = await axios.post(`files/participant/${projectId}/${participantId}`, formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
       if (response.data.success) {
@@ -251,7 +255,7 @@ function ProjectParticipantDetails({onBack}) {
   const handleFileDelete = async (fileName) => {
     if (!window.confirm("Czy na pewno chcesz usunąć ten plik?")) return;
     try {
-      const response = await axios.delete(`/files/${projectId}/${participantId}/${fileName}`);
+      const response = await axios.delete(`/files/participant/${projectId}/${participantId}/${fileName}`);
       if (response.data.success) {
         alert("Plik został usunięty!");
         fetchFiles(); // Odśwież listę plików
@@ -368,7 +372,7 @@ function ProjectParticipantDetails({onBack}) {
                     <li key={index} className="flex justify-between items-center">
                         {/* Klikalny link do otwierania pliku */}
                         <a
-                        href={`/uploads/${file}`} // Ścieżka do pliku
+                        href={`${API_BASE_URL}/files/participant_read/${projectId}/${participantId}/${file}`} // Ścieżka do pliku
                         target="_blank" // Otwiera plik w nowej karcie
                         rel="noopener noreferrer" // Bezpieczeństwo dla linków zewnętrznych
                         className="text-blue-500 hover:underline"

@@ -50,6 +50,7 @@ function Calendar1({
     };
     
     console.log('trainers', trainers)
+    console.log('participantId', participantId)
     console.log("Przekazanie eventPropGetter:", eventPropGetter);
 // Obsługa dodawania wydarzenia
 const handleAddEvent = async (newEventData) => {
@@ -75,7 +76,11 @@ const handleAddEvent = async (newEventData) => {
     // Dodawanie nowego wydarzenia
     const eventToSave = {
       ...newEventData,
+      isGroupEvent: 0, 
+      groupParticipantIds:0,
+      participantId:participantId,
       projectId, // ID projektu
+    
     };
 
     try {
@@ -86,6 +91,7 @@ const handleAddEvent = async (newEventData) => {
           id: response.data.eventId, // ID z bazy
           start: new Date(newEventData.start),
           end: new Date(newEventData.end),
+                 
         };
 
         setEvents((prevEvents) => [...prevEvents, savedEvent]);

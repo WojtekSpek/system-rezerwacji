@@ -297,7 +297,7 @@ function TrainerDetails() {
                     <li key={index} className="flex justify-between items-center">
                       {/* Klikalny link do otwierania pliku */}
                       <a
-                        href={`/uploads/trainers/${id}/${file}`} // Ścieżka do pliku
+                        href={`${API_BASE_URL}/files/trainers/${id}/${file}`} // Ścieżka do pliku
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-blue-500 hover:underline"

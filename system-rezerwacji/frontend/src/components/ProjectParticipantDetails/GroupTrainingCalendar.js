@@ -58,6 +58,7 @@ function GroupTrainingCalendar({trainers,groupName,groupParticipantIds}) {
     };
 
     try {
+      console.log('groupEventData',groupEventData)
         const response = await axios.post("/calendar/group-events", groupEventData);
         if (response.data.success) {
             alert("Wydarzenie grupowe zostało dodane!");

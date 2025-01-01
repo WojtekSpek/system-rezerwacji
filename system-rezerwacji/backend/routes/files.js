@@ -5,10 +5,26 @@ const fs = require("fs");
 
 const router = express.Router();
 
+// Endpoint do pobierania plików
+router.get("/participant_read/:projectId/:participantId/:fileName", (req, res) => {
+  const { projectId, participantId, fileName } = req.params;
+console.log('jestem')
+  // Ścieżka do pliku
+  const filePath = path.join(__dirname, "files", `/projects/project_${projectId}`, `participant_${participantId}`, fileName);
+console.log('trararara',filePath)
+  // Sprawdź, czy plik istnieje
+  res.sendFile(filePath, (err) => {
+    if (err) {
+      console.error("Błąd podczas pobierania pliku:", err);
+      res.status(err.code === 'ENOENT' ? 404 : 500).send('Plik nie został znaleziony.');
+    }
+  });
+});
+
 // Konfiguracja multer dla trenerów
 const trainerStorage = multer.diskStorage({
   destination: (req, file, cb) => {
-    const { trainersId } = req.params;
+   // const { trainersId } = req.params;
     const dir = path.join(__dirname, "files", "trainers", `trainer_${trainersId}`);
     fs.mkdirSync(dir, { recursive: true });
     cb(null, dir);
@@ -69,8 +85,9 @@ router.get("/trainer/:trainersId", (req, res) => {
 // Endpoint: Pobierz pliki dla uczestników projektu
 router.get("/participant/:projectId/:participantId", (req, res) => {
   const { projectId, participantId } = req.params;
+  console.log('projectId',projectId)
   const dir = path.join(__dirname, "files", `/projects/project_${projectId}`, `participant_${participantId}`);
-
+  console.log('filePath',dir)
   fs.readdir(dir, (err, files) => {
     if (err) {
       return res.status(500).json({ success: false, message: "Błąd podczas pobierania plików" });
@@ -80,10 +97,10 @@ router.get("/participant/:projectId/:participantId", (req, res) => {
 });
 
 // Endpoint: Usuń plik dla trenerów
-router.delete("/trainer/:trainersId/:fileName", (req, res) => {
+router.delete('/trainer/:trainersId/:fileName', (req, res) => {
   const { trainersId, fileName } = req.params;
-  const filePath = path.join(__dirname, "files", `trainer_${trainersId}`, fileName);
-
+  const filePath = path.join(__dirname, "files", 'trainers',`trainer_${trainersId}`, fileName);
+  
   fs.unlink(filePath, (err) => {
     if (err) {
       return res.status(500).json({ success: false, message: "Błąd podczas usuwania pliku" });
@@ -91,11 +108,26 @@ router.delete("/trainer/:trainersId/:fileName", (req, res) => {
     res.json({ success: true, message: "Plik został usunięty" });
   });
 });
+// Endpoint do pobierania plików
+router.get('/trainers/:trainerId/:fileName', (req, res) => {
+  const { trainerId, fileName } = req.params;
+
+  // Ścieżka do pliku
+  const filePath = path.join(__dirname, 'files', 'trainers', `trainer_${trainerId}`, fileName);
+
+  // Sprawdź, czy plik istnieje
+  res.sendFile(filePath, (err) => {
+    if (err) {
+      console.error("Błąd podczas pobierania pliku:", err);
+      res.status(err.code === 'ENOENT' ? 404 : 500).send('Plik nie został znaleziony.');
+    }
+  });
+});
 
 // Endpoint: Usuń plik dla uczestników projektu
 router.delete("/participant/:projectId/:participantId/:fileName", (req, res) => {
   const { projectId, participantId, fileName } = req.params;
-  const filePath = path.join(__dirname, "files", `project_${projectId}`, `participant_${participantId}`, fileName);
+  const filePath = path.join(__dirname, "files", `/projects/project_${projectId}`, `participant_${participantId}`, fileName);
 
   fs.unlink(filePath, (err) => {
     if (err) {

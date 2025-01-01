@@ -84,8 +84,8 @@ router.get('/projects/:projectId/hours-summary', async (req, res) => {
   }
 });
 // Pobieranie wydarzeń dla projektu
-router.get("/events/:projectId", async (req, res) => {
-  const { projectId } = req.params;
+router.get("/events/:projectId/:participantId", async (req, res) => {
+  const { projectId,participantId} = req.params;
 
   try {
     const query = `
@@ -101,9 +101,14 @@ router.get("/events/:projectId", async (req, res) => {
       FROM events e
       LEFT JOIN project_trainers pt ON e.project_trainer_id = pt.id -- Połączenie z project_trainers
       LEFT JOIN trainers t ON pt.trainer_id = t.id -- Połączenie z trainers
-      WHERE e.project_id = ?
+      WHERE 
+        e.project_id = ? 
+        AND (
+          e.participant_id = ? OR 
+          e.groupParticipantIds LIKE CONCAT('%"', ?, '"%')
+        )
     `;
-    const [events] = await db.promise().query(query, [projectId]);
+    const [events] = await db.promise().query(query, [projectId,participantId,participantId]);
     console.log("Pobieranie wydarzeń:", events);
 
     res.json({
@@ -173,7 +178,8 @@ console.log(req.body)
 
   // Dodawanie wydarzenia
 router.post("/events", async (req, res) => {
-    const { title, description, start, end, projectTrainerId, projectId,type } = req.body;
+    const { title, description, start, end, projectTrainerId, projectId,type,isGroupEvent,participantId,groupParticipantIds } = req.body;
+    console.log('body', req.body)
     console.log("Event to insert:", {
       title: req.body.title,
       description: req.body.description,
@@ -187,19 +193,17 @@ router.post("/events", async (req, res) => {
       groupParticipantIds, // Używane dla grupowych wydarzeń
 
     });
-    console.log('body', req.body)
+   
     if (!title || !start || !end || !projectId) {
       return res.status(400).json({ success: false, message: "Wymagane pola: title, start, end, projectId." });
     }
   
     try {
       const query = `
-        INSERT INTO events (title, start, end, description, project_id, type, participant_id, isGroupEvent, groupParticipantIds)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO events (title, start, end, project_trainer_id,description, project_id, type, participant_id, isGroupEvent, groupParticipantIds)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?,?)
       `;
-      const [result] = await db.promise().query(query, [title, description, start, end, projectTrainerId, projectId,type,participantId || null,
-        isGroupEvent || false,
-        groupParticipantIds ? JSON.stringify(groupParticipantIds) : null,]);
+      const [result] = await db.promise().query(query, [title, start, end, projectTrainerId, description, projectId, type, participantId, isGroupEvent, groupParticipantIds]);
   
       res.json({
         success: true,
