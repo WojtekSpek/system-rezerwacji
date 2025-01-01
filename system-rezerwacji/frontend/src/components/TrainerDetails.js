@@ -36,7 +36,7 @@ function TrainerDetails() {
   });
   const fetchTrainerSkills = async () => {
     try {
-      const response = await axios.get(`/skills/${id}/skills`);
+      const response = await axios.get(`${API_BASE_URL}/skills/${id}/skills`);
       if (response.data.success) {
         setTrainerSkills(response.data.skills);
       }
@@ -51,7 +51,7 @@ function TrainerDetails() {
       return;
     }
     try {
-      const response = await axios.get("/skills/search", { params: { query } });
+      const response = await axios.get(`${API_BASE_URL}/skills/search`, { params: { query } });
       if (response.data.success) {
         setFilteredSkills(response.data.skills);
       }

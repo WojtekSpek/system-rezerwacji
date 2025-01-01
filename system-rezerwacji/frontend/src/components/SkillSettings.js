@@ -4,14 +4,14 @@ import axios from "axios";
 function SkillSettings() {
   const [skills, setSkills] = useState([]);
   const [newSkill, setNewSkill] = useState("");
-
+  const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "http://localhost:5000";
   useEffect(() => {
     fetchSkills();
   }, []);
 
   const fetchSkills = async () => {
     try {
-      const response = await axios.get("/skills/skills");
+      const response = await axios.get(`${API_BASE_URL}//skills/skills`);
       setSkills(response.data.skills);
     } catch (error) {
       console.error("Błąd podczas pobierania umiejętności:", error);
@@ -21,7 +21,7 @@ function SkillSettings() {
   const addSkill = async () => {
     if (!newSkill) return;
     try {
-      const response = await axios.post("/skills/skills", { name: newSkill });
+      const response = await axios.post(`${API_BASE_URL}/skills/skills`, { name: newSkill });
       if (response.data.success) {
         setSkills((prev) => [...prev, { id: response.data.skillId, name: newSkill }]);
         setNewSkill("");
@@ -35,7 +35,7 @@ function SkillSettings() {
     if (!window.confirm("Czy na pewno chcesz usunąć tę umiejętność?")) return;
 
     try {
-      const response = await axios.delete(`/skills/skills/${skillId}`);
+      const response = await axios.delete(`${API_BASE_URL}//skills/skills/${skillId}`);
       if (response.data.success) {
         setSkills((prev) => prev.filter((skill) => skill.id !== skillId));
         alert("Umiejętność została usunięta.");

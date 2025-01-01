@@ -10,7 +10,8 @@ function ProjectParticipants({setView, setSelectedParticipant,setSelectedProject
   const [hoursByParticipant, setHoursByParticipant] = useState({}); // Godziny uczestników
   const {id} = useParams(); // Pobiera ID projektu z URL
   const projectId = id; // Pobiera ID projektu z URL
- 
+  const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "http://localhost:5000";
+
   const navigate = useNavigate();
 
   const handleViewDetails = (participantId) => {
@@ -24,7 +25,7 @@ function ProjectParticipants({setView, setSelectedParticipant,setSelectedProject
   // Pobierz godziny dla uczestnika
   const fetchParticipantHours = async (participantId) => {
     try {
-      const response = await axios.get(`/participants/${projectId}/participants/${participantId}/hours`);
+      const response = await axios.get(`${API_BASE_URL}/participants/${projectId}/participants/${participantId}/hours`);
       if (response.data.success) {
         setHoursByParticipant((prev) => ({
           ...prev,
@@ -52,7 +53,7 @@ function ProjectParticipants({setView, setSelectedParticipant,setSelectedProject
 
   const fetchProjectParticipants = async () => {
     try {
-      const response = await axios.get(`/projects/${projectId}/participants`);
+      const response = await axios.get(`${API_BASE_URL}/projects/${projectId}/participants`);
       console.log('uczniowie',response.data)
       
       if (response.data.success) {
@@ -66,7 +67,7 @@ function ProjectParticipants({setView, setSelectedParticipant,setSelectedProject
   // Wyszukaj uczestników na backendzie
   const searchParticipants = async (query) => {
     try {
-      const response = await axios.get("/participants/", {
+      const response = await axios.get("${API_BASE_URL}/participants/", {
         params: { query }, // Przekazujemy wartość inputu jako parametr
       });
       if (response.data.success) {
@@ -80,7 +81,7 @@ function ProjectParticipants({setView, setSelectedParticipant,setSelectedProject
   // Dodanie uczestnika do projektu
   const addParticipantToProject = async (participantId) => {
     try {
-      const response = await axios.post(`/projects/${projectId}/participants`, {
+      const response = await axios.post(`${API_BASE_URL}/projects/${projectId}/participants`, {
         participantId,
       });
       if (response.data.success) {
@@ -97,7 +98,7 @@ function ProjectParticipants({setView, setSelectedParticipant,setSelectedProject
   const removeParticipantFromProject = async (participantId) => {
     try {
       const response = await axios.delete(
-        `/projects/${projectId}/participants/${participantId}`
+        `${API_BASE_URL}/projects/${projectId}/participants/${participantId}`
       );
       if (response.data.success) {
         fetchProjectParticipants(); // Odśwież listę

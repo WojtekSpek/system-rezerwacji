@@ -15,7 +15,8 @@ function ProjectTrainers() {
   const [filteredTrainers, setFilteredTrainers] = useState({}); // Filtrowana lista szkoleniowców
   const {id} = useParams(); // Pobiera ID projektu z URL
   const projectId = id; // Pobiera ID projektu z URL
-  
+  const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "http://localhost:5000";
+
   useEffect(() => {
     fetchProjectTypes();
     fetchProjectGroups();
@@ -23,7 +24,7 @@ function ProjectTrainers() {
 
   const fetchProjectGroups = async () => {
     try {
-      const response = await axios.get(`/group/group-trainings/${projectId}`);
+      const response = await axios.get(`${API_BASE_URL}//group/group-trainings/${projectId}`);
      console.log('response',response)
       if (response.data.success) {
         setProjectGroups(response.data.trainings);
@@ -38,7 +39,7 @@ function ProjectTrainers() {
     const trainersData = {};
     try {
       for (const group of groups) {
-        const response = await axios.get(`/group/${projectId}/group-trainers/${group.id}`);
+        const response = await axios.get(`${API_BASE_URL}//group/${projectId}/group-trainers/${group.id}`);
         if (response.data.success) {
           trainersData[group.id] = response.data.trainers;
         }
@@ -51,7 +52,7 @@ function ProjectTrainers() {
 
   const addTrainerToGroup = async (trainerId, groupId) => {
     try {
-      const response = await axios.post(`/group/${projectId}/group-trainers`, {
+      const response = await axios.post(`${API_BASE_URL}//group/${projectId}/group-trainers`, {
         trainerId,
         groupId,
       });
@@ -66,7 +67,7 @@ function ProjectTrainers() {
 
   const removeTrainerFromGroup = async (trainerId, groupId) => {
     try {
-      const response = await axios.delete(`group/projects/${projectId}/group-trainers/${groupId}/${trainerId}`);
+      const response = await axios.delete(`${API_BASE_URL}/group/projects/${projectId}/group-trainers/${groupId}/${trainerId}`);
       if (response.data.success) {
         fetchAllTrainersForGroups(projectGroups);
         alert("Szkoleniowiec został usunięty z grupy!");
@@ -78,7 +79,7 @@ function ProjectTrainers() {
 
   const fetchProjectTypes = async () => {
     try {
-      const response = await axios.get(`/projects/project_training_types/${projectId}`);
+      const response = await axios.get(`${API_BASE_URL}//projects/project_training_types/${projectId}`);
       if (response.data.success) {
         setProjectTypes(response.data.types);
         fetchAllTrainersForTypes(response.data.types);
@@ -92,7 +93,7 @@ function ProjectTrainers() {
     const trainersData = {};
     try {
       for (const type of types) {
-        const response = await axios.get(`/projects/${projectId}/trainers/${type.id}`);
+        const response = await axios.get(`${API_BASE_URL}//projects/${projectId}/trainers/${type.id}`);
         if (response.data.success) {
           trainersData[type.id] = response.data.trainers;
         }
@@ -105,7 +106,7 @@ function ProjectTrainers() {
 
   const addTrainerToType = async (trainerId, typeId) => {
     try {
-      const response = await axios.post(`/projects/${projectId}/trainers`, { trainerId, typeId });
+      const response = await axios.post(`${API_BASE_URL}//projects/${projectId}/trainers`, { trainerId, typeId });
       if (response.data.success) {
         fetchAllTrainersForTypes(projectTypes);
         alert("Szkoleniowiec został dodany!");
@@ -117,7 +118,7 @@ function ProjectTrainers() {
 
   const removeTrainerFromType = async (trainerId, typeId) => {
     try {
-      const response = await axios.delete(`/projects/${projectId}/trainers/${typeId}/${trainerId}`);
+      const response = await axios.delete(`${API_BASE_URL}//projects/${projectId}/trainers/${typeId}/${trainerId}`);
       if (response.data.success) {
         fetchAllTrainersForTypes(projectTypes);
         alert("Szkoleniowiec został usunięty!");
@@ -139,7 +140,7 @@ function ProjectTrainers() {
       }
   
       // Wysłanie zapytania
-      const response = await axios.get(`/trainers/trainersType`, { params });
+      const response = await axios.get(`${API_BASE_URL}//trainers/trainersType`, { params });
       console.log('response.data',response.data)
       if (response.data.success) {
         const filtered = response.data.trainers; // Bez dodatkowego filtrowania
