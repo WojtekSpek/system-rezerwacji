@@ -24,7 +24,7 @@ const db = require("./config/database"); // upewnij się, że masz ten plik
 
 // Konfiguracja CORS
 app.use(cors({
-  origin: ["https://system-rezerwacji-1.onrender.com","https://system-rezerwacji.onrender.com"], // Zmienna URL twojego frontendu
+  origin: ["https://system-rezerwacji-1.onrender.com","https://system-rezerwacji.onrender.com","http://localhost:3000"], // Zmienna URL twojego frontendu
   credentials: true,
 })); 
 
@@ -58,6 +58,8 @@ app.use(session({
 app.use((req, res, next) => {
   console.log("Ciasteczko w żądaniu:", req.headers.cookie);
   console.log("Sesja użytkownika:", req.session);
+  console.log(`Żądanie przychodzi z adresu: ${req.headers.origin}`);
+  console.log(`Ścieżka: ${req.path}`);
   next();
 });
 
