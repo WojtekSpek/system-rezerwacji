@@ -63,7 +63,7 @@ const checkSession = async () => {
 };
 
 useEffect(() => {
-  //checkSession();
+  checkSession();
 }, []);
 
 // Obsługa logowania
