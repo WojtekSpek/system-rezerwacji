@@ -49,9 +49,9 @@ app.use(session({
   resave: false,
   saveUninitialized: false,
   cookie: {
-    secure: true,//eśli używasz HTTPS
+    secure: false,//eśli używasz HTTPS
     httpOnly: true,
-    sameSite: "None",
+    sameSite: "Lax",
     //domain: ".onrender.com", // Ustaw domenę nadrzędną
   },
 }));
