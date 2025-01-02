@@ -203,7 +203,7 @@ router.post("/addParticipant", authenticateUser, async (req, res) => {
     }
   });
   
-      router.get("/:id", async (req, res) => {
+      router.get("/:id/Details", async (req, res) => {
         const { id } = req.params;
         try {
           // Pobieranie danych uczestnika

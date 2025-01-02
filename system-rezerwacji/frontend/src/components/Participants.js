@@ -39,7 +39,7 @@ function Participants({ onViewChange }) {
     );
   };
   const handleViewDetails = (id) => {
-    navigate(`/participant/${id}/Details`);
+    navigate(`/participants/${id}/Details`);
   };
    
 

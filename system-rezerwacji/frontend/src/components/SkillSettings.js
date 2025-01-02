@@ -11,7 +11,7 @@ function SkillSettings() {
 
   const fetchSkills = async () => {
     try {
-      const response = await axios.get(`${API_BASE_URL}//skills/skills`);
+      const response = await axios.get(`${API_BASE_URL}/skills/skills`);
       setSkills(response.data.skills);
     } catch (error) {
       console.error("Błąd podczas pobierania umiejętności:", error);
