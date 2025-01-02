@@ -9,6 +9,8 @@ function ParticipantDetails() {
   const [updatedParticipant, setUpdatedParticipant] = useState({});
   const [errors, setErrors] = useState({});
   const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "http://localhost:5000";
+  const nationalities = ["Polska", "Ukraińska"]; // Lista dostępnych narodowości
+
 
 
   const genders = ["Mężczyzna", "Kobieta"];
@@ -37,7 +39,7 @@ function ParticipantDetails() {
 
   const fetchParticipantDetails = async () => {
     try {
-      const response = await axios.get(`${API_BASE_URL}/participants/${participantId}`);
+      const response = await axios.get(`${API_BASE_URL}/participants/${participantId}/Details`);
       if (response.data.success) {
         setParticipant(response.data.participant);
         setUpdatedParticipant(response.data.participant);
@@ -61,6 +63,7 @@ function ParticipantDetails() {
     if (!updatedParticipant.houseNumber?.trim()) newErrors.houseNumber = "Numer domu jest wymagany.";
     if (!/^\d{9}$/.test(updatedParticipant.phoneNumber)) newErrors.phoneNumber = "Numer telefonu musi mieć dokładnie 9 cyfr.";
     if (!/\S+@\S+\.\S+/.test(updatedParticipant.email)) newErrors.email = "Podaj poprawny adres e-mail.";
+    if (!updatedParticipant.nationality) newErrors.nationality = "Wybór narodowości jest wymagany.";
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -132,6 +135,9 @@ function ParticipantDetails() {
             <div>
               <strong>Stopień niepełnosprawności:</strong> {participant?.disabilityLevel || "Brak danych"}
             </div>
+            <div>
+              <strong>Narodowość:</strong> {participant?.nationality || "Brak danych"}
+            </div>
             <button
               onClick={() => setIsEditing(true)}
               className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 mt-4"
@@ -155,6 +161,8 @@ function ParticipantDetails() {
               { label: "Numer telefonu", name: "phoneNumber" ,type: "text" },
               { label: "Email", name: "email",type: "text"  },
               { label: "Stopień niepełnosprawności", name: "disabilityLevel" ,type: "text" },
+              { label: "Narodowość", name: "nationality", type: "select", options: nationalities },
+
             ].map(({ label, name, type, options }) => (
               <div key={name}>
                 <label className="block mb-1">{label}:</label>

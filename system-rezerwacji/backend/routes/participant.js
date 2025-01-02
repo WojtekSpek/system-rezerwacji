@@ -30,6 +30,7 @@ router.post("/addParticipant", authenticateUser, async (req, res) => {
       phoneNumber,
       email,
       disabilityLevel,
+      nationality,
     } = req.body;
   
     const createdBy = req.user.username; // Nazwa użytkownika dodającego uczestnika
@@ -37,8 +38,8 @@ router.post("/addParticipant", authenticateUser, async (req, res) => {
     const query = `
       INSERT INTO participants (
         firstName, lastName, pesel, gender, voivodeship, city, postalCode,
-        street, houseNumber, apartmentNumber, phoneNumber, email, disabilityLevel, created_by
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        street, houseNumber, apartmentNumber, phoneNumber, email, disabilityLevel, created_by,nationality
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,?)
     `;
   console.log('req.body',req.body)
     try {
@@ -57,6 +58,7 @@ router.post("/addParticipant", authenticateUser, async (req, res) => {
         email,
         disabilityLevel,
         createdBy,
+        nationality,
       ]);
   
       res.json({ success: true, message: "Uczestnik został dodany!" });
@@ -92,8 +94,9 @@ router.post("/addParticipant", authenticateUser, async (req, res) => {
       phoneNumber,
       email,
       disabilityLevel,
+      nationality,
     } = req.body;
-  
+  console.log('req.body__123',req.body)
     const updatedBy = req.user.username; // Nazwa użytkownika edytującego uczestnika
     const participantId = req.params.id; // ID uczestnika, którego dane będą edytowane
   
@@ -113,7 +116,8 @@ router.post("/addParticipant", authenticateUser, async (req, res) => {
         phoneNumber = ?,
         email = ?,
         disabilityLevel = ?,
-        updated_by = ?
+        updated_by = ?,
+        nationality = ?
       WHERE id = ?
     `;
   
@@ -133,6 +137,7 @@ router.post("/addParticipant", authenticateUser, async (req, res) => {
         email,
         disabilityLevel,
         updatedBy,
+        nationality,
         participantId,
       ]);
   
@@ -226,4 +231,20 @@ router.post("/addParticipant", authenticateUser, async (req, res) => {
         }
       });
 
+      router.get("/events/:participantId", async (req, res) => {
+        const { participantId } = req.params;
+      
+        try {
+          const [events] = await db.promise().query(
+            `SELECT id, start, end FROM events WHERE participant_id = ? OR JSON_CONTAINS(groupParticipantIds, ?)`,
+            [participantId,participantId]
+          );
+      
+          res.json({ success: true, events });
+        } catch (error) {
+          console.error("Błąd podczas pobierania wydarzeń:", error);
+          res.status(500).json({ success: false, message: "Błąd serwera." });
+        }
+      });
+      
 module.exports = router;

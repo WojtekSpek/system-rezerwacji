@@ -19,7 +19,7 @@ function CreateEventModal({ show, trainers, onSave, onClose, eventData, activeTa
       title: activeTab || "Domyślny tytuł", // Zawsze ustawiaj tytuł na activeTab
     }));
   }, [eventData, activeTab]);
-
+console.log('trainer',trainers)
   // Funkcja walidująca formularz
   const validateForm = () => {
     if (

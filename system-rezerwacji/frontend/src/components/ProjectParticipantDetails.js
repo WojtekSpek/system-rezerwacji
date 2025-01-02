@@ -10,6 +10,7 @@ import TotalHours from "./ProjectParticipantDetails/TotalHours"; // Import kompo
 import { useParams } from "react-router-dom";
 import Commentary from "./Commentary";
 
+
 moment.locale("pl"); // Ustaw język polski
 
 const localizer = momentLocalizer(moment);

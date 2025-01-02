@@ -8,6 +8,8 @@ function Participants({ onViewChange }) {
   const [participants, setParticipants] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [showAddForm, setShowAddForm] = useState(false);
+  const nationalities = ["Polska", "Ukraińska"]; // Lista dostępnych narodowości
+
   const [newParticipant, setNewParticipant] = useState({
     firstName: "",
     lastName: "",
@@ -130,6 +132,7 @@ function Participants({ onViewChange }) {
     if (!/\S+@\S+\.\S+/.test(newParticipant.email)) {
       newErrors.email = "Podaj poprawny adres e-mail.";
     }
+    if (!newParticipant.nationality) newErrors.nationality = "Wybór narodowości jest wymagany.";
 
     setErrors(newErrors);
 
@@ -148,7 +151,7 @@ function Participants({ onViewChange }) {
 
     try {
         const response = await axios.post(
-            "${API_BASE_URL}/participants/addParticipant",
+            `${API_BASE_URL}/participants/addParticipant`,
             newParticipant,
             { withCredentials: true }
       );
@@ -460,6 +463,23 @@ console.log(errors);
                                        {errors.disabilityLevel && (
                 <p className="text-red-500 text-sm">{errors.disabilityLevel}</p>
               )}
+                </div>
+                <div key="nationality">
+                  <label className="block mb-1">Narodowość:</label>
+                  <select
+                    name="nationality"
+                    value={newParticipant.nationality || ""}
+                    onChange={handleInputChange}
+                    className="border border-gray-300 p-2 rounded w-full"
+                  >
+                    <option value="">Wybierz</option>
+                    {nationalities.map((nationality) => (
+                      <option key={nationality} value={nationality}>
+                        {nationality}
+                      </option>
+                    ))}
+                  </select>
+                  {errors.nationality && <p className="text-red-500 text-sm">{errors.nationality}</p>}
                 </div>
                 </div>
                 <div className="mt-4 flex justify-between">

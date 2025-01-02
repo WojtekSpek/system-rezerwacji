@@ -5,6 +5,8 @@ import moment from "moment";
 import "react-big-calendar/lib/css/react-big-calendar.css";
 import EditEventModal from "./EditEventModal";
 import CreateEventModal from "./CreateEventModal";
+import { hasConflict, hasConflictExcludingCurrent } from "../function/dateConflictChecker";
+
 
 const localizer = momentLocalizer(moment);
 
@@ -51,17 +53,60 @@ function Calendar1({
     };
     
     console.log('trainers', trainers)
-    console.log('participantId', participantId)
+    //console.log('newEventData.participantId', newEventData.participantId)
     console.log("Przekazanie eventPropGetter:", eventPropGetter);
 // Obsługa dodawania wydarzenia
 const handleAddEvent = async (newEventData) => {
   console.log("handleAddEvent - Przekazane dane:", newEventData);
 
-  if (newEventData.id) {
-    // Edytowanie istniejącego wydarzenia
-    try {
-      const response = await axios.put(`/calendar/events/${newEventData.id}`, newEventData);
-      if (response.data.success) {
+  try {
+    // Pobranie istniejących wydarzeń dla uczestnika
+    const participantResponse= await axios.get(`/participants/events/${participantId}`);
+    
+    if (!participantResponse.data.success) {
+      alert("Nie udało się sprawdzić konfliktów dla uczestnika.");
+      return;
+    }
+    
+    const existingParticipantEvents = participantResponse.data.events;
+    
+    const trainer1 = trainers.find((trainer) => trainer.projectTrainerId=== newEventData.projectTrainerId);
+    console.log('trainerResponse',`/trainers/calendar/${trainer1.id}/events`)
+    // Pobranie istniejących wydarzeń dla trenera
+    const trainerResponse = await axios.get(`/trainers/calendar/${trainer1.id}/events`);
+    
+    if (!trainerResponse.data.success) {
+      alert("Nie udało się sprawdzić konfliktów dla trenera.");
+      return;
+    }
+
+    const existingTrainerEvents = trainerResponse.data.events;
+console.log('existingTrainerEvents',existingTrainerEvents)
+    // Sprawdzenie konfliktów w przypadku dodawania lub edycji wydarzenia
+    if (newEventData.id) {
+      // Edycja istniejącego wydarzenia
+      if (
+        hasConflict(existingParticipantEvents.filter(evt => evt.id !== newEventData.id), newEventData) ||
+        hasConflict(existingTrainerEvents.filter(evt => evt.id !== newEventData.id), newEventData)
+      ) {
+        alert("Edycja koliduje z istniejącym wydarzeniem dla uczestnika lub trenera!");
+        return;
+      }
+    } else {
+      // Dodawanie nowego wydarzenia
+      if (
+        hasConflict(existingParticipantEvents, newEventData) ||
+        hasConflict(existingTrainerEvents, newEventData)
+      ) {
+        alert("Dodawane wydarzenie koliduje z innym terminem uczestnika lub trenera!");
+        return;
+      }
+    }
+
+    if (newEventData.id) {
+      // Edytowanie istniejącego wydarzenia
+      const editResponse = await axios.put(`/calendar/events/${newEventData.id}`, newEventData);
+      if (editResponse.data.success) {
         setEvents((prevEvents) =>
           prevEvents.map((evt) =>
             evt.id === newEventData.id ? { ...evt, ...newEventData } : evt
@@ -69,30 +114,23 @@ const handleAddEvent = async (newEventData) => {
         );
         alert("Wydarzenie zostało zaktualizowane!");
       }
-    } catch (error) {
-      console.error("Błąd podczas edytowania wydarzenia:", error);
-      alert("Nie udało się zaktualizować wydarzenia.");
-    }
-  } else {
-    // Dodawanie nowego wydarzenia
-    const eventToSave = {
-      ...newEventData,
-      isGroupEvent: 0, 
-      groupParticipantIds:0,
-      participantId:participantId,
-      projectId, // ID projektu
-    
-    };
+    } else {
+      // Dodawanie nowego wydarzenia
+      const eventToSave = {
+        ...newEventData,
+        isGroupEvent: 0,
+        groupParticipantIds: 0,
+        participantId: participantId,
+        projectId, // ID projektu
+      };
 
-    try {
-      const response = await axios.post("/calendar/events", eventToSave);
-      if (response.data.success) {
+      const saveResponse = await axios.post("/calendar/events", eventToSave);
+      if (saveResponse.data.success) {
         const savedEvent = {
           ...eventToSave,
-          id: response.data.eventId, // ID z bazy
+          id: saveResponse.data.eventId, // ID z bazy
           start: new Date(newEventData.start),
           end: new Date(newEventData.end),
-                 
         };
 
         setEvents((prevEvents) => [...prevEvents, savedEvent]);
@@ -100,16 +138,14 @@ const handleAddEvent = async (newEventData) => {
       } else {
         alert("Nie udało się dodać wydarzenia.");
       }
-    } catch (error) {
-      console.error("Błąd podczas dodawania wydarzenia:", error);
-      alert("Wystąpił błąd podczas zapisu.");
     }
+  } catch (error) {
+    console.error("Błąd podczas dodawania/edycji wydarzenia:", error);
+    alert("Wystąpił błąd podczas zapisu.");
   }
 
   setShowCreateModal(false); // Zamknij modal
 };
-
-
     const handleSelectEvent = (event) => {
       if (event.type === activeTab) {
         setSelectedEvent(event); // Ustaw wybrane wydarzenie

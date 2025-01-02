@@ -68,9 +68,16 @@ router.get("/calendar/:trainersId/events", async (req, res) => {
 
   try {
     const query = `
-      SELECT id, title, description, start, end,participant_id
-      FROM events
-      WHERE project_trainer_id = ? OR group_trainer_id=?
+       SELECT 
+        e.id, 
+        e.title, 
+        e.description, 
+        e.start, 
+        e.end, 
+        e.participant_id
+      FROM events e
+      LEFT JOIN project_trainers pt ON e.project_trainer_id = pt.id
+      WHERE pt.trainer_id = ? OR e.group_trainer_id = ?
     `;
 
     const [events] = await db.promise().query(query, [trainersId,trainersId]);
