@@ -62,18 +62,19 @@ console.log('query',
 
 
 // Endpoint: Pobierz wydarzenia dla trenera
-router.get("/:trainersId/events", async (req, res) => {
+router.get("/calendar/:trainersId/events", async (req, res) => {
+  
   const { trainersId } = req.params;
 
   try {
     const query = `
       SELECT id, title, description, start, end,participant_id
       FROM events
-      WHERE project_trainer_id = ?
+      WHERE project_trainer_id = ? OR group_trainer_id=?
     `;
 
-    const [events] = await db.promise().query(query, [trainersId]);
-
+    const [events] = await db.promise().query(query, [trainersId,trainersId]);
+    console.log('event_wojek',req.params)
     res.json({ success: true, events });
   } catch (error) {
     console.error("Error fetching events:", error);

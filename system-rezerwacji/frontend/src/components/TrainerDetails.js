@@ -93,10 +93,12 @@ function TrainerDetails() {
   console.log('event.participantId',events)
 
   useEffect(() => {
+    fetchEvents();
+    console.log('useEffect')
     fetchTrainerDetails();
     fetchAvailableTypes();
     fetchFiles();
-    fetchEvents();
+    
     fetchTrainerSkills();
     
   }, []);
@@ -118,10 +120,12 @@ function TrainerDetails() {
   };
 
   const fetchEvents = async () => {
+    console.log('tu_fetchEvents')
     try {
-      const response = await axios.get(`${API_BASE_URL}/trainers/${id}/events`, {
+      const response = await axios.get(`${API_BASE_URL}/trainers/calendar/${id}/events`, {
         withCredentials: true,
       });
+      console.log('tu_fetchEvents',`${API_BASE_URL}/trainers/calendar/${id}/events`)
       if (response.data.success) {
         setEvents(
           response.data.events.map((event) => ({
