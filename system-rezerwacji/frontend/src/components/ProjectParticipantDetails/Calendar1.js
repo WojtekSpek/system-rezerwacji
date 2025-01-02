@@ -32,6 +32,7 @@ function Calendar1({
     const [selectedEvent, setSelectedEvent] = useState(null); // Wybrane wydarzenie do edycji
     const [showEditModal, setShowEditModal] = useState(false); // Pokazanie okna edycji
     const [showCreateModal, setShowCreateModal] = React.useState(false);
+    const [isEditing, setIsEditing] = useState(false);
     const [eventData, setEventData] = useState(events || {});
     const messages = {
       allDay: "Cały dzień",
@@ -113,6 +114,7 @@ const handleAddEvent = async (newEventData) => {
       if (event.type === activeTab) {
         setSelectedEvent(event); // Ustaw wybrane wydarzenie
         setShowEditModal(true); // Otwórz modal
+        console.log('klik_wydarzenie')
       } else {
         alert(`Możesz edytować tylko wydarzenia z typem "${activeTab}".`);
       }
@@ -198,6 +200,7 @@ const handleAddEvent = async (newEventData) => {
     }
     setShowEditModal(false); // Zamknij modal
   };
+  console.log('czy edytujemy czy czytamy_calen',isEditing)
   const handleEditEvent = async () => {
     if (!selectedEvent) return;
   
@@ -265,7 +268,16 @@ const handleAddEvent = async (newEventData) => {
         }}
         onSelectEvent={(event) => {
           setSelectedEvent(event); // Ustaw wybrane wydarzenie
-          setShowEditModal(true); // Otwórz modal
+        
+          if (activeTab === event.typeName) {
+            // Jeśli jesteś na zakładce z możliwością edycji
+            setIsEditing(true); // Ustaw tryb edycji
+            setShowEditModal(true); // Otwórz modal
+          } else {
+            // Jeśli jesteś na zakładce bez możliwości edycji
+            setIsEditing(false); // Brak trybu edycji
+            setShowEditModal(true); // Otwórz modal, ale w trybie tylko do odczytu
+          }
         }}
         style={{ height: 500 }}
         eventPropGetter={eventPropGetter} // Przypisanie stylu do wydarzenia
@@ -296,6 +308,7 @@ const handleAddEvent = async (newEventData) => {
         <EditEventModal
           show={showEditModal}
           event={selectedEvent}
+          isEditing={isEditing}
           trainers={trainers}
           onClose={() => setShowEditModal(false)} // Funkcja zamykająca modal
           onSave={(updatedEvent) => {

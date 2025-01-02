@@ -5,6 +5,7 @@ import moment from "moment";
 import "react-big-calendar/lib/css/react-big-calendar.css";
 import { useParams, useNavigate } from "react-router-dom";
 import CreateEventModal from "./CreateEventModalGroup";
+import EditGroupEventModal from "./EditGroupEventModal";
 
 
 const localizer = momentLocalizer(moment);
@@ -13,7 +14,9 @@ function GroupTrainingCalendar({trainers,groupName,groupParticipantIds}) {
   const [events, setEvents] = useState([]);
   const [selectedEvent, setSelectedEvent] = useState(null); // Wybrane wydarzenie
   const [showCreateModal, setShowCreateModal] = useState(false);
-
+  const [showEditModal, setShowEditModal] = useState(false); // Pokazanie okna edycji
+  const [isEditing, setIsEditing] = useState(false);
+  
   const { id } = useParams(); // ID projektu z URL
   const { id_gr } = useParams(); // ID szkolenia grupowego z URL
   const navigate = useNavigate();
@@ -33,6 +36,7 @@ function GroupTrainingCalendar({trainers,groupName,groupParticipantIds}) {
   const fetchEvents = async () => {
     try {
       const response = await axios.get(`/calendar/group-events/${trainingId}`);
+      console.log('response',response)
       if (response.data.success) {
         setEvents(response.data.events);
       } else {
@@ -42,34 +46,80 @@ function GroupTrainingCalendar({trainers,groupName,groupParticipantIds}) {
       console.error("Błąd podczas pobierania wydarzeń grupowych:", error);
     }
   };
-  const handleAddEvent = async (newEventData) => {
-    const groupTrainerId = newEventData.groupTrainerId; // Sprawdź, czy klucz istnieje
-    //const groupParticipantIds = newEventData.groupParticipantIds; // Upewnij się, że dane istnieją
 
-    const groupEventData = {
-        title: newEventData.title,
-        start: newEventData.start,
-        end: newEventData.end,
-        description: newEventData.description,
-        trainingId: newEventData.trainingId,
-        projectId: projectId,
-        group_trainer_id: newEventData.group_trainer_id,
-        groupParticipantIds:JSON.stringify(groupParticipantIds),
-    };
-
-    try {
-      console.log('groupEventData',groupEventData)
-        const response = await axios.post("/calendar/group-events", groupEventData);
-        if (response.data.success) {
-            alert("Wydarzenie grupowe zostało dodane!");
-            setEvents((prevEvents) => [...prevEvents, { ...newEventData, isGroupEvent: true }]);
-        } else {
-            alert("Nie udało się dodać wydarzenia grupowego.");
-        }
-    } catch (error) {
-        console.error("Błąd podczas dodawania wydarzenia grupowego:", error);
-        alert("Wystąpił błąd podczas zapisu.");
-    }
+     const handleDeleteEvent = async (eventId) => {
+          try {
+            const response = await axios.delete(`/calendar/events/${eventId}`); // Wywołanie API do usunięcia
+            if (response.data.success) {
+              setEvents((prevEvents) => prevEvents.filter((event) => event.id !== eventId));
+              alert("Wydarzenie zostało usunięte.");
+            } else {
+              alert("Nie udało się usunąć wydarzenia.");
+            }
+          } catch (error) {
+            console.error("Błąd podczas usuwania wydarzenia:", error);
+            alert("Wystąpił błąd podczas usuwania.");
+          }
+        };
+      
+        
+        const handleAddEvent = async (newEventData) => {
+          console.log('newEventData',newEventData)
+      
+          // Jeśli istnieje ID, edytujemy wydarzenie
+          if (newEventData.id) {
+              try {
+                  const response = await axios.put(`/calendar/group-events/${newEventData.id}`, newEventData);
+                  if (response.data.success) {
+                      setEvents((prevEvents) =>
+                          prevEvents.map((evt) =>
+                              evt.id === newEventData.id ? { ...evt, ...newEventData } : evt
+                          )
+                      );
+                      alert("Wydarzenie zostało zaktualizowane!");
+                  }
+              } catch (error) {
+                  console.error("Błąd podczas edytowania wydarzenia:", error);
+                  alert("Nie udało się zaktualizować wydarzenia.");
+              }
+              return;
+          }
+      
+          // Obsługa grupowego wydarzenia
+          if (newEventData.isGroupEvent) {
+              const groupEventData = {
+                  title: newEventData.title,
+                  start: new Date(newEventData.start),
+                  end: new Date(newEventData.end),
+                  description: newEventData.description,
+                  trainingId: trainingId,
+                  projectId: projectId,
+                  group_trainer_id: newEventData.group_trainer_id,
+                  groupParticipantIds: JSON.stringify(newEventData.groupParticipantIds || []),
+              };
+      
+              try {
+                  console.log("groupEventData", groupEventData);
+                  const response = await axios.post("/calendar/group-events", groupEventData);
+                  if (response.data.success) {
+                      alert("Wydarzenie grupowe zostało dodane!");
+                      setEvents((prevEvents) => [
+                          ...prevEvents,
+                          {
+                              ...groupEventData,
+                              id: response.data.eventId, // ID z bazy
+                              isGroupEvent: true,
+                          },
+                      ]);
+                  } else {
+                      alert("Nie udało się dodać wydarzenia grupowego.");
+                  }
+              } catch (error) {
+                  console.error("Błąd podczas dodawania wydarzenia grupowego:", error);
+                  alert("Wystąpił błąd podczas zapisu.");
+              }
+              return;
+          }
 };
 
 
@@ -145,11 +195,26 @@ function GroupTrainingCalendar({trainers,groupName,groupParticipantIds}) {
         endAccessor="end"
         style={{ height: 500 }}
         selectable
-        onSelectEvent={handleSelectEvent}
+        //onSelectEvent={handleSelectEvent}
         onSelectSlot={handleSelectSlot}
         eventPropGetter={eventStyleGetter} // Przypisanie stylu do wydarzenia
         messages={messages} // Przekazanie tłumaczeń
-        
+        onSelectEvent={(event) => {
+          setSelectedEvent(event);
+          console.log('trainingId',trainingId)
+          console.log('event.groupId',event.groupId)
+          if (Number(trainingId) === Number(event.groupId)) {
+            // Jeśli jesteś na zakładce z możliwością edycji
+            console.log('jestem w isediting')
+            setIsEditing(true); // Ustaw tryb edycji
+            setShowEditModal(true); // Otwórz modal
+          } else {
+            console.log('jestem w else  isediting')
+            // Jeśli jesteś na zakładce bez możliwości edycji
+            setIsEditing(false); // Brak trybu edycji
+            setShowEditModal(true); // Otwórz modal, ale w trybie tylko do odczytu
+          }
+        }}
       />
 
       {showCreateModal && (
@@ -160,15 +225,33 @@ function GroupTrainingCalendar({trainers,groupName,groupParticipantIds}) {
             eventData={selectedEvent}
             trainers={trainers}
             groupName={groupName}
+           
             onSave={(eventData) => {
                 console.log("Zapisano wydarzenie:", eventData); // Debuguj dane zapisywane z modala
                 handleAddEvent(eventData); // Wywołaj funkcję dodawania wydarzenia
                 setSelectedEvent(null); // Nowe wydarzenie, brak `eventData`
                 setShowCreateModal(false); // Zamknij modal po zapisie
+                fetchEvents();
                 
             }}
             onClose={() => setShowCreateModal(false)}
             />
+      )}
+      {/* Modal dla tworzenia/edycji wydarzeń */}
+      {showEditModal && (
+        <EditGroupEventModal
+          show={showEditModal}
+          event={selectedEvent}
+          isEditing={isEditing}
+          projectId={projectId}
+          trainers={trainers}
+          onClose={() => setShowEditModal(false)} // Funkcja zamykająca modal
+          onSave={(updatedEvent) => {
+            handleAddEvent(updatedEvent); // Wywołanie funkcji zapisu
+            setShowEditModal(false); // Zamknięcie modala po zapisie
+          }}
+          onDelete={handleDeleteEvent} // Usuwa wydarzenie
+        />
       )}
     </div>
   );

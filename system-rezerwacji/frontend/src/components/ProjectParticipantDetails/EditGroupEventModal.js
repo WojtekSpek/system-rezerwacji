@@ -1,31 +1,42 @@
 import React, { useState, useEffect } from "react";
 import moment from "moment"; // Import moment.js
 
-function EditEventModal({ show, trainers, onSave, onClose, onDelete, event,isEditing}) {
+
+function EditGroupEventModal({ show, trainers, onSave, onClose, onDelete, event,isEditing,projectId}) {
   const [localEventData, setLocalEventData] = useState({
     title: "",
     description: "",
-    start: "",
-    end: "",
+    start: new Date(event.start),
+      end: new Date(event.end),
     projectTrainerId: "",
+    projectId:projectId,
   });
-
+console.log('projectId',projectId)
   const [error, setError] = useState("");
 
   // Ustawienie wstępnych danych z `event` tylko raz po załadowaniu
   useEffect(() => {
     if (event) {
-      setLocalEventData(event);
+      setLocalEventData((prev) => ({
+        ...prev,
+        ...event,
+        projectId: projectId || prev.projectId, // Zachowanie `projectId` w stanie
+      }));
     }
-  }, [event]);
-console.log('localEventData',localEventData)
+  }, [event, projectId]);
+ 
+  console.log("Czy to Date?", (localEventData) );
+
+  const startDate = new Date(localEventData.start);
+
+
   const validateForm = () => {
     if (
-      !localEventData.title ||
-      !localEventData.start ||
-      !localEventData.end ||
-      !localEventData.projectTrainerId
-    ) {
+      
+      !(localEventData.start instanceof Date) || // Sprawdzanie, czy start jest poprawną datą
+      !(localEventData.end instanceof Date) || // Sprawdzanie, czy end jest poprawną datą
+      !localEventData.group_trainer_id
+    )  {
       setError("Wszystkie pola muszą być wypełnione!");
       return false;
     }
@@ -71,7 +82,7 @@ console.log('localEventData',localEventData)
           }
           placeholder="Tytuł wydarzenia"
           className="border border-gray-300 p-2 rounded w-full mb-2"
-          readOnly={!isEditing} // Pole tylko do odczytu, jeśli brak możliwości edycji
+          readOnly
         />
 
         <label className="block font-semibold mb-2">Opis</label>
@@ -112,7 +123,7 @@ console.log('localEventData',localEventData)
 
         <label className="block font-semibold mb-2">Trener</label>
         <select
-          value={localEventData.projectTrainerId || ""}
+          value={localEventData.groupTrainerName            || ""}
           onChange={(e) =>
             setLocalEventData((prev) => ({
               ...prev,
@@ -124,7 +135,7 @@ console.log('localEventData',localEventData)
         >
           {/* Opcja domyślna */}
             {!isEditing ? (
-              <option value="">{localEventData.trainerName || "-- Wybierz trenera --"}</option>
+              <option value="">{localEventData.groupTrainerName || "-- Wybierz trenera --"}</option>
             ) : (
               <option value="">-- Wybierz trenera --</option>
             )}
@@ -167,4 +178,4 @@ console.log('localEventData',localEventData)
   );
 }
 
-export default EditEventModal;
+export default EditGroupEventModal;

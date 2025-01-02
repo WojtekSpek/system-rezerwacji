@@ -7,7 +7,17 @@ router.get("/group-events/:trainingId", async (req, res) => {
 
   try {
     const query = `
-      SELECT * FROM events
+      SELECT 
+      e.id, 
+        e.title, 
+        e.description, 
+        e.start, 
+        e.end,
+        e.groupId,
+        e.group_trainer_id, 
+        gt.name AS groupTrainerName -- Nazwa trenera na podstawie group_trainer_id
+        FROM events e
+      LEFT JOIN trainers gt ON e.group_trainer_id = gt.id -- Połączenie z tabelą trainers
       WHERE type = 'group_training'
     `;
     const [events] = await db.promise().query(query);
@@ -89,24 +99,27 @@ router.get("/events/:projectId/:participantId", async (req, res) => {
 
   try {
     const query = `
-      SELECT 
-        e.id, 
-        e.title, 
-        e.description, 
-        e.start, 
-        e.end, 
-        pt.id AS projectTrainerId, -- Id z tabeli project_trainers
-        t.name AS trainerName,
-        e.type 
-      FROM events e
-      LEFT JOIN project_trainers pt ON e.project_trainer_id = pt.id -- Połączenie z project_trainers
-      LEFT JOIN trainers t ON pt.trainer_id = t.id -- Połączenie z trainers
-      WHERE 
-        e.project_id = ? 
-        AND (
+        SELECT 
+      e.id, 
+      e.title, 
+      e.description, 
+      e.start, 
+      e.end,
+      e.group_trainer_id, 
+      gt.name AS groupTrainerName, -- Nazwa trenera dla group_trainer_id
+      pt.id AS projectTrainerId, -- Id z tabeli project_trainers
+      t.name AS trainerName, -- Nazwa trenera dla project_trainer_id
+      e.type 
+  FROM events e
+  LEFT JOIN project_trainers pt ON e.project_trainer_id = pt.id -- Połączenie z project_trainers
+  LEFT JOIN trainers t ON pt.trainer_id = t.id -- Połączenie z trainers dla project_trainer_id
+  LEFT JOIN trainers gt ON e.group_trainer_id = gt.id -- Połączenie z trainers dla group_trainer_id
+  WHERE 
+      e.project_id = ? 
+      AND (
           e.participant_id = ? OR 
-          e.groupParticipantIds LIKE CONCAT('%"', ?, '"%')
-        )
+          JSON_CONTAINS(e.groupParticipantIds, ?)
+      );
     `;
     const [events] = await db.promise().query(query, [projectId,participantId,participantId]);
     console.log("Pobieranie wydarzeń:", events);
@@ -119,9 +132,13 @@ router.get("/events/:projectId/:participantId", async (req, res) => {
         description: event.description,
         start: event.start,
         end: event.end,
-        trainerName: event.trainerName || "Nieprzypisany",
+        GroupTrainerName:event.groupTrainerName,
+        trainerName: event.trainerName || event.groupTrainerName,//"Nieprzypisany",
         projectTrainerId: event.projectTrainerId, // Dodanie projectTrainerId do odpowiedzi
         typeName: event.type || "Nieokreślony", // Dodanie typu do odpowiedzi
+        GrouptrainerID:event.group_trainer_id,
+        TrainerName:event.trainerName,
+        
       })),
     });
   } catch (error) {
@@ -132,13 +149,13 @@ router.get("/events/:projectId/:participantId", async (req, res) => {
 
 router.post("/group-events", async (req, res) => {
   const { title, start, end, description, trainingId, projectId,groupParticipantIds,group_trainer_id } = req.body;
-console.log(req.body)
+console.log('trainingId',trainingId)
   try {
     // Dodaj główne wydarzenie grupowe
     const [groupEventResult] = await db.promise().query(
-      `INSERT INTO events (title, start, end, description, project_id, isGroupEvent, groupParticipantIds, group_trainer_id,type)
-       VALUES (?, ?, ?, ?, ?, ?, ?,?, 'group_training')`,
-      [title, start, end, description, projectId, true,groupParticipantIds,group_trainer_id]
+      `INSERT INTO events (title, start, end, description, project_id, isGroupEvent, groupParticipantIds, group_trainer_id,type,groupId)
+       VALUES (?, ?, ?, ?, ?, ?, ?,?, 'group_training',?)`,
+      [title, start, end, description, projectId, true,groupParticipantIds,group_trainer_id,trainingId]
     );
 
     const groupEventId = groupEventResult.insertId;
@@ -149,7 +166,7 @@ console.log(req.body)
       [trainingId]
     );
 
-    if (participants.length > 0) {
+    /* if (participants.length > 0) {
       // Dodaj wydarzenie indywidualne dla każdego uczestnika
       const individualEvents = participants.map((participant) => [
         title,
@@ -162,16 +179,82 @@ console.log(req.body)
         "individual_training", // Typ wydarzenia
       ]);
 
-      await db.query(
+      await db.promise().query(
         `INSERT INTO events (title, start, end, description, project_id, isGroupEvent, participant_id, type)
          VALUES ?`,
         [individualEvents]
       );
-    }
+    } */
 
     res.json({ success: true, message: "Wydarzenie grupowe zostało utworzone." });
   } catch (error) {
     console.error("Błąd podczas tworzenia wydarzenia grupowego:", error);
+    res.status(500).json({ success: false, message: "Błąd serwera." });
+  }
+});
+router.put("/group-events/:id", async (req, res) => {
+  const eventId = req.params.id; // ID wydarzenia do edycji
+  const {
+    title,
+    start,
+    end,
+    description,
+    trainingId,
+    projectId,
+    groupParticipantIds,
+    group_trainer_id
+  } = req.body;
+console.log('req.body',req.body)
+  try {
+    // Aktualizuj główne wydarzenie grupowe
+    const [updateResult] = await db.promise().query(
+      `UPDATE events SET title = ?, start = ?, end = ?, description = ?, project_id = ?, groupParticipantIds = ?, group_trainer_id = ?, groupId = ?
+       WHERE id = ?`,
+      [
+        title,
+        start,
+        end,
+        description,
+        projectId,
+        JSON.stringify(groupParticipantIds),
+        group_trainer_id,
+        trainingId,
+        eventId,
+      ]
+    );
+
+    if (updateResult.affectedRows === 0) {
+      return res.status(404).json({ success: false, message: "Nie znaleziono wydarzenia grupowego." });
+    }
+
+    // Edytuj indywidualne wydarzenia związane z uczestnikami grupy
+    const [participants] = await db.promise().query(
+      `SELECT participantId FROM group_training_participants WHERE trainingId = ?`,
+      [trainingId]
+    );
+
+    if (participants.length > 0) {
+      // Zaktualizuj wydarzenia indywidualne dla każdego uczestnika
+      for (const participant of participants) {
+        await db.promise().query(
+          `UPDATE events SET title = ?, start = ?, end = ?, description = ?, project_id = ?, type = 'individual_training'
+           WHERE participant_id = ? AND groupId = ?`,
+          [
+            title,
+            start,
+            end,
+            description,
+            projectId,
+            participant.participantId,
+            trainingId,
+          ]
+        );
+      }
+    }
+
+    res.json({ success: true, message: "Wydarzenie grupowe zostało zaktualizowane." });
+  } catch (error) {
+    console.error("Błąd podczas aktualizacji wydarzenia grupowego:", error);
     res.status(500).json({ success: false, message: "Błąd serwera." });
   }
 });
@@ -191,8 +274,7 @@ router.post("/events", async (req, res) => {
       isGroupEvent,
       participantId, // Używane dla indywidualnych wydarzeń
       groupParticipantIds, // Używane dla grupowych wydarzeń
-
-    });
+      });
    
     if (!title || !start || !end || !projectId) {
       return res.status(400).json({ success: false, message: "Wymagane pola: title, start, end, projectId." });

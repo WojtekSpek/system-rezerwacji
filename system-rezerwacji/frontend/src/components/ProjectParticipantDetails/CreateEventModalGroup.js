@@ -31,6 +31,7 @@ function CreateEventModalGroup({
         end: end ? moment(end).format("YYYY-MM-DDTHH:mm") : prev.end,
         group_trainer_id: trainers[0]?.id || prev.group_trainer_id,
         assignedTrainer: trainers.length === 1 ? trainers[0]?.id : prev.assignedTrainer,
+        isGroupEvent:1,
       }));
     }
   }, [show, groupName, start, end, trainers]);
