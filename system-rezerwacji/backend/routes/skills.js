@@ -18,6 +18,29 @@ router.post("/skills", async (req, res) => {
     res.status(500).json({ success: false, message: "Błąd serwera podczas dodawania umiejętności." });
   }
 });
+router.put("/skills/:id", async (req, res) => {
+  const { id } = req.params; // ID umiejętności
+  const { name } = req.body; // Nowa nazwa umiejętności
+
+  if (!name || name.trim() === "") {
+    return res.status(400).json({ success: false, message: "Nazwa umiejętności jest wymagana." });
+  }
+
+  try {
+    const [result] = await db
+      .promise()
+      .query("UPDATE skills SET name = ? WHERE id = ?", [name, id]);
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ success: false, message: "Umiejętność nie została znaleziona." });
+    }
+
+    res.json({ success: true, message: "Umiejętność została zaktualizowana." });
+  } catch (error) {
+    console.error("Błąd podczas aktualizacji umiejętności:", error);
+    res.status(500).json({ success: false, message: "Błąd serwera podczas aktualizacji umiejętności." });
+  }
+});
 
 router.get("/skills", async (req, res) => {
   try {
