@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
+import { faCommentDollar } from "@fortawesome/free-solid-svg-icons";
 
-function TotalHours({ projectId, type,typeId, initialPlannedHours }) {
+function TotalHours({ projectId, type,typeId, initialPlannedHours,participantId }) {
   const [totalHours, setTotalHours] = useState(0);
   
 const [assignedHours, setAssignedHours] = useState(0);
@@ -12,8 +13,8 @@ const [isEditing, setIsEditing] = useState(false); // Tryb edycji
   useEffect(() => {
     const fetchTotalHours = async () => {
       try {
-        const response = await axios.get(`/projects/events/total-hours/${projectId}/${type}`);
-           
+        const response = await axios.get(`/projects/events/total-hours/${projectId}/${typeId}/${participantId}`);
+           console.log([`/projects/events/total-hours/${projectId}/${typeId}/${participantId}`])
         if (response.data.success) {
           setTotalHours(response.data.totalHours);
         } else {

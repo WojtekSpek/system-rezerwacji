@@ -459,20 +459,26 @@ console.log(req.body)
 
 
 // Endpoint do obliczenia sumy godzin dla danego typu i projektu
-router.get("/events/total-hours/:projectId/:type", async (req, res) => {
-  const { projectId, type } = req.params; // Pobierz ID projektu i typ wydarzenia z parametrów URL
-
+router.get("/events/total-hours/:projectId/:type/:participantId", async (req, res) => {
+  const { projectId, type,participantId} = req.params; // Pobierz ID projektu i typ wydarzenia z parametrów URL
+console.log('req.params',req.params)
   try {
     // Zapytanie SQL do obliczenia sumy godzin
     const query = `
       SELECT SUM(TIMESTAMPDIFF(HOUR, start, end)) AS total_hours
       FROM events
-      WHERE type = ? AND project_id = ?;
+      WHERE type = (
+        SELECT type 
+        FROM training_types 
+        WHERE id = ?
+      )
+      AND project_id = ? 
+      AND participant_id = ?;
     `;
 
     // Wykonaj zapytanie z podanymi parametrami
-    const [result] = await db.promise().query(query, [type, projectId]);
-
+    const [result] = await db.promise().query(query, [type, projectId,participantId]);
+    console.log('result',result)
     // Odpowiedz z wynikiem
     res.json({
       success: true,

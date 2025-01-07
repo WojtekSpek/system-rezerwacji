@@ -424,7 +424,7 @@ function ProjectParticipantDetails({onBack}) {
               
             </div>
               <div className="mb-4">
-            <TotalHours projectId={projectId} type={activeTab} typeId={typeId} initialPlannedHours={0}/>
+            <TotalHours participantId={participantId} projectId={projectId} type={activeTab} typeId={typeId} initialPlannedHours={0}/>
             </div>
               <Calendar1
                 key={`${activeTab}-${events.length}`} // Klucz bazujący na activeTab i liczbie wydarzeń

@@ -299,4 +299,62 @@ router.post("/group-trainings", async (req, res) => {
       res.status(500).json({ success: false });
     }
   });
+
+  router.post('/group-trainings', async (req, res) => {
+    const { projectId, name, hours } = req.body;
+  
+    if (!projectId || !name || !hours) {
+      return res.status(400).json({ success: false, message: 'Wszystkie pola są wymagane.' });
+    }
+  
+    try {
+      // Dodaj szkolenie do bazy danych
+      const result = await db.promise().query(
+        'INSERT INTO group_trainings (project_id, name, hours) VALUES (?, ?, ?)',
+        [projectId, name, hours]
+      );
+  
+      res.status(201).json({ success: true, trainingId: result.insertId });
+    } catch (error) {
+      console.error('Błąd podczas dodawania szkolenia grupowego:', error);
+      res.status(500).json({ success: false, message: 'Błąd serwera.' });
+    }
+  });
+
+  router.put('/group-trainings/:trainingId', async (req, res) => {
+    const { trainingId } = req.params;
+    const { name, hours } = req.body;
+  
+    if (!name || !hours) {
+      return res.status(400).json({ success: false, message: 'Wszystkie pola są wymagane.' });
+    }
+  
+    try {
+      await db.promise().query(
+        'UPDATE group_trainings SET name = ?, hours = ? WHERE id = ?',
+        [name, hours, trainingId]
+      );
+  
+      res.status(200).json({ success: true, message: 'Szkolenie zostało zaktualizowane.' });
+    } catch (error) {
+      console.error('Błąd podczas edytowania szkolenia grupowego:', error);
+      res.status(500).json({ success: false, message: 'Błąd serwera.' });
+    }
+  });
+  
+  router.delete('/group-trainings/:trainingId', async (req, res) => {
+    const { trainingId } = req.params;
+  
+    try {
+      await db.promise().query('DELETE FROM group_trainings WHERE id = ?', [trainingId]);
+  
+      res.status(200).json({ success: true, message: 'Szkolenie zostało usunięte.' });
+    } catch (error) {
+      console.error('Błąd podczas usuwania szkolenia grupowego:', error);
+      res.status(500).json({ success: false, message: 'Błąd serwera.' });
+    }
+  });
+  
+  
+
   module.exports = router;
