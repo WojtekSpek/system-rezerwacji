@@ -123,14 +123,14 @@ console.log('existingTrainerEvents',existingTrainerEvents)
         participantId: participantId,
         projectId, // ID projektu
       };
-
+      console.log('data',newEventData.start)
       const saveResponse = await axios.post("/calendar/events", eventToSave);
       if (saveResponse.data.success) {
         const savedEvent = {
           ...eventToSave,
           id: saveResponse.data.eventId, // ID z bazy
-          start: new Date(newEventData.start),
-          end: new Date(newEventData.end),
+          start: newEventData.start,
+          end: newEventData.end,
         };
 
         setEvents((prevEvents) => [...prevEvents, savedEvent]);

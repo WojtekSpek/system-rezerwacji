@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('../config/database');
 
+
 router.get("/group-events/:trainingId", async (req, res) => {
   const { trainingId } = req.params;
 
@@ -151,11 +152,18 @@ router.post("/group-events", async (req, res) => {
   const { title, start, end, description, trainingId, projectId,groupParticipantIds,group_trainer_id } = req.body;
 console.log('trainingId',trainingId)
   try {
+    const { formatInTimeZone } = require("date-fns-tz");
+
+    const utcDate = req.body.start;
+    const timeZone = "Europe/Warsaw";
+
+    const start1 = formatInTimeZone(req.body.start, timeZone, "yyyy-MM-dd HH:mm:ss");
+    const end1 = formatInTimeZone(req.body.end, timeZone, "yyyy-MM-dd HH:mm:ss");
     // Dodaj główne wydarzenie grupowe
     const [groupEventResult] = await db.promise().query(
       `INSERT INTO events (title, start, end, description, project_id, isGroupEvent, groupParticipantIds, group_trainer_id,type,groupId)
        VALUES (?, ?, ?, ?, ?, ?, ?,?, 'group_training',?)`,
-      [title, start, end, description, projectId, true,groupParticipantIds,group_trainer_id,trainingId]
+      [title, start1, end1 description, projectId, true,groupParticipantIds,group_trainer_id,trainingId]
     );
 
     const groupEventId = groupEventResult.insertId;
@@ -205,6 +213,13 @@ router.put("/group-events/:id", async (req, res) => {
     group_trainer_id
   } = req.body;
 console.log('req.body',req.body)
+const { formatInTimeZone } = require("date-fns-tz");
+
+const utcDate = req.body.start;
+const timeZone = "Europe/Warsaw";
+
+const start1 = formatInTimeZone(req.body.start, timeZone, "yyyy-MM-dd HH:mm:ss");
+const end1 = formatInTimeZone(req.body.end, timeZone, "yyyy-MM-dd HH:mm:ss");
   try {
     // Aktualizuj główne wydarzenie grupowe
     const [updateResult] = await db.promise().query(
@@ -212,8 +227,8 @@ console.log('req.body',req.body)
        WHERE id = ?`,
       [
         title,
-        start,
-        end,
+        start1,
+        end1,
         description,
         projectId,
         JSON.stringify(groupParticipantIds),
@@ -258,7 +273,7 @@ console.log('req.body',req.body)
     res.status(500).json({ success: false, message: "Błąd serwera." });
   }
 });
-
+const { utcToZonedTime, format } = require("date-fns-tz");
   // Dodawanie wydarzenia
 router.post("/events", async (req, res) => {
     const { title, description, start, end, projectTrainerId, projectId,type,isGroupEvent,participantId,groupParticipantIds } = req.body;
@@ -266,8 +281,8 @@ router.post("/events", async (req, res) => {
     console.log("Event to insert:", {
       title: req.body.title,
       description: req.body.description,
-      start: req.body.start,
-      end: req.body.end,
+      //start: zonedTimeToUtc(req.body.start, "Europe/Warsaw"),
+      //end: zonedTimeToUtc(req.body.end, "Europe/Warsaw"),
       projectTrainerId: req.body.projectTrainerId, // to musi być poprawne id
       projectId: req.body.projectId,
       type: req.body.type,
@@ -275,7 +290,17 @@ router.post("/events", async (req, res) => {
       participantId, // Używane dla indywidualnych wydarzeń
       groupParticipantIds, // Używane dla grupowych wydarzeń
       });
-   
+      
+      const { formatInTimeZone } = require("date-fns-tz");
+
+      const utcDate = req.body.start;
+      const timeZone = "Europe/Warsaw";
+
+      const start1 = formatInTimeZone(req.body.start, timeZone, "yyyy-MM-dd HH:mm:ss");
+      const end1 = formatInTimeZone(req.body.end, timeZone, "yyyy-MM-dd HH:mm:ss");
+
+
+      
     if (!title || !start || !end || !projectId) {
       return res.status(400).json({ success: false, message: "Wymagane pola: title, start, end, projectId." });
     }
@@ -285,7 +310,7 @@ router.post("/events", async (req, res) => {
         INSERT INTO events (title, start, end, project_trainer_id,description, project_id, type, participant_id, isGroupEvent, groupParticipantIds)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?,?)
       `;
-      const [result] = await db.promise().query(query, [title, start, end, projectTrainerId, description, projectId, type, participantId, isGroupEvent, groupParticipantIds]);
+      const [result] = await db.promise().query(query, [title, start1, end1, projectTrainerId, description, projectId, type, participantId, isGroupEvent, groupParticipantIds]);
   
       res.json({
         success: true,
@@ -323,11 +348,19 @@ router.post("/events", async (req, res) => {
         SET title = ?, description = ?, start = ?, end = ?, project_trainer_id = ?
         WHERE id = ?;
       `;
+      const { formatInTimeZone } = require("date-fns-tz");
+
+      const utcDate = req.body.start;
+      const timeZone = "Europe/Warsaw";
+
+      const start1 = formatInTimeZone(req.body.start, timeZone, "yyyy-MM-dd HH:mm:ss");
+      const end1 = formatInTimeZone(req.body.end, timeZone, "yyyy-MM-dd HH:mm:ss");
+
       const [result] = await db.promise().query(query, [
         title,
         description,
-        start,
-        end,
+        start1,
+        end1,
         projectTrainerId,
         id,
       ]);
