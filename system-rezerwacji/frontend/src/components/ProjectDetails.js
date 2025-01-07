@@ -195,7 +195,7 @@ const handleUpdateHours = async (typeId, newHours) => {
 
       {/* Sekcja po prawej */}
       <div className="lg:w-1/2">
-        <h3 className="text-xl font-semibold mb-4">Typy projektu</h3>
+        <h3 className="text-xl font-semibold mb-4">Formy wsparcia</h3>
         {isEditing ? (
           <div className="flex flex-wrap gap-2">
             {allTypes.map((type) => (
@@ -211,7 +211,7 @@ const handleUpdateHours = async (typeId, newHours) => {
             ))}
           </div>
         ) : (
-          <ul className="list-disc list-inside">
+          <ul className="list-inside">
             {editedTypes.length > 0 ? (
               editedTypes.map((typeId) => {
                 const typeObj = allTypes.find((type) => type.id === typeId); // Znajdź pełny obiekt

@@ -162,6 +162,12 @@ function ProjectParticipants({ setView, setSelectedParticipant }) {
       {/* Lista uczestników projektu */}
       <h2 className="text-2xl font-bold mb-4">Uczestnicy projektu</h2>
       <ul>
+      <div className="mt-2">
+          <p className="text-gray-600">
+            Liczba uczestników dodanych do projektu:{" "}
+            <span className="font-bold">{projectParticipants.length}</span>
+          </p>
+        </div>
         {projectParticipants.map((participant) => (
           <li key={participant.id} className="flex justify-between items-center p-4 border-b">
             <div>

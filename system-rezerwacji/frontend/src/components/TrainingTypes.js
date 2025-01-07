@@ -36,7 +36,7 @@ function TrainingTypes() {
     }
 
     try {
-      const response = await axios.post(`${API_BASE_URL}/trainers/addTrainingType`, {
+      const response = await axios.post(`/trainers/addTrainingType`, {
         withCredentials: true,
         type: newType,
       });
@@ -84,7 +84,7 @@ function TrainingTypes() {
 
   return (
     <div className="p-4">
-      <h2 className="text-2xl font-bold mb-4">Typy szkoleń</h2>
+      <h2 className="text-2xl font-bold mb-4">Formy wsparcia</h2>
       {successMessage && <div className="text-green-500 mb-4">{successMessage}</div>}
       <div className="mb-4">
         <input

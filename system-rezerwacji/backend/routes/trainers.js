@@ -295,8 +295,9 @@ router.get("/", (req, res) => {
   //dodawanie typow szkolen
 router.post("/addTrainingType", (req, res) => {
     const { type } = req.body;
+    console.log('type',type)
     const query = "INSERT INTO training_types (type) VALUES (?)";
-    db.query(query, [type], (err) => {
+    db.promise().query(query, [type], (err) => {
       if (err) return res.status(500).json({ success: false, message: err.message });
       res.json({ success: true });
     });

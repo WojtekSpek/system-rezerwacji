@@ -25,7 +25,7 @@ function Settings({ setView}) {
         onClick={TYPEClick}
         className="p-2 bg-blue-500 text-white rounded hover:bg-blue-400 mr-2 mb-2"
       >
-        Typy szkoleń
+        Formy wsparcia
       </button>
       <button
         onClick={SkillClick}

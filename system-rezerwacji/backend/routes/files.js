@@ -24,7 +24,7 @@ console.log('trararara',filePath)
 // Konfiguracja multer dla trenerów
 const trainerStorage = multer.diskStorage({
   destination: (req, file, cb) => {
-   // const { trainersId } = req.params;
+    const { trainersId } = req.params;
     const dir = path.join(__dirname, "files", "trainers", `trainer_${trainersId}`);
     fs.mkdirSync(dir, { recursive: true });
     cb(null, dir);
