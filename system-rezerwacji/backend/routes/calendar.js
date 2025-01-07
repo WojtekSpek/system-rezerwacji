@@ -163,7 +163,7 @@ console.log('trainingId',trainingId)
     const [groupEventResult] = await db.promise().query(
       `INSERT INTO events (title, start, end, description, project_id, isGroupEvent, groupParticipantIds, group_trainer_id,type,groupId)
        VALUES (?, ?, ?, ?, ?, ?, ?,?, 'group_training',?)`,
-      [title, start1, end1 description, projectId, true,groupParticipantIds,group_trainer_id,trainingId]
+      [title, start1, end1, description, projectId, true,groupParticipantIds,group_trainer_id,trainingId]
     );
 
     const groupEventId = groupEventResult.insertId;
