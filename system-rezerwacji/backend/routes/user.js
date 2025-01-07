@@ -59,14 +59,14 @@ router.get("/session", (req, res) => {
   });
 
   router.post("/addUser", (req, res) => {
-    const { username, role } = req.body;
+    const { username, role,email,password, } = req.body;
   
     if (!username || !role) {
       return res.status(400).json({ success: false, message: "Brak danych." });
     }
   
-    const sql = "INSERT INTO users (username, role) VALUES (?, ?)";
-    db.query(sql, [username, role], (err, results) => {
+    const sql = "INSERT INTO users (username, role,email,password,) VALUES (?, ?)";
+    db.query(sql, [username, role,email,password,], (err, results) => {
       if (err) {
         console.error("Błąd podczas dodawania użytkownika:", err);
         return res.status(500).json({ success: false, message: "Błąd serwera." });
