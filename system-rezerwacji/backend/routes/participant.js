@@ -15,6 +15,21 @@ router.get("/", authenticateUser, async (req, res) => {
   }
 });
 
+router.get('/search', async (req, res) => {
+  const { query } = req.query;
+  try {
+    const results = await db.promise().query(
+      `SELECT * FROM participants WHERE 
+       firstName LIKE ? OR lastName LIKE ?`,
+      [`%${query}%`, `%${query}%`]
+    );
+    res.json({ success: true, participants: results[0] }); // `results[0]` dla MySQL, `results.rows` dla PostgreSQL
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Błąd podczas wyszukiwania.' });
+  }
+});
+
+
 router.post("/addParticipant", authenticateUser, async (req, res) => {
     const {
       firstName,

@@ -43,7 +43,8 @@ function ProjectParticipants({ setView, setSelectedParticipant }) {
   // Wyszukiwanie uczestników
   const searchParticipants = async (query) => {
     try {
-      const response = await axios.get(`/participants/`, { params: { query } });
+      const response = await axios.get(`/participants/search`, { params: { query } });
+      console.log("Otrzymane wyniki wyszukiwania:", response.data.participants);
       if (response.data.success) {
         setFilteredParticipants(response.data.participants);
         setIsDropdownVisible(true);
