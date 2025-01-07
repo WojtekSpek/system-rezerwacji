@@ -66,7 +66,7 @@ router.get("/session", (req, res) => {
     }
   
     const sql = "INSERT INTO users (username, role,email,password,) VALUES (?, ?,?,?)";
-    db.query(sql, [username, role,email,password,], (err, results) => {
+    db.query(sql, [username, role,email,password], (err, results) => {
       if (err) {
         console.error("Błąd podczas dodawania użytkownika:", err);
         return res.status(500).json({ success: false, message: "Błąd serwera." });
