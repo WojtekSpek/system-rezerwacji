@@ -300,7 +300,7 @@ router.post("/events", async (req, res) => {
   router.put("/events/:id", async (req, res) => {
     const { id } = req.params;
     const { title, description, start, end, projectTrainerId, projectId } = req.body;
-  
+  console.log('tutaj',req.body)
     console.log("Aktualizacja wydarzenia:", {
       id,
       title,
@@ -311,17 +311,17 @@ router.post("/events", async (req, res) => {
       projectId,
     });
   
-    if (!title || !start || !end || !projectId) {
+    if (!title || !start || !end ) {
       return res
         .status(400)
-        .json({ success: false, message: "Wymagane pola: title, start, end, projectId." });
+        .json({ success: false, message: "Wymagane pola: title, start, end" });
     }
   
     try {
       const query = `
         UPDATE events
-        SET title = ?, description = ?, start = ?, end = ?, project_trainer_id = ?, project_id = ?
-        WHERE id = ?
+        SET title = ?, description = ?, start = ?, end = ?, project_trainer_id = ?
+        WHERE id = ?;
       `;
       const [result] = await db.promise().query(query, [
         title,
@@ -329,7 +329,6 @@ router.post("/events", async (req, res) => {
         start,
         end,
         projectTrainerId,
-        projectId,
         id,
       ]);
   
