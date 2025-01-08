@@ -142,7 +142,7 @@ function ProjectParticipantDetails({onBack}) {
     console.log("Type ID dla aktywnego typu:", currentType);
 
     const getEventStyle = (event) => {
-      console.log("Wywołanie getEventStyle dla wydarzenia:", event);
+      //console.log("Wywołanie getEventStyle dla wydarzenia:", event);
     
       // Definicja kolorów
       const colors = ["#f56c6c", "#67c23a", "#6f5126", "#409eff", "#e6a23c", "#909399"];
@@ -150,9 +150,9 @@ function ProjectParticipantDetails({onBack}) {
       // Użyj currentType.id do wyboru koloru
       const tabId = currentType?.id || 0; // Jeśli brak id, ustaw 0
       const assignedColor = colors[tabId % colors.length]; // Modulo zapewnia cykliczność kolorów
-      console.log('tabId',tabId)
-      console.log('tcolors.length',colors.length)
-      console.log('tcolors.length',colors.length)
+      //console.log('tabId',tabId)
+     // console.log('tcolors.length',colors.length)
+     // console.log('tcolors.length',colors.length)
       if (event.typeName?.trim().toLowerCase() === currentType?.name?.trim().toLowerCase()) {
         // Kolorowe wydarzenie dla aktywnej zakładki
         console.log('jaki to kolor ',assignedColor)
@@ -187,12 +187,12 @@ function ProjectParticipantDetails({onBack}) {
       try {
         const response = await axios.get(`calendar/events/${projectId}/${participantId}`);
         if (response.data.success) {
-          console.log('response.data.events',response.data.events)
+         // console.log('response.data.events',response.data.events.start)
           setEvents(
             response.data.events.map((event) => ({
               ...event,
-              start: new Date(event.start), // Dodaj "Z", aby wymusić UTC
-              end: new Date(event.end),
+              start: event.start, // Dodaj "Z", aby wymusić UTC
+              end: event.end,
               type: (event.type), // Przypisz typ na podstawie logiki
             }))
           );

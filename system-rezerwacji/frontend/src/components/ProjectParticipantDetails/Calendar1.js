@@ -54,7 +54,7 @@ function Calendar1({
     
     console.log('trainers', trainers)
     //console.log('newEventData.participantId', newEventData.participantId)
-    console.log("Przekazanie eventPropGetter:", eventPropGetter);
+    console.log("events_cal:", events);
 
 
 // Obsługa dodawania wydarzenia
@@ -158,17 +158,24 @@ const handleAddEvent = async (newEventData) => {
       }
     };
 
- const sanitizedEvents = useMemo(() => {
-        if (!events || !Array.isArray(events)) {
-          console.error("Events jest null lub nie jest tablicą:", events);
-          return [];
-        }
-        return events.map((event) => ({
+    const sanitizedEvents = useMemo(() => {
+      if (!events || !Array.isArray(events)) {
+        console.error("Events jest null lub nie jest tablicą:", events);
+        return [];
+      }
+    
+      return events.map((event) => {
+        const utcStart = new Date(event.start); // To działa, jeśli event.start ma końcówkę "Z"
+        const utcEnd = new Date(event.end);
+    
+        console.log("Event start (UTC):", utcStart);
+        return {
           ...event,
-          start: new Date(event.start),
-          end: new Date(event.end),
-        }));
-      }, [events]);
+          start: utcStart, // Przekazuje UTC do kalendarza
+          end: utcEnd,
+        };
+      });
+    }, [events]);
 
   const handleDeleteEvent = async (eventId) => {
         try {
@@ -264,6 +271,10 @@ const handleAddEvent = async (newEventData) => {
       alert("Nie udało się zaktualizować wydarzenia.");
     }
   };
+  console.log("Event start (wejście):", events.start);
+const utcStart = moment.utc(events.start).toDate();
+console.log("Event start (UTC):", utcStart);
+  console.log("Sanitized Events w renderowaniu:", sanitizedEvents);
   return (
     <div>
       

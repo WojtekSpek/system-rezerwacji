@@ -132,8 +132,8 @@ router.get("/events/:projectId/:participantId", async (req, res) => {
         id: event.id,
         title: event.title,
         description: event.description,
-        start: event.start,
-        end: event.end,
+        start: new Date(event.start).toISOString(), // Konwersja na UTC w ISO
+        end: new Date(event.end).toISOString(), // Konwersja na UTC w ISO
         GroupTrainerName:event.groupTrainerName,
         trainerName: event.trainerName || event.groupTrainerName,//"Nieprzypisany",
         projectTrainerId: event.projectTrainerId, // Dodanie projectTrainerId do odpowiedzi
