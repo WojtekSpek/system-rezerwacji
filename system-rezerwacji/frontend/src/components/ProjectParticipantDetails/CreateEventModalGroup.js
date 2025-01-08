@@ -29,7 +29,7 @@ function CreateEventModalGroup({
         title: groupName || prev.title,
         start: start ? moment(start).format("YYYY-MM-DDTHH:mm") : prev.start,
         end: end ? moment(end).format("YYYY-MM-DDTHH:mm") : prev.end,
-        group_trainer_id: trainers[0]?.id || prev.group_trainer_id,
+        group_trainer_id: trainers[0]?.id || prev.GrouptrainerID,
         assignedTrainer: trainers.length === 1 ? trainers[0]?.id : prev.assignedTrainer,
         isGroupEvent:1,
       }));

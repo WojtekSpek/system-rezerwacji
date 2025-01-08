@@ -24,6 +24,7 @@ router.get("/group-events/:trainingId", async (req, res) => {
     const [events] = await db.promise().query(query);
     const timeZone = "Europe/London";
     const { formatInTimeZone } = require("date-fns-tz");
+    console.log('eeee',events)
     res.json({
       success: true,
       events: events.map((event) => ({
@@ -38,7 +39,7 @@ router.get("/group-events/:trainingId", async (req, res) => {
         typeName: event.type || "Nieokreślony", // Dodanie typu do odpowiedzi
         GrouptrainerID:event.group_trainer_id,
         TrainerName:event.trainerName,
-        
+        groupId:event.groupId,
       })),
     });
   } catch (error) {
@@ -230,7 +231,7 @@ router.put("/group-events/:id", async (req, res) => {
     groupId,
     projectId,
     groupParticipantIds,
-    group_trainer_id
+    GrouptrainerID,
   } = req.body;
 console.log('req.body',req.body)
 console.log('groupId',groupId)
@@ -238,10 +239,10 @@ console.log('groupParticipantIds',groupParticipantIds)
 const { formatInTimeZone } = require("date-fns-tz");
 
 const utcDate = req.body.start;
-const timeZone = "Europe/Londyn";
+const timeZone = "Europe/Warsaw";
 
-//const start1 = formatInTimeZone(req.body.start, timeZone, "yyyy-MM-dd HH:mm:ss");
-//const end1 = formatInTimeZone(req.body.end, timeZone, "yyyy-MM-dd HH:mm:ss");
+const start1 = formatInTimeZone(req.body.start, timeZone, "yyyy-MM-dd HH:mm:ss");
+const end1 = formatInTimeZone(req.body.end, timeZone, "yyyy-MM-dd HH:mm:ss");
   try {
     // Aktualizuj główne wydarzenie grupowe
     const [updateResult] = await db.promise().query(
@@ -249,12 +250,12 @@ const timeZone = "Europe/Londyn";
        WHERE id = ?`,
       [
         title,
-        req.body.start,
-        req.body.end,
+        start1,
+        end1,
         description,
         projectId,
         JSON.stringify(groupParticipantIds),
-        group_trainer_id,
+        GrouptrainerID,
         groupId,
         eventId,
         
@@ -412,7 +413,7 @@ const { utcToZonedTime, format } = require("date-fns-tz");
       const { formatInTimeZone } = require("date-fns-tz");
 
       const utcDate = req.body.start;
-      const timeZone = "Europe/Londyn";
+      const timeZone = "Europe/Warsaw";
 
       const start1 = formatInTimeZone(req.body.start, timeZone, "yyyy-MM-dd HH:mm:ss");
       const end1 = formatInTimeZone(req.body.end, timeZone, "yyyy-MM-dd HH:mm:ss");

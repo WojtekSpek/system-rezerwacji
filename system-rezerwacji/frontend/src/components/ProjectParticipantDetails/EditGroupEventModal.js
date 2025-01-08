@@ -25,7 +25,7 @@ function EditGroupEventModal({ show, trainers, onSave, onClose, onDelete, event,
     }
   }, [event, projectId]);
  
-  console.log("Czy to Date?", (localEventData.start instanceof Date) );
+  console.log("localEventData.groupTrainerName ", localEventData);
 
   const startDate = new Date(localEventData.start);
 
@@ -35,7 +35,7 @@ function EditGroupEventModal({ show, trainers, onSave, onClose, onDelete, event,
       
       !(localEventData.start instanceof Date) || // Sprawdzanie, czy start jest poprawną datą
       !(localEventData.end instanceof Date) || // Sprawdzanie, czy end jest poprawną datą
-      !localEventData.group_trainer_id
+      !localEventData.GrouptrainerID
     )  {
       setError("Wszystkie pola muszą być wypełnione!");
       return false;
@@ -125,7 +125,7 @@ function EditGroupEventModal({ show, trainers, onSave, onClose, onDelete, event,
 
         <label className="block font-semibold mb-2">Trener</label>
         <select
-          value={localEventData.groupTrainerName            || ""}
+          value={localEventData.GroupTrainerName || ""}
           onChange={(e) =>
             setLocalEventData((prev) => ({
               ...prev,
@@ -137,7 +137,7 @@ function EditGroupEventModal({ show, trainers, onSave, onClose, onDelete, event,
         >
           {/* Opcja domyślna */}
             {!isEditing ? (
-              <option value="">{localEventData.groupTrainerName || "-- Wybierz trenera --"}</option>
+              <option value="">{localEventData.GroupTrainerName || "-- Wybierz trenera --"}</option>
             ) : (
               <option value="">-- Wybierz trenera --</option>
             )}
