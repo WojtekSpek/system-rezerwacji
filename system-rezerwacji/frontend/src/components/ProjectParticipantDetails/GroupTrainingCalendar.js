@@ -46,7 +46,7 @@ function GroupTrainingCalendar({trainers,groupName,groupParticipantIds}) {
     }
   };
 
-     const handleDeleteEvent = async (eventId) => {
+const handleDeleteEvent = async (eventId) => {
           try {
             const response = await axios.delete(`/calendar/events/${eventId}`); // Wywołanie API do usunięcia
             if (response.data.success) {
@@ -62,7 +62,7 @@ function GroupTrainingCalendar({trainers,groupName,groupParticipantIds}) {
         };
       
         
-        const handleAddEvent = async (newEventData) => {
+ const handleAddEvent = async (newEventData) => {
           
       
           // Jeśli istnieje ID, edytujemy wydarzenie
