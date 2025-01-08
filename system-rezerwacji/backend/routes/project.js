@@ -460,29 +460,39 @@ console.log(req.body)
 
 // Endpoint do obliczenia sumy godzin dla danego typu i projektu
 router.get("/events/total-hours/:projectId/:type/:participantId", async (req, res) => {
-  const { projectId, type,participantId} = req.params; // Pobierz ID projektu i typ wydarzenia z parametrów URL
-console.log('req.params',req.params)
+  const { projectId, type, participantId } = req.params; // Pobierz ID projektu, typ wydarzenia i ID uczestnika z parametrów URL
+
+  console.log("req.params:", req.params);
+
+  if (!projectId || !type || !participantId) {
+    return res.status(400).json({
+      success: false,
+      message: "Brak wymaganych parametrów: projectId, type lub participantId.",
+    });
+  }
+
   try {
     // Zapytanie SQL do obliczenia sumy godzin
     const query = `
-      SELECT SUM(TIMESTAMPDIFF(HOUR, start, end)) AS total_hours
+      SELECT SUM(TIMESTAMPDIFF(SECOND, start, end)) / 3600 AS total_hours
       FROM events
       WHERE type = (
-        SELECT type 
-        FROM training_types 
+        SELECT type
+        FROM training_types
         WHERE id = ?
       )
-      AND project_id = ? 
+      AND project_id = ?
       AND participant_id = ?;
     `;
 
-    // Wykonaj zapytanie z podanymi parametrami
-    const [result] = await db.promise().query(query, [type, projectId,participantId]);
-    console.log('result',result)
-    // Odpowiedz z wynikiem
+    // Wykonaj zapytanie SQL z parametrami
+    const [result] = await db.promise().query(query, [type, projectId, participantId]);
+    console.log("SQL Result:", result);
+
+    // Odpowiedź z wynikiem
     res.json({
       success: true,
-      totalHours: result[0]?.total_hours || 0, // Jeśli brak danych, zwróć 0
+      totalHours: parseFloat(result[0]?.total_hours || 0), // Parsowanie wyniku jako liczba
     });
   } catch (error) {
     console.error("Błąd podczas obliczania sumy godzin:", error);
@@ -492,6 +502,7 @@ console.log('req.params',req.params)
     });
   }
 });
+
 
 // GET /projects/:projectId/types/:typeId/hours
 router.get("/:projectId/types/:typeId/hours", async (req, res) => {

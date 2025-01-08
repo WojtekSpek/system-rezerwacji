@@ -6,6 +6,7 @@ import "react-big-calendar/lib/css/react-big-calendar.css";
 import EditEventModal from "./EditEventModal";
 import CreateEventModal from "./CreateEventModal";
 import { hasConflict, hasConflictExcludingCurrent } from "../function/dateConflictChecker";
+import { getEventStyle } from "./ProjectParticipantDetails/Calendar1";
 
 
 const localizer = momentLocalizer(moment);
@@ -35,6 +36,7 @@ function Calendar1({
     const [showEditModal, setShowEditModal] = useState(false); // Pokazanie okna edycji
     const [showCreateModal, setShowCreateModal] = React.useState(false);
     const [isEditing, setIsEditing] = useState(false);
+    const [key, setKey] = useState(0); // Klucz do wymuszenia ponownego renderowania
     const [eventData, setEventData] = useState(events || {});
     const messages = {
       allDay: "Cały dzień",
@@ -147,6 +149,7 @@ const handleAddEvent = async (newEventData) => {
   }
 
   setShowCreateModal(false); // Zamknij modal
+  setKey((prevKey) => prevKey + 1); // Zmień klucz, aby wymusić renderowanie
 };
     const handleSelectEvent = (event) => {
       if (event.type === activeTab) {
@@ -348,6 +351,11 @@ console.log("Event start (UTC):", utcStart);
             handleAddEvent(eventData); // Wywołaj funkcję dodawania wydarzenia
             setSelectedEvent(null); // Nowe wydarzenie, brak `eventData`
             setShowCreateModal(false); // Zamknij modal po zapisie
+            const styledEvent = {
+              ...eventData,
+              style: getEventStyle(eventData).style, // Zastosuj styl
+            };
+          
           }}
           onClose={() => setShowCreateModal(false)}
         />

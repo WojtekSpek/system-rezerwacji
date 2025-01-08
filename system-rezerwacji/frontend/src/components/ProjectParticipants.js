@@ -19,6 +19,7 @@ function ProjectParticipants({ setView, setSelectedParticipant }) {
       const response = await axios.get(`/projects/${projectId}/participants`);
       if (response.data.success) {
         setProjectParticipants(response.data.participants);
+        console.log('response.data.participants',response.data.participants)
       }
     } catch (error) {
       console.error("Błąd podczas pobierania uczestników projektu:", error);
@@ -34,6 +35,7 @@ function ProjectParticipants({ setView, setSelectedParticipant }) {
           ...prev,
           [participantId]: response.data.hours,
         }));
+        console.log('response.data.hours',response.data.hours)
       }
     } catch (error) {
       console.error("Błąd podczas pobierania godzin uczestnika:", error);
