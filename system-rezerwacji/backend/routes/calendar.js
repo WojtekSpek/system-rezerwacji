@@ -125,7 +125,7 @@ router.get("/events/:projectId/:participantId", async (req, res) => {
   `;
     const [events] = await db.promise().query(query, [projectId,participantId,participantId]);
     
-    const timeZone = "Europe/Warsaw";
+    const timeZone = "Europe/London";
     const { formatInTimeZone } = require("date-fns-tz");
    
    
