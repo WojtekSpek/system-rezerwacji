@@ -129,8 +129,8 @@ console.log('existingTrainerEvents',existingTrainerEvents)
         const savedEvent = {
           ...eventToSave,
           id: saveResponse.data.eventId, // ID z bazy
-          start: new Date(newEventData.start),
-          end: new Date(newEventData.end),
+          start: newEventData.start.toLocaleString("en-GB", { timeZone: "Europe/Warsaw" }),
+          end: newEventData.end.toLocaleString("en-GB", { timeZone: "Europe/Warsaw" }),
         };
 
         setEvents((prevEvents) => [...prevEvents, savedEvent]);
@@ -295,7 +295,7 @@ console.log('existingTrainerEvents',existingTrainerEvents)
         onSelectSlot={(slotInfo) => {
           const newEvent = {
             start: slotInfo.start,
-            end: moment(slotInfo.start).add(1, "hours").toDate(),
+            end: slotInfo.end,
             type: activeTab, // Domyślnie ustaw typ na aktywną zakładkę
           };
           console.log("Nowe wydarzenie do dodania:", newEvent); // Debuguj dane wydarzenia

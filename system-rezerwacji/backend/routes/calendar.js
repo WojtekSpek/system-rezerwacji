@@ -260,32 +260,90 @@ console.log('req.body',req.body)
 });
 
   // Dodawanie wydarzenia
-router.post("/events", async (req, res) => {
-    const { title, description, start, end, projectTrainerId, projectId,type,isGroupEvent,participantId,groupParticipantIds } = req.body;
-    console.log('body', req.body)
+  router.post("/events", async (req, res) => {
+    const { 
+      title, 
+      description, 
+      start, 
+      end, 
+      projectTrainerId, 
+      projectId, 
+      type, 
+      isGroupEvent, 
+      participantId, 
+      groupParticipantIds 
+    } = req.body;
+  
+    // Logowanie danych wejściowych
     console.log("Event to insert:", {
-      title: req.body.title,
-      description: req.body.description,
-      start: req.body.start,
-      end: req.body.end,
-      projectTrainerId: req.body.projectTrainerId, // to musi być poprawne id
-      projectId: req.body.projectId,
-      type: req.body.type,
+      title,
+      description,
+      start,
+      end,
+      projectTrainerId,
+      projectId,
+      type,
       isGroupEvent,
-      participantId, // Używane dla indywidualnych wydarzeń
-      groupParticipantIds, // Używane dla grupowych wydarzeń
-      });
-   
+      participantId,
+      groupParticipantIds,
+    });
+  
+    // Sprawdzenie wymaganych pól
     if (!title || !start || !end || !projectId) {
-      return res.status(400).json({ success: false, message: "Wymagane pola: title, start, end, projectId." });
+      return res.status(400).json({ 
+        success: false, 
+        message: "Wymagane pola: title, start, end, projectId." 
+      });
     }
   
+    // Walidacja pól start i end (muszą być poprawnymi datami)
+    const startDate = new Date(start);
+    const endDate = new Date(end);
+  
+    if (isNaN(startDate) || isNaN(endDate)) {
+      return res.status(400).json({ 
+        success: false, 
+        message: "Start i End muszą być poprawnymi datami." 
+      });
+    }
+  
+    // Zapytanie SQL
     try {
       const query = `
-        INSERT INTO events (title, start, end, project_trainer_id,description, project_id, type, participant_id, isGroupEvent, groupParticipantIds)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?,?)
+        INSERT INTO events (
+          title, 
+          start, 
+          end, 
+          project_trainer_id, 
+          description, 
+          project_id, 
+          type, 
+          participant_id, 
+          isGroupEvent
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
       `;
-      const [result] = await db.promise().query(query, [title, start, end, projectTrainerId, description, projectId, type, participantId, isGroupEvent, groupParticipantIds]);
+      const [result] = await db.promise().query(query, [
+        title, 
+        startDate.toISOString(), // Konwersja na format ISO
+        endDate.toISOString(),   // Konwersja na format ISO
+        projectTrainerId || null, 
+        description || null, 
+        projectId, 
+        type || null, 
+        participantId || null, 
+        isGroupEvent || false
+      ]);
+  
+      // Obsługa uczestników grupowych (jeśli isGroupEvent = true)
+      if (isGroupEvent && Array.isArray(groupParticipantIds) && groupParticipantIds.length > 0) {
+        const participantQuery = `
+          INSERT INTO event_participants (event_id, participant_id)
+          VALUES ?
+        `;
+        const participantValues = groupParticipantIds.map((id) => [result.insertId, id]);
+        await db.promise().query(participantQuery, [participantValues]);
+      }
   
       res.json({
         success: true,
@@ -297,6 +355,7 @@ router.post("/events", async (req, res) => {
       res.status(500).json({ success: false, message: "Błąd serwera." });
     }
   });
+  
   router.put("/events/:id", async (req, res) => {
     const { id } = req.params;
     const { title, description, start, end, projectTrainerId, projectId } = req.body;
