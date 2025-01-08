@@ -353,7 +353,7 @@ const { utcToZonedTime, format } = require("date-fns-tz");
         )
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
       `;
-      const [result] = await db.promise().query(query, [title, start1, end1, projectTrainerId, description, projectId, type, participantId, isGroupEvent, groupParticipantIds]);
+      const [result] = await db.promise().query(query, [title, req.body.start, req.body.end, projectTrainerId, description, projectId, type, participantId, isGroupEvent, groupParticipantIds]);
   
       res.json({
         success: true,
