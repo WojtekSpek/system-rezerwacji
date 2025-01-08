@@ -115,6 +115,7 @@ function Projects({ setView, setSelectedProject }) {
         console.error("Błąd podczas pobierania sesji:", error);
       }
     };
+    
     return (
       <div className="p-4 w-full">
         {!showAddForm ? (

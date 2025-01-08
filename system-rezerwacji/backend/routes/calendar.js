@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('../config/database');
 
+
 router.get("/group-events/:trainingId", async (req, res) => {
   const { trainingId } = req.params;
 
@@ -99,28 +100,29 @@ router.get("/events/:projectId/:participantId", async (req, res) => {
 
   try {
     const query = `
-        SELECT 
-      e.id, 
-      e.title, 
-      e.description, 
-      e.start, 
-      e.end,
-      e.group_trainer_id, 
-      gt.name AS groupTrainerName, -- Nazwa trenera dla group_trainer_id
-      pt.id AS projectTrainerId, -- Id z tabeli project_trainers
-      t.name AS trainerName, -- Nazwa trenera dla project_trainer_id
-      e.type 
-  FROM events e
-  LEFT JOIN project_trainers pt ON e.project_trainer_id = pt.id -- Połączenie z project_trainers
-  LEFT JOIN trainers t ON pt.trainer_id = t.id -- Połączenie z trainers dla project_trainer_id
-  LEFT JOIN trainers gt ON e.group_trainer_id = gt.id -- Połączenie z trainers dla group_trainer_id
-  WHERE 
-      e.project_id = ? 
-      AND (
-          e.participant_id = ? OR 
-          JSON_CONTAINS(e.groupParticipantIds, ?)
-      );
-    `;
+    SELECT 
+        e.id, 
+        e.title, 
+        e.description, 
+        e.start, 
+        e.end,
+        e.group_trainer_id, 
+        gt.name AS groupTrainerName, -- Nazwa trenera dla group_trainer_id
+        pt.id AS projectTrainerId, -- Id z tabeli project_trainers
+        t.name AS trainerName, -- Nazwa trenera dla project_trainer_id
+        e.type 
+      FROM events e
+      LEFT JOIN project_trainers pt ON e.project_trainer_id = pt.id -- Połączenie z project_trainers
+      LEFT JOIN trainers t ON pt.trainer_id = t.id -- Połączenie z trainers dla project_trainer_id
+      LEFT JOIN trainers gt ON e.group_trainer_id = gt.id -- Połączenie z trainers dla group_trainer_id
+      LEFT JOIN group_training_participants gtp ON gtp.trainingId = e.groupId -- Połączenie z group_training_participants
+      WHERE 
+          e.project_id = ? 
+          AND (
+              e.participant_id = ? OR 
+              gtp.participantId = ? -- Sprawdzanie uczestnika w group_training_participants
+          );
+  `;
     const [events] = await db.promise().query(query, [projectId,participantId,participantId]);
     console.log("Pobieranie wydarzeń:", events);
 
@@ -151,11 +153,18 @@ router.post("/group-events", async (req, res) => {
   const { title, start, end, description, trainingId, projectId,groupParticipantIds,group_trainer_id } = req.body;
 console.log('trainingId',trainingId)
   try {
+    const { formatInTimeZone } = require("date-fns-tz");
+
+    const utcDate = req.body.start;
+    const timeZone = "Europe/Warsaw";
+
+    const start1 = formatInTimeZone(req.body.start, timeZone, "yyyy-MM-dd HH:mm:ss");
+    const end1 = formatInTimeZone(req.body.end, timeZone, "yyyy-MM-dd HH:mm:ss");
     // Dodaj główne wydarzenie grupowe
     const [groupEventResult] = await db.promise().query(
       `INSERT INTO events (title, start, end, description, project_id, isGroupEvent, groupParticipantIds, group_trainer_id,type,groupId)
        VALUES (?, ?, ?, ?, ?, ?, ?,?, 'group_training',?)`,
-      [title, start, end, description, projectId, true,groupParticipantIds,group_trainer_id,trainingId]
+      [title, start1, end1, description, projectId, true,groupParticipantIds,group_trainer_id,trainingId]
     );
 
     const groupEventId = groupEventResult.insertId;
@@ -199,12 +208,21 @@ router.put("/group-events/:id", async (req, res) => {
     start,
     end,
     description,
-    trainingId,
+    groupId,
     projectId,
     groupParticipantIds,
     group_trainer_id
   } = req.body;
 console.log('req.body',req.body)
+console.log('groupId',groupId)
+console.log('groupParticipantIds',groupParticipantIds)
+const { formatInTimeZone } = require("date-fns-tz");
+
+const utcDate = req.body.start;
+const timeZone = "Europe/Warsaw";
+
+const start1 = formatInTimeZone(req.body.start, timeZone, "yyyy-MM-dd HH:mm:ss");
+const end1 = formatInTimeZone(req.body.end, timeZone, "yyyy-MM-dd HH:mm:ss");
   try {
     // Aktualizuj główne wydarzenie grupowe
     const [updateResult] = await db.promise().query(
@@ -212,14 +230,15 @@ console.log('req.body',req.body)
        WHERE id = ?`,
       [
         title,
-        start,
-        end,
+        start1,
+        end1,
         description,
         projectId,
         JSON.stringify(groupParticipantIds),
         group_trainer_id,
-        trainingId,
+        groupId,
         eventId,
+        
       ]
     );
 
@@ -227,7 +246,7 @@ console.log('req.body',req.body)
       return res.status(404).json({ success: false, message: "Nie znaleziono wydarzenia grupowego." });
     }
 
-    // Edytuj indywidualne wydarzenia związane z uczestnikami grupy
+    /* // Edytuj indywidualne wydarzenia związane z uczestnikami grupy
     const [participants] = await db.promise().query(
       `SELECT participantId FROM group_training_participants WHERE trainingId = ?`,
       [trainingId]
@@ -250,7 +269,7 @@ console.log('req.body',req.body)
           ]
         );
       }
-    }
+    } */
 
     res.json({ success: true, message: "Wydarzenie grupowe zostało zaktualizowane." });
   } catch (error) {
@@ -258,7 +277,7 @@ console.log('req.body',req.body)
     res.status(500).json({ success: false, message: "Błąd serwera." });
   }
 });
-
+const { utcToZonedTime, format } = require("date-fns-tz");
   // Dodawanie wydarzenia
   router.post("/events", async (req, res) => {
     const { 
@@ -276,19 +295,28 @@ console.log('req.body',req.body)
   
     // Logowanie danych wejściowych
     console.log("Event to insert:", {
-      title,
-      description,
-      start,
-      end,
-      projectTrainerId,
-      projectId,
-      type,
+      title: req.body.title,
+      description: req.body.description,
+      //start: zonedTimeToUtc(req.body.start, "Europe/Warsaw"),
+      //end: zonedTimeToUtc(req.body.end, "Europe/Warsaw"),
+      projectTrainerId: req.body.projectTrainerId, // to musi być poprawne id
+      projectId: req.body.projectId,
+      type: req.body.type,
       isGroupEvent,
-      participantId,
-      groupParticipantIds,
-    });
-  
-    // Sprawdzenie wymaganych pól
+      participantId, // Używane dla indywidualnych wydarzeń
+      groupParticipantIds, // Używane dla grupowych wydarzeń
+      });
+      
+      const { formatInTimeZone } = require("date-fns-tz");
+
+      const utcDate = req.body.start;
+      const timeZone = "Europe/Warsaw";
+
+      const start1 = formatInTimeZone(req.body.start, timeZone, "yyyy-MM-dd HH:mm:ss");
+      const end1 = formatInTimeZone(req.body.end, timeZone, "yyyy-MM-dd HH:mm:ss");
+
+
+      
     if (!title || !start || !end || !projectId) {
       return res.status(400).json({ 
         success: false, 
@@ -323,27 +351,7 @@ console.log('req.body',req.body)
         )
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
       `;
-      const [result] = await db.promise().query(query, [
-        title, 
-        startDate.toISOString(), // Konwersja na format ISO
-        endDate.toISOString(),   // Konwersja na format ISO
-        projectTrainerId || null, 
-        description || null, 
-        projectId, 
-        type || null, 
-        participantId || null, 
-        isGroupEvent || false
-      ]);
-  
-      // Obsługa uczestników grupowych (jeśli isGroupEvent = true)
-      if (isGroupEvent && Array.isArray(groupParticipantIds) && groupParticipantIds.length > 0) {
-        const participantQuery = `
-          INSERT INTO event_participants (event_id, participant_id)
-          VALUES ?
-        `;
-        const participantValues = groupParticipantIds.map((id) => [result.insertId, id]);
-        await db.promise().query(participantQuery, [participantValues]);
-      }
+      const [result] = await db.promise().query(query, [title, start1, end1, projectTrainerId, description, projectId, type, participantId, isGroupEvent, groupParticipantIds]);
   
       res.json({
         success: true,
@@ -382,11 +390,19 @@ console.log('req.body',req.body)
         SET title = ?, description = ?, start = ?, end = ?, project_trainer_id = ?
         WHERE id = ?;
       `;
+      const { formatInTimeZone } = require("date-fns-tz");
+
+      const utcDate = req.body.start;
+      const timeZone = "Europe/Warsaw";
+
+      const start1 = formatInTimeZone(req.body.start, timeZone, "yyyy-MM-dd HH:mm:ss");
+      const end1 = formatInTimeZone(req.body.end, timeZone, "yyyy-MM-dd HH:mm:ss");
+
       const [result] = await db.promise().query(query, [
         title,
         description,
-        start,
-        end,
+        start1,
+        end1,
         projectTrainerId,
         id,
       ]);

@@ -55,6 +55,8 @@ function Calendar1({
     console.log('trainers', trainers)
     //console.log('newEventData.participantId', newEventData.participantId)
     console.log("Przekazanie eventPropGetter:", eventPropGetter);
+
+
 // Obsługa dodawania wydarzenia
 const handleAddEvent = async (newEventData) => {
   console.log("handleAddEvent - Przekazane dane:", newEventData);
@@ -81,7 +83,7 @@ const handleAddEvent = async (newEventData) => {
     }
 
     const existingTrainerEvents = trainerResponse.data.events;
-console.log('existingTrainerEvents',existingTrainerEvents)
+   // console.log('existingTrainerEvents',existingTrainerEvents)
     // Sprawdzenie konfliktów w przypadku dodawania lub edycji wydarzenia
     if (newEventData.id) {
       // Edycja istniejącego wydarzenia
@@ -123,14 +125,14 @@ console.log('existingTrainerEvents',existingTrainerEvents)
         participantId: participantId,
         projectId, // ID projektu
       };
-
+      console.log('data',newEventData.start)
       const saveResponse = await axios.post("/calendar/events", eventToSave);
       if (saveResponse.data.success) {
         const savedEvent = {
           ...eventToSave,
           id: saveResponse.data.eventId, // ID z bazy
-          start: newEventData.start.toLocaleString("en-GB", { timeZone: "Europe/Warsaw" }),
-          end: newEventData.end.toLocaleString("en-GB", { timeZone: "Europe/Warsaw" }),
+          start: newEventData.start,
+          end: newEventData.end,
         };
 
         setEvents((prevEvents) => [...prevEvents, savedEvent]);
@@ -168,7 +170,7 @@ console.log('existingTrainerEvents',existingTrainerEvents)
         }));
       }, [events]);
 
-      const handleDeleteEvent = async (eventId) => {
+  const handleDeleteEvent = async (eventId) => {
         try {
           const response = await axios.delete(`/calendar/events/${eventId}`); // Wywołanie API do usunięcia
           if (response.data.success) {
