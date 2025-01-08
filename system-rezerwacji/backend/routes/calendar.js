@@ -159,7 +159,7 @@ console.log('trainingId',trainingId)
     const { formatInTimeZone } = require("date-fns-tz");
 
     const utcDate = req.body.start;
-    const timeZone = "Europe/Warsaw";
+    const timeZone = "Europe/Londyn";
 
     const start1 = formatInTimeZone(req.body.start, timeZone, "yyyy-MM-dd HH:mm:ss");
     const end1 = formatInTimeZone(req.body.end, timeZone, "yyyy-MM-dd HH:mm:ss");
@@ -222,7 +222,7 @@ console.log('groupParticipantIds',groupParticipantIds)
 const { formatInTimeZone } = require("date-fns-tz");
 
 const utcDate = req.body.start;
-const timeZone = "Europe/Warsaw";
+const timeZone = "Europe/Londyn";
 
 //const start1 = formatInTimeZone(req.body.start, timeZone, "yyyy-MM-dd HH:mm:ss");
 //const end1 = formatInTimeZone(req.body.end, timeZone, "yyyy-MM-dd HH:mm:ss");
@@ -313,7 +313,7 @@ const { utcToZonedTime, format } = require("date-fns-tz");
       const { formatInTimeZone } = require("date-fns-tz");
 
     const utcDate = req.body.start;
-    const timeZone = "Europe/Warsaw";
+    const timeZone = "Europe/Londyn";
 
     const start1 = formatInTimeZone(req.body.start, timeZone, "yyyy-MM-dd HH:mm:ss");
     const end1 = formatInTimeZone(req.body.end, timeZone, "yyyy-MM-dd HH:mm:ss");
@@ -396,7 +396,7 @@ const { utcToZonedTime, format } = require("date-fns-tz");
       const { formatInTimeZone } = require("date-fns-tz");
 
       const utcDate = req.body.start;
-      const timeZone = "Europe/Warsaw";
+      const timeZone = "Europe/Londyn";
 
       const start1 = formatInTimeZone(req.body.start, timeZone, "yyyy-MM-dd HH:mm:ss");
       const end1 = formatInTimeZone(req.body.end, timeZone, "yyyy-MM-dd HH:mm:ss");
