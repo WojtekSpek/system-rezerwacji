@@ -22,7 +22,7 @@ router.get("/group-events/:trainingId", async (req, res) => {
       WHERE type = 'group_training'
     `;
     const [events] = await db.promise().query(query);
-    const timeZone = "Europe/Warsaw";
+    const timeZone = "Europe/London";
     const { formatInTimeZone } = require("date-fns-tz");
     res.json({
       success: true,
