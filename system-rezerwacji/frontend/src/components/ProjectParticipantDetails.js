@@ -187,15 +187,17 @@ function ProjectParticipantDetails({onBack}) {
       try {
         const response = await axios.get(`calendar/events/${projectId}/${participantId}`);
         if (response.data.success) {
-          console.log('event response.data',response.data)
+          console.log('response.data.events',response.data.events)
           setEvents(
             response.data.events.map((event) => ({
               ...event,
-              start: new Date(event.start + "Z"), // Dodaj "Z", aby wymusić UTC
-              end: new Date(event.end + "Z"),
+              start: new Date(event.start), // Dodaj "Z", aby wymusić UTC
+              end: new Date(event.end),
               type: (event.type), // Przypisz typ na podstawie logiki
             }))
           );
+        console.log('events',events)  
+
         }
       } catch (error) {
         console.error("Błąd podczas pobierania wydarzeń:", error);
