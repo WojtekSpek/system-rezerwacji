@@ -127,8 +127,9 @@ router.get("/events/:projectId/:participantId", async (req, res) => {
     
     const timeZone = "Europe/London";
     const { formatInTimeZone } = require("date-fns-tz");
-   
-   
+    const start1 = formatInTimeZone(req.body.start, timeZone, "yyyy-MM-dd HH:mm:ss");
+    const end1 = formatInTimeZone(req.body.end, timeZone, "yyyy-MM-dd HH:mm:ss");
+   console.log('start1',start1)
     res.json({
       success: true,
       events: events.map((event) => ({
