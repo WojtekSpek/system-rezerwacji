@@ -29,14 +29,18 @@ axios.defaults.baseURL = `${API_BASE_URL}`; // Adres backendu
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [user, setUser] = useState(null); // Użytkownik
-  const [selectedProject, setSelectedProject] = useState(null); // Wybrany projekt
+  //const [selectedProject, setSelectedProject] = useState(null); // Wybrany projekt
   const [selectedTab, setSelectedTab] = useState("projectDetails"); // Wybrane podmenu
   const [selectedParticipant, setSelectedParticipant] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false); // Czy użytkownik jest adminem
   const [isLoading, setIsLoading] = useState(true); // Czy dane użytkownika są ładowane
 
   // Sprawdzenie sesji po załadowaniu aplikacji
- 
+  const [selectedProject, setSelectedProject] = useState(() => {
+    // Odczytaj z localStorage przy pierwszym renderowaniu
+    const storedProject = localStorage.getItem("selectedProject");
+    return storedProject ? JSON.parse(storedProject) : null;
+  });
 
 // Funkcja sprawdzająca sesję
 const checkSession = async () => {
@@ -61,6 +65,14 @@ const checkSession = async () => {
     console.log("Kończę sprawdzanie sesji...");
   }
 };
+useEffect(() => {
+  // Zapisz `selectedProject` do localStorage przy każdej zmianie
+  if (selectedProject) {
+    localStorage.setItem("selectedProject", JSON.stringify(selectedProject));
+  } else {
+    localStorage.removeItem("selectedProject");
+  }
+}, [selectedProject]);
 
 useEffect(() => {
   checkSession();

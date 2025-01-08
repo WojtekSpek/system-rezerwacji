@@ -312,7 +312,7 @@ const { utcToZonedTime, format } = require("date-fns-tz");
       const utcDate = req.body.start;
       const timeZone = "Europe/Warsaw";
 
-      const start1 = formatInTimeZone(req.body.start, timeZone, "yyyy-MM-dd HH:mm:ss");
+      //const start1 = formatInTimeZone(req.body.start, timeZone, "yyyy-MM-dd HH:mm:ss");
       const end1 = formatInTimeZone(req.body.end, timeZone, "yyyy-MM-dd HH:mm:ss");
 
 
@@ -351,7 +351,7 @@ const { utcToZonedTime, format } = require("date-fns-tz");
         )
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
       `;
-      const [result] = await db.promise().query(query, [title, start1, end1, projectTrainerId, description, projectId, type, participantId, isGroupEvent, groupParticipantIds]);
+      const [result] = await db.promise().query(query, [title, req.body.start, end1, projectTrainerId, description, projectId, type, participantId, isGroupEvent, groupParticipantIds]);
   
       res.json({
         success: true,
