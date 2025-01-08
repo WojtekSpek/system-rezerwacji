@@ -33,11 +33,10 @@ const path = require("path");
 // Serve static files from the React app
 app.use(express.static(path.join(__dirname, "../frontend/build")));
 
-// Catch-all handler for any requests that don’t match API routes
-/* app.get("*", (req, res) => {
+// Catch-all to send all other requests to React's index.html
+app.get("*", (req, res) => {
   res.sendFile(path.join(__dirname, "../frontend/build", "index.html"));
 });
- */
 
 // Middleware
 app.use(bodyParser.json());
