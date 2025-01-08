@@ -140,7 +140,7 @@ function ProjectParticipantDetails({onBack}) {
 
     const typeId = getTypeIdByName(activeTab); */
     console.log("Type ID dla aktywnego typu:", currentType);
-
+//TODO zrobic poprawe ladowania kolorow
     const getEventStyle = (event) => {
       //console.log("Wywołanie getEventStyle dla wydarzenia:", event);
     
