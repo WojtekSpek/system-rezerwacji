@@ -91,8 +91,8 @@ const handleDeleteEvent = async (eventId) => {
           if (newEventData.isGroupEvent) {
               const groupEventData = {
                   title: newEventData.title,
-                  start: new Date(newEventData.start),
-                  end: new Date(newEventData.end),
+                  start: newEventData.start,
+                  end: newEventData.end,
                   description: newEventData.description,
                   trainingId: trainingId,
                   projectId: projectId,

@@ -13,8 +13,8 @@ function CreateEventModalGroup({
 }) {
   const [eventData, setEventData] = useState({
     title: groupName || "", // Tytuł ustawiony na nazwę grupy
-    start: start ? moment(start).format("YYYY-MM-DDTHH:mm") : "", // Sformatuj datę
-    end: end ? moment(end).format("YYYY-MM-DDTHH:mm") : "", // Sformatuj datę
+    start: start || "", // Sformatuj datę
+    end: end || "", // Sformatuj datę
     description: "",
     type: "group_training",
     group_trainer_id: trainers[0]?.id || "",
@@ -40,11 +40,11 @@ function CreateEventModalGroup({
     if (!eventData.start || !eventData.end) {
       alert("Proszę uzupełnić daty rozpoczęcia i zakończenia.");
       return;
-    }
-    onSave(eventData);
-  };
+      }
+      onSave(eventData);
+    };
 
-  if (!show) return null; // Nie renderuj, jeśli modal jest zamknięty
+    if (!show) return null; // Nie renderuj, jeśli modal jest zamknięty
 
   return (
     <div className="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50">

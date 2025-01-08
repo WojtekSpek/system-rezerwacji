@@ -153,20 +153,20 @@ router.get("/events/:projectId/:participantId", async (req, res) => {
 
 router.post("/group-events", async (req, res) => {
   const { title, start, end, description, trainingId, projectId,groupParticipantIds,group_trainer_id } = req.body;
-console.log('trainingId',trainingId)
+  console.log('trainingId',trainingId)
   try {
     const { formatInTimeZone } = require("date-fns-tz");
 
     const utcDate = req.body.start;
     const timeZone = "Europe/Londyn";
 
-    const start1 = formatInTimeZone(req.body.start, timeZone, "yyyy-MM-dd HH:mm:ss");
-    const end1 = formatInTimeZone(req.body.end, timeZone, "yyyy-MM-dd HH:mm:ss");
+    /* const start1 = formatInTimeZone(req.body.start, timeZone, "yyyy-MM-dd HH:mm:ss");
+    const end1 = formatInTimeZone(req.body.end, timeZone, "yyyy-MM-dd HH:mm:ss"); */
     // Dodaj główne wydarzenie grupowe
     const [groupEventResult] = await db.promise().query(
       `INSERT INTO events (title, start, end, description, project_id, isGroupEvent, groupParticipantIds, group_trainer_id,type,groupId)
        VALUES (?, ?, ?, ?, ?, ?, ?,?, 'group_training',?)`,
-      [title, start1, end1, description, projectId, true,groupParticipantIds,group_trainer_id,trainingId]
+      [title, start, end, description, projectId, true,groupParticipantIds,group_trainer_id,trainingId]
     );
 
     const groupEventId = groupEventResult.insertId;
@@ -299,8 +299,8 @@ const { utcToZonedTime, format } = require("date-fns-tz");
     console.log("Event to insert:", {
       title: req.body.title,
       description: req.body.description,
-      //start: zonedTimeToUtc(req.body.start, "Europe/Warsaw"),
-      //end: zonedTimeToUtc(req.body.end, "Europe/Warsaw"),
+      start: req.body.start,
+      end: req.body.end,
       projectTrainerId: req.body.projectTrainerId, // to musi być poprawne id
       projectId: req.body.projectId,
       type: req.body.type,
