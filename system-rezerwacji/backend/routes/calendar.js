@@ -127,17 +127,15 @@ router.get("/events/:projectId/:participantId", async (req, res) => {
     
     const timeZone = "Europe/London";
     const { formatInTimeZone } = require("date-fns-tz");
-    const start1 = formatInTimeZone(req.body.start, timeZone, "yyyy-MM-dd HH:mm:ss");
-    const end1 = formatInTimeZone(req.body.end, timeZone, "yyyy-MM-dd HH:mm:ss");
-   console.log('start1',start1)
+   
     res.json({
       success: true,
       events: events.map((event) => ({
         id: event.id,
         title: event.title,
         description: event.description,
-        start: event.start, //new Date(event.start).toISOString(), // Konwersja na UTC w ISO
-        end: event.end, //new Date(event.end).toISOString(), // Konwersja na UTC w ISO
+        start: formatInTimeZone( event.start, timeZone, "yyyy-MM-dd HH:mm:ss"), //new Date(event.start).toISOString(), // Konwersja na UTC w ISO
+        end: formatInTimeZone(event.end, timeZone, "yyyy-MM-dd HH:mm:ss"), //new Date(event.end).toISOString(), // Konwersja na UTC w ISO
         GroupTrainerName:event.groupTrainerName,
         trainerName: event.trainerName || event.groupTrainerName,//"Nieprzypisany",
         projectTrainerId: event.projectTrainerId, // Dodanie projectTrainerId do odpowiedzi
