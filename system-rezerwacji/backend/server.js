@@ -30,13 +30,7 @@ app.use(cors({
 
 const path = require("path");
 
-// Serve static files from the React app
-app.use(express.static(path.join(__dirname, "../frontend/build")));
 
-// Catch-all to send all other requests to React's index.html
-app.get("*", (req, res) => {
-  res.sendFile(path.join(__dirname, "../frontend/build", "index.html"));
-});
 
 // Middleware
 app.use(bodyParser.json());
@@ -77,6 +71,14 @@ app.use("/calendar", calendarRoutes);
 app.use("/comments", commentaryRoutes);
 app.use("/group", groupRoutes);
 app.use("/skills", skillsRoutes);
+
+// Serve static files from the React app
+app.use(express.static(path.join(__dirname, "../frontend/build")));
+
+// Catch-all to send all other requests to React's index.html
+app.get("*", (req, res) => {
+  res.sendFile(path.join(__dirname, "../frontend/build", "index.html"));
+});
 
 // Uruchomienie serwera
 
