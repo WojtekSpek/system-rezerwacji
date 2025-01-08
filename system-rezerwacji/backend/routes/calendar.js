@@ -23,7 +23,23 @@ router.get("/group-events/:trainingId", async (req, res) => {
     `;
     const [events] = await db.promise().query(query);
 
-    res.json({ success: true, events });
+    res.json({
+      success: true,
+      events: events.map((event) => ({
+        id: event.id,
+        title: event.title,
+        description: event.description,
+        start: formatInTimeZone( event.start, timeZone, "yyyy-MM-dd HH:mm:ss"), //new Date(event.start).toISOString(), // Konwersja na UTC w ISO
+        end: formatInTimeZone(event.end, timeZone, "yyyy-MM-dd HH:mm:ss"), //new Date(event.end).toISOString(), // Konwersja na UTC w ISO
+        GroupTrainerName:event.groupTrainerName,
+        trainerName: event.trainerName || event.groupTrainerName,//"Nieprzypisany",
+        projectTrainerId: event.projectTrainerId, // Dodanie projectTrainerId do odpowiedzi
+        typeName: event.type || "Nieokreślony", // Dodanie typu do odpowiedzi
+        GrouptrainerID:event.group_trainer_id,
+        TrainerName:event.trainerName,
+        
+      })),
+    });
   } catch (error) {
     console.error("Błąd podczas pobierania wydarzeń grupowych:", error);
     res.status(500).json({ success: false, message: "Błąd serwera." });
