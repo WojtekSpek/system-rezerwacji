@@ -314,8 +314,8 @@ const { utcToZonedTime, format } = require("date-fns-tz");
     const utcDate = req.body.start;
     const timeZone = "Europe/Londyn";
 
-    const start1 = formatInTimeZone(req.body.start, timeZone, "yyyy-MM-dd HH:mm:ss");
-    const end1 = formatInTimeZone(req.body.end, timeZone, "yyyy-MM-dd HH:mm:ss");
+    /* const start1 = formatInTimeZone(req.body.start, timeZone, "yyyy-MM-dd HH:mm:ss");
+    const end1 = formatInTimeZone(req.body.end, timeZone, "yyyy-MM-dd HH:mm:ss"); */
 
 
       
