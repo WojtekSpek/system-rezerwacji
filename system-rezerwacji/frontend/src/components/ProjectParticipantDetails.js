@@ -191,8 +191,8 @@ function ProjectParticipantDetails({onBack}) {
           setEvents(
             response.data.events.map((event) => ({
               ...event,
-              start: new Date(event.start),
-              end: new Date(event.end),
+              start: new Date(event.start + "Z"), // Dodaj "Z", aby wymusić UTC
+              end: new Date(event.end + "Z"),
               type: (event.type), // Przypisz typ na podstawie logiki
             }))
           );
