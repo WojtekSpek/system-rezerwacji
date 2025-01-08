@@ -92,9 +92,10 @@ console.log('localEventData',localEventData)
         <input
           type="datetime-local"
           value={moment(localEventData.start).format("YYYY-MM-DDTHH:mm")}
-          onChange={(e) =>
-            setLocalEventData((prev) => ({ ...prev, start: e.target.value }))
-          }
+          onChange={(e) => {
+            const utcDate = moment(e.target.value).utc().format(); // Konwersja na UTC w formacie ISO
+            setLocalEventData((prev) => ({ ...prev, start: utcDate }));
+          }}
           className="border border-gray-300 p-2 rounded w-full mb-2"
           readOnly={!isEditing} // Pole tylko do odczytu, jeśli brak możliwości edycji
         />
@@ -103,9 +104,10 @@ console.log('localEventData',localEventData)
         <input
           type="datetime-local"
           value={moment(localEventData.end).format("YYYY-MM-DDTHH:mm")}
-          onChange={(e) =>
-            setLocalEventData((prev) => ({ ...prev, end: e.target.value }))
-          }
+          onChange={(e) => {
+            const utcDate = moment(e.target.value).utc().format(); // Konwersja na UTC w formacie ISO
+            setLocalEventData((prev) => ({ ...prev, end: utcDate }));
+          }}
           className="border border-gray-300 p-2 rounded w-full mb-2"
           readOnly={!isEditing} // Pole tylko do odczytu, jeśli brak możliwości edycji
         />

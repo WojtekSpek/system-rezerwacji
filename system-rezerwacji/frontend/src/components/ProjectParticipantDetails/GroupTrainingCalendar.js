@@ -6,7 +6,7 @@ import "react-big-calendar/lib/css/react-big-calendar.css";
 import { useParams, useNavigate } from "react-router-dom";
 import CreateEventModal from "./CreateEventModalGroup";
 import EditGroupEventModal from "./EditGroupEventModal";
-
+//TODO ZROBIĆ validacje czasu jak przy grupowych w calendar1
 
 const localizer = momentLocalizer(moment);
 
@@ -23,7 +23,7 @@ function GroupTrainingCalendar({trainers,groupName,groupParticipantIds}) {
   const projectId = id;
   const trainingId = id_gr;
   const [selectedSlot, setSelectedSlot] = useState(null); // Przechowuje dane o zaznaczeniu
- console.log('groupParticipantIds',groupParticipantIds)
+  console.log('groupParticipantIds1',groupParticipantIds)
 
 
   useEffect(() => {
@@ -31,8 +31,7 @@ function GroupTrainingCalendar({trainers,groupName,groupParticipantIds}) {
     
   }, [trainingId]);
 
-  // Funkcja wywoływana po zaznaczeniu w kalendarzu
-
+ 
   const fetchEvents = async () => {
     try {
       const response = await axios.get(`/calendar/group-events/${trainingId}`);
@@ -64,7 +63,7 @@ function GroupTrainingCalendar({trainers,groupName,groupParticipantIds}) {
       
         
         const handleAddEvent = async (newEventData) => {
-          console.log('newEventData',newEventData)
+          
       
           // Jeśli istnieje ID, edytujemy wydarzenie
           if (newEventData.id) {
@@ -72,10 +71,13 @@ function GroupTrainingCalendar({trainers,groupName,groupParticipantIds}) {
                   const response = await axios.put(`/calendar/group-events/${newEventData.id}`, newEventData);
                   if (response.data.success) {
                       setEvents((prevEvents) =>
-                          prevEvents.map((evt) =>
-                              evt.id === newEventData.id ? { ...evt, ...newEventData } : evt
-                          )
+                        prevEvents.map((evt) =>
+                          evt.id === newEventData.id
+                            ? { ...evt, ...newEventData, groupParticipantIds: groupParticipantIds }
+                            : evt
+                        )
                       );
+                      console.log('newEventData',newEventData)
                       alert("Wydarzenie zostało zaktualizowane!");
                   }
               } catch (error) {
@@ -95,7 +97,7 @@ function GroupTrainingCalendar({trainers,groupName,groupParticipantIds}) {
                   trainingId: trainingId,
                   projectId: projectId,
                   group_trainer_id: newEventData.group_trainer_id,
-                  groupParticipantIds: JSON.stringify(newEventData.groupParticipantIds || []),
+                  groupParticipantIds: JSON.stringify(groupParticipantIds || []),
               };
       
               try {
@@ -202,7 +204,7 @@ function GroupTrainingCalendar({trainers,groupName,groupParticipantIds}) {
         onSelectEvent={(event) => {
           setSelectedEvent(event);
           console.log('trainingId',trainingId)
-          console.log('event.groupId',event.groupId)
+          console.log('event.groupId',event)
           if (Number(trainingId) === Number(event.groupId)) {
             // Jeśli jesteś na zakładce z możliwością edycji
             console.log('jestem w isediting')

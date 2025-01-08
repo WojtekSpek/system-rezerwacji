@@ -150,9 +150,9 @@ function ProjectParticipantDetails({onBack}) {
       // Użyj currentType.id do wyboru koloru
       const tabId = currentType?.id || 0; // Jeśli brak id, ustaw 0
       const assignedColor = colors[tabId % colors.length]; // Modulo zapewnia cykliczność kolorów
-    console.log('tabId',tabId)
-    console.log('tcolors.length',colors.length)
-    console.log('tcolors.length',colors.length)
+      console.log('tabId',tabId)
+      console.log('tcolors.length',colors.length)
+      console.log('tcolors.length',colors.length)
       if (event.typeName?.trim().toLowerCase() === currentType?.name?.trim().toLowerCase()) {
         // Kolorowe wydarzenie dla aktywnej zakładki
         console.log('jaki to kolor ',assignedColor)

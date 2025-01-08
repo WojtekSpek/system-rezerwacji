@@ -11,7 +11,7 @@ function EditGroupEventModal({ show, trainers, onSave, onClose, onDelete, event,
     projectTrainerId: "",
     projectId:projectId,
   });
-console.log('projectId',projectId)
+//console.log('isEditing',isEditing)
   const [error, setError] = useState("");
 
   // Ustawienie wstępnych danych z `event` tylko raz po załadowaniu
@@ -25,7 +25,7 @@ console.log('projectId',projectId)
     }
   }, [event, projectId]);
  
-  console.log("Czy to Date?", (localEventData) );
+  console.log("Czy to Date?", (localEventData.start instanceof Date) );
 
   const startDate = new Date(localEventData.start);
 
@@ -103,9 +103,10 @@ console.log('projectId',projectId)
         <input
           type="datetime-local"
           value={moment(localEventData.start).format("YYYY-MM-DDTHH:mm")}
-          onChange={(e) =>
-            setLocalEventData((prev) => ({ ...prev, start: e.target.value }))
-          }
+          onChange={(e) => {
+            const utcDate = moment(e.target.value).utc().toDate(); // Konwersja na obiekt Date w UTC
+            setLocalEventData((prev) => ({ ...prev, start: utcDate }));
+          }}
           className="border border-gray-300 p-2 rounded w-full mb-2"
           readOnly={!isEditing} // Pole tylko do odczytu, jeśli brak możliwości edycji
         />
@@ -114,9 +115,10 @@ console.log('projectId',projectId)
         <input
           type="datetime-local"
           value={moment(localEventData.end).format("YYYY-MM-DDTHH:mm")}
-          onChange={(e) =>
-            setLocalEventData((prev) => ({ ...prev, end: e.target.value }))
-          }
+          onChange={(e) => {
+            const utcDate = moment(e.target.value).utc().toDate(); // Konwersja na obiekt Date w UTC
+            setLocalEventData((prev) => ({ ...prev, end: utcDate }));
+          }}
           className="border border-gray-300 p-2 rounded w-full mb-2"
           readOnly={!isEditing} // Pole tylko do odczytu, jeśli brak możliwości edycji
         />
