@@ -17,6 +17,7 @@ function TotalHours({ projectId, type, typeId, initialPlannedHours, participantI
         );
         if (response.data.success) {
           setTotalHours(parseFloat(response.data.totalHours || 0));
+       console.log('total',response.data.totalHours)
         } else {
           console.error("Nie udało się pobrać sumy godzin.");
         }
@@ -32,7 +33,7 @@ function TotalHours({ projectId, type, typeId, initialPlannedHours, participantI
         );
         console.log("Planowane godziny:", response.data);
         if (response.data.success) {
-          setAssignedHours(parseFloat(response.data.plannedHours || 0));
+          setAssignedHours(parseFloat(response.data.assignedHours || 0));
         }
       } catch (error) {
         console.error("Błąd podczas pobierania planowanych godzin:", error);
@@ -41,6 +42,7 @@ function TotalHours({ projectId, type, typeId, initialPlannedHours, participantI
 
     fetchTotalHours();
     fetchAssignedHours();
+    console.log('assignedHours',assignedHours)
   }, [projectId, type, typeId, participantId]);
 
   const remainingHours = Math.max(0, parseFloat(assignedHours - totalHours).toFixed(2));

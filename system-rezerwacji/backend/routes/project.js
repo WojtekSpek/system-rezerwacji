@@ -505,19 +505,20 @@ router.get("/events/total-hours/:projectId/:type/:participantId", async (req, re
 
 
 // GET /projects/:projectId/types/:typeId/hours
-router.get("/:projectId/types/:typeId/hours", async (req, res) => {
+router.get("/:projectId/types/:typeId/planned-hours", async (req, res) => {
   const { projectId, typeId } = req.params;
  console.log('godziny ',req.params)
   try {
     // Sumowanie godzin przydzielonych dla danego typu i projektu
     const query = `
-      SELECT SUM(TIMESTAMPDIFF(HOUR, start, end)) AS assignedHours
-      FROM events
-      WHERE project_id = ? AND type_id = ?
+      SELECT 
+      planned_hours
+      FROM project_training_types
+      WHERE project_id = ? AND training_type_id = ? 
     `;
     const [rows] = await db.promise().query(query, [projectId, typeId]);
-
-    const assignedHours = rows[0]?.assignedHours || 0;
+console.log('rows',rows)
+    const assignedHours = rows[0]?.planned_hours || 0;
 
     res.json({
       success: true,

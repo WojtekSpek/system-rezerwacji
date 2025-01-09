@@ -283,7 +283,7 @@ console.log("Event start (UTC):", utcStart);
       {/* Kalendarz */}
       <ErrorBoundary>
       <BigCalendar
-       key={`${activeTab}-${sanitizedEvents.length}`} // Dodaj dynamiczny klucz
+      // key={`${activeTab}-${sanitizedEvents.length}`} // Dodaj dynamiczny klucz
         localizer={localizer}
         startAccessor="start"
         endAccessor="end"
