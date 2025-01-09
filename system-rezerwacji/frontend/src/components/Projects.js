@@ -10,14 +10,26 @@ function Projects({ setView, setSelectedProject }) {
   const [trainingTypes, setTrainingTypes] = useState([]); // Lista typów szkoleń
   const [user, setUser] = useState(null); // Przechowuj dane użytkownika
    const [showAddForm, setShowAddForm] = useState(false);
+   const [isLoading, setIsLoading] = useState(true); // Dodaj isLoading do stanu
   const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "http://localhost:5000";
   // const API_BASE_URL = "https://system-rezerwacji-1.onrender.com";
   useEffect(() => {
+    setIsLoading(true);
     fetchProjects();
     fetchUser();
     fetchTrainingTypes();
-    
+    setIsLoading(false)
   }, []);
+
+  const Skeleton = () => (
+    <div>
+      <div className="skeleton w-3/4"></div>
+      <div className="skeleton w-1/2"></div>
+      <div className="skeleton w-full"></div>
+    </div>
+  );
+  
+
 
   const navigate = useNavigate();
 
@@ -118,105 +130,103 @@ function Projects({ setView, setSelectedProject }) {
     
     return (
       <div className="p-4 w-full">
-        {!showAddForm ? (
-            <>
+        {isLoading ? (
+          <Skeleton />
+        ) : !showAddForm ? (
+          <>
             <div className="flex justify-between items-center mb-4">
-            <h2 className="text-2xl font-bold mb-4">Projekty</h2>
-                      <button
-                    onClick={() => setShowAddForm(true)}
-                    className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
-                  >
-                          Dodaj Projekt
-                        </button>
-               </div>
-              
-        
-              
-              <h3 className="text-xl font-semibold mb-4">Lista projektów</h3>
-              <ul>
-                {projects.map((project) => (
-                  <li
-                    key={project.id}
-                    className="flex justify-between items-center bg-gray-50 p-4 rounded mb-2 shadow hover:shadow-md"
-                  >
-                    <div>
-                      <span
-                        className="text-lg text-blue-600 font-medium cursor-pointer hover:underline"
-                        onClick={() => handleViewDetails(project)}
-                      >
-                        {project.name}
-                      </span>
-                      <div className="text-sm text-gray-500">
-                        Utworzony przez: {project.created_by} | {new Date(project.created_at).toLocaleDateString()}
-                      </div>
-                    </div>
-                    <div className="flex space-x-2">
-                      <button
+              <h2 className="text-2xl font-bold mb-4">Projekty</h2>
+              <button
+                onClick={() => setShowAddForm(true)}
+                className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+              >
+                Dodaj Projekt
+              </button>
+            </div>
+    
+            <h3 className="text-xl font-semibold mb-4">Lista projektów</h3>
+            <ul>
+              {projects.map((project) => (
+                <li
+                  key={project.id}
+                  className="flex justify-between items-center bg-gray-50 p-4 rounded mb-2 shadow hover:shadow-md"
+                >
+                  <div>
+                    <span
+                      className="text-lg text-blue-600 font-medium cursor-pointer hover:underline"
                       onClick={() => handleViewDetails(project)}
-                        className="bg-yellow-500 text-white px-3 py-1 rounded hover:bg-yellow-600"
-                      >
-                        Szczegóły
-                      </button>
-                      <button
-                        onClick={() => handleDeleteProject(project)}
-                        className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600"
-                      >
-                        Usuń
-                      </button>
+                    >
+                      {project.name}
+                    </span>
+                    <div className="text-sm text-gray-500">
+                      Utworzony przez: {project.created_by} |{" "}
+                      {new Date(project.created_at).toLocaleDateString()}
                     </div>
-                  </li>
+                  </div>
+                  <div className="flex space-x-2">
+                    <button
+                      onClick={() => handleViewDetails(project)}
+                      className="bg-yellow-500 text-white px-3 py-1 rounded hover:bg-yellow-600"
+                    >
+                      Szczegóły
+                    </button>
+                    <button
+                      onClick={() => handleDeleteProject(project)}
+                      className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600"
+                    >
+                      Usuń
+                    </button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </>
+        ) : (
+          <div>
+            <div className="bg-gray-100 p-4 rounded mb-4">
+              {successMessage && <div className="text-green-500 mt-2">{successMessage}</div>}
+              <h3 className="text-xl font-semibold mb-4">Dodaj projekt</h3>
+              <input
+                type="text"
+                placeholder="Nazwa projektu"
+                value={newProjectName}
+                onChange={(e) => setNewProjectName(e.target.value)}
+                className="border border-gray-300 p-2 rounded w-full mb-4"
+              />
+              <h4 className="text-lg font-semibold mb-2">Typy szkoleń:</h4>
+              <div className="flex flex-wrap gap-4">
+                {trainingTypes.map((type) => (
+                  <label key={type.id} className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={selectedTrainingTypes.includes(type.id)}
+                      onChange={() => handleTrainingTypeChange(type.id)}
+                    />
+                    {type.type}
+                  </label>
                 ))}
-              </ul>
-            
-            </>
-          ) : (
-
-           <div><div className="bg-gray-100 p-4 rounded mb-4">
-            {successMessage && (
-                  <div className="text-green-500 mt-2">{successMessage}</div>
-                )}
-           <h3 className="text-xl font-semibold mb-4">Dodaj projekt</h3>
-           <input
-             type="text"
-             placeholder="Nazwa projektu"
-             value={newProjectName}
-             onChange={(e) => setNewProjectName(e.target.value)}
-             className="border border-gray-300 p-2 rounded w-full mb-4"
-           />
-           <h4 className="text-lg font-semibold mb-2">Typy szkoleń:</h4>
-           <div className="flex flex-wrap gap-4">
-             {trainingTypes.map((type) => (
-               <label key={type.id} className="flex items-center gap-2">
-                 <input
-                   type="checkbox"
-                   checked={selectedTrainingTypes.includes(type.id)}
-                   onChange={() => handleTrainingTypeChange(type.id)}
-                 />
-                 {type.type}
-               </label>
-             ))}
-           </div></div> 
-
-           <div className="mt-4 flex justify-between">
-                    <button
-                        onClick={() => setShowAddForm(false)}
-                        className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-400"
-                    >
-                        Anuluj
-                    </button>
-                    <button
-                        onClick={addProject}
-                        className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
-                    >
-                        Zapisz
-                    </button>
-                </div>
-           </div>
-           
-          )}
-          
+              </div>
+            </div>
+    
+            <div className="mt-4 flex justify-between">
+              <button
+                onClick={() => setShowAddForm(false)}
+                className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-400"
+              >
+                Anuluj
+              </button>
+              <button
+                onClick={addProject}
+                className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
+              >
+                Zapisz
+              </button>
+            </div>
           </div>
+        )}
+      </div>
     );
+    
   }
   
 

@@ -26,21 +26,7 @@ function ProjectParticipants({ setView, setSelectedParticipant }) {
     }
   };
 
-  // Pobieranie godzin uczestnika
-  const fetchParticipantHours = async (participantId) => {
-    try {
-      const response = await axios.get(`/participants/${projectId}/participants/${participantId}/hours`);
-      if (response.data.success) {
-        setHoursByParticipant((prev) => ({
-          ...prev,
-          [participantId]: response.data.hours,
-        }));
-        console.log('response.data.hours',response.data.hours)
-      }
-    } catch (error) {
-      console.error("Błąd podczas pobierania godzin uczestnika:", error);
-    }
-  };
+  
 
   // Wyszukiwanie uczestników
   const searchParticipants = async (query) => {
@@ -99,13 +85,27 @@ function ProjectParticipants({ setView, setSelectedParticipant }) {
 
   // Pobieranie uczestników projektu i ich godzin
   useEffect(() => {
-    fetchProjectParticipants();
+    const fetchParticipantsWithHours = async () => {
+      try {
+        const response = await axios.get(`/projects/${projectId}/participants-with-hours`);
+        if (response.data.success) {
+          setProjectParticipants(response.data.participants); // Zapisz pełne dane w stanie
+          console.log('response.data.participants',response.data.participants)
+        } else {
+          console.error("Nie udało się pobrać uczestników i godzin.");
+        }
+      } catch (error) {
+        console.error("Błąd podczas pobierania uczestników i godzin:", error);
+      }
+    };
+  
+    fetchParticipantsWithHours();
   }, [projectId]);
 
-  useEffect(() => {
+/*   useEffect(() => {
     projectParticipants.forEach((participant) => fetchParticipantHours(participant.id));
   }, [projectParticipants]);
-
+ */
   const handleSearchChange = (e) => {
     const query = e.target.value;
     setSearchQuery(query);
@@ -171,37 +171,52 @@ function ProjectParticipants({ setView, setSelectedParticipant }) {
           </p>
         </div>
         {projectParticipants.map((participant) => (
-          <li key={participant.id} className="flex justify-between items-center p-4 border-b">
+          <li key={participant.participantId} className="flex justify-between items-center p-4 border-b">
             <div>
               <span
                 className="cursor-pointer text-blue-600 hover:underline"
-                onClick={() => handleViewDetails(participant.id)}
+                onClick={() => handleViewDetails(participant.participantId)}
               >
                 {participant.firstName} {participant.lastName}
               </span>
               <div className="mt-2 text-gray-600 text-sm">
-                {hoursByParticipant[participant.id] ? (
-                  hoursByParticipant[participant.id].map((hour) => (
-                    <div key={hour.typeId} className="flex justify-between">
-                      <span>
-                        <b>{hour.typeName}:</b> {hour.assignedHours} / {hour.plannedHours} godzin
-                      </span>
-                      <span className="ml-4">Zaplanować: {hour.remainingHours} godzin</span>
-                    </div>
-                  ))
+                {participant.types ? (
+                  Object.values(participant.types).map((type) => {
+                    // Formatowanie totalHours
+                    const formattedTotalHours = Number.isInteger(parseFloat(type.totalHours))
+                      ? parseInt(type.totalHours, 10) // Jeśli całkowita, pokaż bez miejsc po przecinku
+                      : parseFloat(type.totalHours).toFixed(1); // Jeśli nie, pokaż 1 miejsce po przecinku
+
+                    // Wyświetlenie danych
+                    return (
+                      <div key={type.typeName} className="flex justify-between">
+                        <span>
+                          <b>{type.typeName}:</b> {formattedTotalHours} / {type.plannedHours} h
+                        </span>
+                        <span className="ml-4">
+                        Zaplanować:{" "}
+                          {Math.max(0, type.plannedHours - type.totalHours) % 1 === 0
+                            ? Math.max(0, type.plannedHours - type.totalHours).toFixed(0) // Jeśli liczba całkowita
+                            : Math.max(0, type.plannedHours - type.totalHours).toFixed(1) // Jeśli dziesiętna
+                          }  h
+                        </span>
+                      </div>
+                    );
+                  })
                 ) : (
-                  <span>Ładowanie godzin...</span>
+                  <span>Brak danych o typach godzin</span>
                 )}
               </div>
             </div>
             <button
-              onClick={() => removeParticipantFromProject(participant.id)}
+              onClick={() => removeParticipantFromProject(participant.participantId)}
               className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600"
             >
               Usuń
             </button>
           </li>
         ))}
+
       </ul>
     </div>
   );

@@ -189,11 +189,11 @@ router.post("/group-events", async (req, res) => {
 
     const groupEventId = groupEventResult.insertId;
 
-    // Pobierz uczestników szkolenia grupowego
+    /* // Pobierz uczestników szkolenia grupowego
     const [participants] = await db.promise().query(
       `SELECT participantId FROM group_training_participants WHERE trainingId = ?`,
       [trainingId]
-    );
+    ); */
 
     /* if (participants.length > 0) {
       // Dodaj wydarzenie indywidualne dla każdego uczestnika
@@ -310,9 +310,10 @@ const { utcToZonedTime, format } = require("date-fns-tz");
       type, 
       isGroupEvent, 
       participantId, 
-      groupParticipantIds 
+      groupParticipantIds,
+      Type_id 
     } = req.body;
-  
+  console.log('Type_id',Type_id)
     // Logowanie danych wejściowych
     console.log("Event to insert:", {
       title: req.body.title,
@@ -367,11 +368,12 @@ const { utcToZonedTime, format } = require("date-fns-tz");
           project_id, 
           type, 
           participant_id, 
-          isGroupEvent
+          isGroupEvent,
+          groupId
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?,?)
       `;
-      const [result] = await db.promise().query(query, [title, start1, end1, projectTrainerId, description, projectId, type, participantId, isGroupEvent, groupParticipantIds]);
+      const [result] = await db.promise().query(query, [title, start1, end1, projectTrainerId, description, projectId, type, participantId, isGroupEvent, Type_id]);
   
       res.json({
         success: true,

@@ -532,40 +532,90 @@ router.get("/:projectId/types/:typeId/hours", async (req, res) => {
   }
 });
 
-// GET /projects/:projectId/types/:typeId/planned-hours
-router.get("/:projectId/types/:typeId/planned-hours", async (req, res) => {
-  const { projectId, typeId } = req.params;
+
+
+router.get("/:projectId/participants-with-hours", async (req, res) => {
+  const { projectId } = req.params;
 
   try {
-    // Pobranie planned_hours na podstawie projectId i typeId
-    const query = `
-      SELECT planned_hours 
-      FROM project_training_types
-      WHERE project_id = ? AND training_type_id = ?
+    // Pobierz wszystkie typy godzin powiązane z projektem
+    const typesQuery = `
+      SELECT tt.id AS typeId, tt.type AS typeName, pt.planned_hours AS plannedHours
+      FROM project_training_types pt
+      JOIN training_types tt ON tt.id = pt.training_type_id
+      WHERE pt.project_id = ?
     `;
-    const [rows] = await db.promise().query(query, [projectId, typeId]);
+    const [types] = await db.promise().query(typesQuery, [projectId]);
 
-    if (rows.length > 0) {
-      res.json({
-        success: true,
-        plannedHours: rows[0].planned_hours,
-        
+    // Pobierz dane uczestników i ich godzin
+    const participantsQuery = `
+      SELECT 
+          p.id AS participantId,
+          p.firstName,
+          p.lastName,
+          e.groupId AS typeId,
+          tt.type AS typeName,
+          SUM(TIMESTAMPDIFF(SECOND, e.start, e.end) / 3600) AS totalHours
+      FROM project_participants pp
+      INNER JOIN participants p ON pp.participant_id = p.id
+      LEFT JOIN events e ON e.participant_id = p.id AND e.project_id = pp.project_id
+      LEFT JOIN training_types tt ON tt.id = e.groupId AND isGroupEvent=0
+      WHERE pp.project_id = ?
+      GROUP BY p.id, e.groupId;
+    `;
+    const [rows] = await db.promise().query(participantsQuery, [projectId]);
+
+    // Grupowanie uczestników i uzupełnianie typów godzin
+    const groupedParticipants = rows.reduce((acc, row) => {
+      const { participantId, firstName, lastName, typeId, typeName, totalHours } = row;
+
+      // Znajdź lub utwórz uczestnika
+      let participant = acc.find((p) => p.participantId === participantId);
+      if (!participant) {
+        participant = {
+          participantId,
+          firstName,
+          lastName,
+          types: {}, // Obiekt na typy godzin
+        };
+        acc.push(participant);
+      }
+
+      // Dodaj dane typu godzin (tylko jeśli istnieją)
+      if (typeId) {
+        participant.types[typeId] = {
+          typeName,
+          totalHours: totalHours || 0,
+          plannedHours: 0, // Ustawimy później
+        };
+      }
+
+      return acc;
+    }, []);
+
+    // Uzupełnij brakujące typy godzin dla każdego uczestnika
+    groupedParticipants.forEach((participant) => {
+      types.forEach((type) => {
+        if (!participant.types[type.typeId]) {
+          participant.types[type.typeId] = {
+            typeName: type.typeName,
+            totalHours: 0,
+            plannedHours: type.plannedHours || 0,
+          };
+        } else {
+          // Przypisz planowane godziny z `types`
+          participant.types[type.typeId].plannedHours = type.plannedHours || 0;
+        }
       });
-      console.log('plannedHours',rows[0].planned_hours)
-    } else {
-      res.status(404).json({
-        success: false,
-        message: "Nie znaleziono planowanych godzin dla podanego projektu i typu.",
-      });
-    }
-  } catch (error) {
-    console.error("Błąd podczas pobierania planned_hours:", error);
-    res.status(500).json({
-      success: false,
-      message: "Błąd serwera podczas pobierania planned_hours.",
     });
+
+    res.json({ success: true, participants: groupedParticipants });
+  } catch (error) {
+    console.error("Błąd podczas pobierania uczestników i godzin:", error);
+    res.status(500).json({ success: false, message: "Nie udało się pobrać danych." });
   }
 });
+
 
 // GET - Pobierz planned_hours dla wybranego projektu i typów
 router.get("/:projectId/training-types/hours", async (req, res) => {

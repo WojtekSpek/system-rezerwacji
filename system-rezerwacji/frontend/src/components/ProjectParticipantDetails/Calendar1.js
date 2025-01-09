@@ -6,7 +6,7 @@ import "react-big-calendar/lib/css/react-big-calendar.css";
 import EditEventModal from "./EditEventModal";
 import CreateEventModal from "./CreateEventModal";
 import { hasConflict, hasConflictExcludingCurrent } from "../function/dateConflictChecker";
-import { getEventStyle } from "./ProjectParticipantDetails/Calendar1";
+import { createEventStyleGetter } from "../function/getEventStyle.js";
 
 
 const localizer = momentLocalizer(moment);
@@ -19,6 +19,7 @@ function Calendar1({
   participantId,
   newEvent,
   setParticipant,
+  currentType,
   setNewEvent,
   projectTypesAll,
   projectId,
@@ -57,6 +58,31 @@ function Calendar1({
     console.log('trainers', trainers)
     //console.log('newEventData.participantId', newEventData.participantId)
     console.log("events_cal:", events);
+
+    const eventStyleGetter = createEventStyleGetter(currentType); // Tworzymy funkcję getEventStyle z `currentType`
+console.log('currentType',currentType)
+
+ const fetchEvents = async () => {
+      try {
+        const response = await axios.get(`calendar/events/${projectId}/${participantId}`);
+        if (response.data.success) {
+         // console.log('response.data.events',response.data.events.start)
+          setEvents(
+            response.data.events.map((event) => ({
+              ...event,
+              start: event.start, // Dodaj "Z", aby wymusić UTC
+              end: event.end,
+              type: (event.type), // Przypisz typ na podstawie logiki
+            }))
+          );
+        console.log('events',events)  
+
+        }
+      } catch (error) {
+        console.error("Błąd podczas pobierania wydarzeń:", error);
+      }
+    };
+
 
 
 // Obsługa dodawania wydarzenia
@@ -126,6 +152,7 @@ const handleAddEvent = async (newEventData) => {
         groupParticipantIds: 0,
         participantId: participantId,
         projectId, // ID projektu
+        Type_id: currentType.id,
       };
       console.log('data',newEventData.start)
       const saveResponse = await axios.post("/calendar/events", eventToSave);
@@ -149,17 +176,9 @@ const handleAddEvent = async (newEventData) => {
   }
 
   setShowCreateModal(false); // Zamknij modal
-  setKey((prevKey) => prevKey + 1); // Zmień klucz, aby wymusić renderowanie
+  fetchEvents();
 };
-    const handleSelectEvent = (event) => {
-      if (event.type === activeTab) {
-        setSelectedEvent(event); // Ustaw wybrane wydarzenie
-        setShowEditModal(true); // Otwórz modal
-        console.log('klik_wydarzenie')
-      } else {
-        alert(`Możesz edytować tylko wydarzenia z typem "${activeTab}".`);
-      }
-    };
+
 
     const sanitizedEvents = useMemo(() => {
       if (!events || !Array.isArray(events)) {
@@ -217,37 +236,9 @@ const handleAddEvent = async (newEventData) => {
         }
       }  
 
-      // Obsługa kliknięcia w slot (wolny obszar kalendarza)
-      const handleSelectSlot = (slotInfo) => {
-        const defaultEnd = moment(slotInfo.start).add(1, "hours").toDate();
-        setNewEvent({
-          title: "",
-          description: "",
-          start: slotInfo.start,
-          end: defaultEnd,
-          projectTrainerId: "",
-        });
-        setShowCreateModal(true); // Otwórz modal tworzenia
-      };
-
-    
+  
   // Obsługa zapisu wydarzenia (nowego lub edytowanego)
-  const handleSaveEvent = (eventData) => {
-    if (eventData.id) {
-      // Edycja istniejącego wydarzenia
-      setEvents((prev) =>
-        prev.map((evt) => (evt.id === eventData.id ? { ...evt, ...eventData } : evt))
-      );
-    } else {
-      // Tworzenie nowego wydarzenia
-      const newEvent = {
-        ...eventData,
-        id: Date.now(), // Tymczasowe ID (w rzeczywistości powinno pochodzić z backendu)
-      };
-      setEvents((prev) => [...prev, newEvent]);
-    }
-    setShowEditModal(false); // Zamknij modal
-  };
+ 
   console.log('czy edytujemy czy czytamy_calen',isEditing)
   const handleEditEvent = async () => {
     if (!selectedEvent) return;
@@ -286,17 +277,7 @@ console.log("Event start (UTC):", utcStart);
       {/* Dodawanie wydarzenia */}
       <div className="mb-4">
        
-        <button
-          onClick={() =>
-            onAddEvent({
-              ...newEvent,
-              trainerId: selectedTrainer?.id,
-            })
-          }
-          className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
-        >
-          Dodaj wydarzenie
-        </button>
+      
       </div>
 
       {/* Kalendarz */}
@@ -308,6 +289,7 @@ console.log("Event start (UTC):", utcStart);
         endAccessor="end"
         events={sanitizedEvents} // Użyj zabezpieczonych danych
         selectable // Włącza możliwość klikania w wolne obszary
+        eventPropGetter={eventStyleGetter} // Przypisanie stylu do wydarzenia
         onSelectSlot={(slotInfo) => {
           const newEvent = {
             start: slotInfo.start,
@@ -332,7 +314,7 @@ console.log("Event start (UTC):", utcStart);
           }
         }}
         style={{ height: 500 }}
-        eventPropGetter={eventPropGetter} // Przypisanie stylu do wydarzenia
+       
         onView={onViewChange} // Przekazanie funkcji zmiany widoku
         view={view} // Ustaw aktualny widok
         messages={messages} // Przekazanie tłumaczeń
@@ -351,13 +333,13 @@ console.log("Event start (UTC):", utcStart);
             handleAddEvent(eventData); // Wywołaj funkcję dodawania wydarzenia
             setSelectedEvent(null); // Nowe wydarzenie, brak `eventData`
             setShowCreateModal(false); // Zamknij modal po zapisie
-            const styledEvent = {
-              ...eventData,
-              style: getEventStyle(eventData).style, // Zastosuj styl
-            };
+            eventPropGetter={eventStyleGetter} // Przypisanie stylu do wydarzenia
           
           }}
-          onClose={() => setShowCreateModal(false)}
+          onClose={() => {
+           
+          setShowCreateModal(false)}}
+         
         />
       )}
       {/* Modal dla tworzenia/edycji wydarzeń */}

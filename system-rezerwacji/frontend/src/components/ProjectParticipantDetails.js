@@ -9,6 +9,7 @@ import EditEventModal from "./ProjectParticipantDetails/EditEventModal";
 import TotalHours from "./ProjectParticipantDetails/TotalHours"; // Import komponentu
 import { useParams } from "react-router-dom";
 import Commentary from "./Commentary";
+import {createEventStyleGetter } from "./function/getEventStyle.js";
 
 
 moment.locale("pl"); // Ustaw język polski
@@ -44,7 +45,9 @@ function ProjectParticipantDetails({onBack}) {
     trainerId: "",
   });
   const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "http://localhost:5000";
-
+  const currentType = projectTypesAll.find((type) => type.name === activeTab);
+  const eventStyleGetter = createEventStyleGetter(currentType); // Tworzymy funkcję getEventStyle z `currentType`
+  const typeId = currentType?.id;
   const messages = {
     allDay: "Cały dzień",
     previous: "Poprzedni",
@@ -105,8 +108,7 @@ function ProjectParticipantDetails({onBack}) {
     fetchTrainers();
   }, [projectId, activeTab]);
 
-  const currentType = projectTypesAll.find((type) => type.name === activeTab);
-  const typeId = currentType?.id;
+  
   console.log("Obecne typeId:", activeTab);
   useEffect(() => {
     
@@ -140,48 +142,8 @@ function ProjectParticipantDetails({onBack}) {
 
     const typeId = getTypeIdByName(activeTab); */
     console.log("Type ID dla aktywnego typu:", currentType);
-//TODO zrobic poprawe ladowania kolorow
-    const getEventStyle = (event) => {
-      //console.log("Wywołanie getEventStyle dla wydarzenia:", event);
-    
-      // Definicja kolorów
-      const colors = ["#f56c6c", "#67c23a", "#6f5126", "#409eff", "#e6a23c", "#909399"];
-    
-      // Użyj currentType.id do wyboru koloru
-      const tabId = currentType?.id || 0; // Jeśli brak id, ustaw 0
-      const assignedColor = colors[tabId % colors.length]; // Modulo zapewnia cykliczność kolorów
-      //console.log('tabId',tabId)
-     // console.log('tcolors.length',colors.length)
-     // console.log('tcolors.length',colors.length)
-      if (event.typeName?.trim().toLowerCase() === currentType?.name?.trim().toLowerCase()) {
-        // Kolorowe wydarzenie dla aktywnej zakładki
-        console.log('jaki to kolor ',assignedColor)
-        return {
-          style: {
-            backgroundColor: assignedColor,
-            color: "white",
-            borderRadius: "5px",
-            border: "none",
-            cursor: "pointer",
-            opacity: 1,
-          },
-        };
-      } else {
-        // Zaszarzałe wydarzenie dla nieaktywnej zakładki
-        return {
-          style: {
-            backgroundColor: "#d3d3d3",
-            color: "#a9a9a9",
-            borderRadius: "5px",
-            border: "none",
-            cursor: "not-allowed",
-            opacity: 0.6,
-          },
-        };
-      }
-    };
-    
-    
+
+  
 
     const fetchEvents = async () => {
       try {
@@ -438,14 +400,14 @@ function ProjectParticipantDetails({onBack}) {
                 trainers={trainers}
                 onEditEvent={handleEditEvent} // Dodaj obsługę edycji
                 setEvents={setEvents} // Dodano setEvents
-                
+                currentType={currentType}
                 projectTypes={projectTypes}
                 projectTypesAll={projectTypesAll} // Przekazanie projectTypes // Przekazanie projectTypes
                 newEvent={newEvent}
                 setNewEvent={setNewEvent}
                 selectedTrainer={selectedTrainer} // Przekazanie selectedTrainer
                 setSelectedTrainer={setSelectedTrainer} // Przekazanie setSelectedTrainer
-                eventPropGetter={getEventStyle} // Przypisanie stylu do wydarzenia
+                //eventPropGetter={eventStyleGetter} // Przypisanie stylu do wydarzenia
                 view={calendarView} // Przekazanie bieżącego widoku
                 onViewChange={handleCalendarViewChange} // Przekazanie funkcji zmiany widoku
                 
