@@ -9,6 +9,9 @@ function Participants({ onViewChange }) {
   const [searchQuery, setSearchQuery] = useState("");
   const [showAddForm, setShowAddForm] = useState(false);
   const nationalities = ["Polska", "Ukraińska"]; // Lista dostępnych narodowości
+  const [selectedParticipants, setSelectedParticipants] = useState([]);
+  const selectedCount = selectedParticipants.length;
+
 
   const [newParticipant, setNewParticipant] = useState({
     firstName: "",
@@ -27,7 +30,30 @@ function Participants({ onViewChange }) {
   });
   const navigate = useNavigate(); // Hook do nawigacji
   const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "http://localhost:5000";
+  const handleSelectParticipant = (id) => {
+    setSelectedParticipants((prev) =>
+      prev.includes(id) ? prev.filter((participantId) => participantId !== id) : [...prev, id]
+    );
+  };
 
+  const handleSelectionChange = (selectedItems) => {
+    console.log("Zaznaczone elementy:", selectedItems);
+  };
+  
+  const handleMassAction = async () => {
+    try {
+      const response = await axios.post(`${API_BASE_URL}/projects/addParticipants`, {
+        participantIds: selectedParticipants,
+      });
+      if (response.data.success) {
+        alert("Uczestnicy zostali dodani do projektu!");
+        setSelectedParticipants([]); // Wyczyść zaznaczenie po akcji
+      }
+    } catch (error) {
+      console.error("Błąd podczas dodawania uczestników do projektu:", error);
+    }
+  };
+  
   const filterParticipants = () => {
     if (!searchQuery.trim()) {
       return participants; // Jeśli brak zapytania, zwracamy pełną listę
@@ -235,43 +261,61 @@ console.log(errors);
       {!showAddForm ? (
         // Widok listy uczestników
         <>
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-2xl font-bold">Lista uczestników</h2>
-            <button
-              onClick={() => setShowAddForm(true)}
-              className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
-            >
-              Dodaj uczestnika
-            </button>
-          </div>
           
+          <div className="flex justify-between items-center mb-4">
+              <h2 className="text-2xl font-bold">Lista uczestników</h2>
+              <div>
+                <button
+                  disabled={selectedParticipants.length === 0}
+                  onClick={() => handleMassAction()}
+                  className={`${
+                    selectedParticipants.length === 0
+                      ? "bg-gray-400 cursor-not-allowed"
+                      : "bg-green-500 hover:bg-green-600"
+                  } text-white px-4 py-2 rounded`}
+                >
+                  Dodaj do projektu
+                </button>
+                <button
+                  onClick={() => setShowAddForm(true)}
+                  className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 ml-4"
+                >
+                  Dodaj uczestnika
+                </button>
+              </div>
+            </div>
+
           <GenericList
-            items={participants}
-            columns={[
-              { key: "firstName", label: "Imię" },
-              { key: "lastName", label: "Nazwisko" },
-              { key: "pesel", label: "Tel" },
-              { key: "email", label: "Email" },
-              { key: "actions", label: "Akcje" }, // Dodatkowa kolumna
-            ]}
-            renderItem={(participant) => (
-              <>
-                <td className="border px-4 py-2">{participant.firstName}</td>
-                <td className="border px-4 py-2">{participant.lastName}</td>
-                <td className="border px-4 py-2">{participant.phoneNumber}</td>
-                <td className="border px-4 py-2">{participant.email}</td>
-                <td className="border px-4 py-2">
-                  <button
-                    onClick={() => handleViewDetails(participant.id)}
-                    className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
-                  >
-                    Szczegóły
-                  </button>
-                </td>
-              </>
-            )}
-            searchFunction={searchFunction}
-          />
+              items={participants}
+              onSelectionChange={handleSelectionChange}
+              columns={[
+                
+                { key: "firstName", label: "Imię" },
+                { key: "lastName", label: "Nazwisko" },
+                { key: "phoneNumber", label: "Tel" },
+                { key: "email", label: "Email" },
+                { key: "actions", label: "Akcje" },
+              ]}
+              renderItem={(participant) => (
+                <>
+                  
+                  <td className="border px-4 py-2">{participant.firstName}</td>
+                  <td className="border px-4 py-2">{participant.lastName}</td>
+                  <td className="border px-4 py-2">{participant.phoneNumber}</td>
+                  <td className="border px-4 py-2">{participant.email}</td>
+                  <td className="border px-4 py-2">
+                    <button
+                      onClick={() => handleViewDetails(participant.id)}
+                      className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+                    >
+                      Szczegóły
+                    </button>
+                  </td>
+                </>
+              )}
+              searchFunction={searchFunction}
+            />
+
         </>
       ) : (
         // Widok formularza dodawania uczestnika

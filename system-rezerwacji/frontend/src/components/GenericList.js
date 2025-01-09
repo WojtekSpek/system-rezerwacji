@@ -1,12 +1,13 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 
 function GenericList({
-  items, // Dane do wyświetlenia
-  columns, // Kolumny do wyświetlenia (np. [{ key: 'id', label: 'ID' }, { key: 'name', label: 'Imię' }])
-  renderItem, // Funkcja renderująca każdy wiersz
-  searchFunction, // Funkcja wyszukiwania (opcjonalna)
-  defaultSortField = "id", // Domyślne pole sortowania
-  pageSize = 10, // Domyślna liczba pozycji na stronę
+  items,
+  columns,
+  renderItem,
+  searchFunction,
+  defaultSortField = "id",
+  pageSize = 10,
+  onSelectionChange,
 }) {
   const [currentPage, setCurrentPage] = useState(1);
   const [sortConfig, setSortConfig] = useState({
@@ -14,8 +15,14 @@ function GenericList({
     direction: "asc",
   });
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedItems, setSelectedItems] = useState([]);
 
-  // Sortowanie elementów
+  useEffect(() => {
+    if (onSelectionChange) {
+      onSelectionChange(selectedItems);
+    }
+  }, [selectedItems, onSelectionChange]);
+
   const sortedItems = useMemo(() => {
     if (!sortConfig.key) return items;
 
@@ -33,19 +40,15 @@ function GenericList({
     });
   }, [items, sortConfig]);
 
-  // Filtrowanie elementów
   const filteredItems = useMemo(() => {
     if (!searchQuery.trim()) return sortedItems;
-
     return sortedItems.filter((item) => searchFunction(item, searchQuery));
   }, [sortedItems, searchQuery, searchFunction]);
 
-  // Paginacja
   const totalPages = Math.ceil(filteredItems.length / pageSize);
   const startIndex = (currentPage - 1) * pageSize;
   const paginatedItems = filteredItems.slice(startIndex, startIndex + pageSize);
 
-  // Funkcja do obsługi sortowania
   const handleSort = (key) => {
     setSortConfig((prev) => {
       if (prev.key === key) {
@@ -55,9 +58,22 @@ function GenericList({
     });
   };
 
+  const handleSelectItem = (id) => {
+    setSelectedItems((prev) =>
+      prev.includes(id) ? prev.filter((itemId) => itemId !== id) : [...prev, id]
+    );
+  };
+
+  const handleSelectAll = (isChecked) => {
+    if (isChecked) {
+      setSelectedItems(items.map((item) => item.id));
+    } else {
+      setSelectedItems([]);
+    }
+  };
+
   return (
     <div className="p-4">
-      {/* Wyszukiwanie */}
       <input
         type="text"
         placeholder="Wyszukaj..."
@@ -66,16 +82,22 @@ function GenericList({
         className="border p-2 rounded mb-4 w-full"
       />
 
-      {/* Tabela */}
       <div className="overflow-x-auto">
-        <table className=" min-w-full table-fixed table-auto border-collapse border border-gray-200">
+        <table className="min-w-full table-fixed border-collapse border border-gray-200">
           <thead>
             <tr>
+              <th className="border px-4 py-2">
+                <input
+                  type="checkbox"
+                  checked={selectedItems.length === items.length && items.length > 0}
+                  onChange={(e) => handleSelectAll(e.target.checked)}
+                />
+              </th>
               {columns.map((col) => (
                 <th
                   key={col.key}
                   className="border px-4 py-2 bg-gray-100 text-left cursor-pointer"
-                  style={{ width: col.width || "auto" }} // Dodanie szerokości
+                  style={{ width: col.width || "auto" }}
                   onClick={() => handleSort(col.key)}
                 >
                   {col.label}
@@ -90,6 +112,13 @@ function GenericList({
             {paginatedItems.length > 0 ? (
               paginatedItems.map((item) => (
                 <tr key={item.id} className="hover:bg-gray-100">
+                  <td className="border px-4 py-2">
+                    <input
+                      type="checkbox"
+                      checked={selectedItems.includes(item.id)}
+                      onChange={() => handleSelectItem(item.id)}
+                    />
+                  </td>
                   {renderItem(item)}
                 </tr>
               ))
@@ -107,11 +136,10 @@ function GenericList({
         </table>
       </div>
 
-      {/* Paginacja */}
       <div className="flex justify-between items-center mt-4">
         <span>
           Strona {currentPage} z {totalPages} | Łącznie pozycji:{" "}
-          {filteredItems.length}
+          {filteredItems.length} | Zaznaczono: {selectedItems.length}
         </span>
         <div>
           <button
