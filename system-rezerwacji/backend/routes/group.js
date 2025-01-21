@@ -258,7 +258,7 @@ router.get("/:projectId/group-training/hours", async (req, res) => {
     }
   });
   
-router.post("/group-trainings", async (req, res) => {
+/* router.post("/group-trainings", async (req, res) => {
     const { projectId, name, hours } = req.body;
     try {
       const [result] = await db.promise().query(
@@ -270,7 +270,7 @@ router.post("/group-trainings", async (req, res) => {
       console.error("Błąd podczas dodawania szkolenia grupowego:", error);
       res.status(500).json({ success: false });
     }
-  });
+  }); */
 
   router.get("/group-trainings/:projectId", async (req, res) => {
     const { projectId } = req.params;

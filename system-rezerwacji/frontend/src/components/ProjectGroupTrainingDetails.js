@@ -23,6 +23,7 @@ function ProjectGroupTrainingDetails() {
     fetchGroupTrainers();
     loadGroupName();
   }, []);
+  
   console.log('groupParticipantIds',groupParticipantIds)
   const loadGroupName = async () => {
     const name = await fetchGroupName(trainingId);
@@ -64,6 +65,7 @@ function ProjectGroupTrainingDetails() {
         setTrainingParticipants(response.data.participants);
         // Ustawienie listy ID uczestników w stanie
         setGroupParticipantIds(response.data.participants.map((p) => p.id));
+        console.log('aktualni uczestnicy',response.data.participants)
         // Usunięcie uczestników już przypisanych do szkolenia z listy projektu
         setProjectParticipants((prev) =>
           prev.filter(
@@ -85,14 +87,32 @@ function ProjectGroupTrainingDetails() {
       // Dodaj do listy uczestników szkolenia
       const addedParticipant = projectParticipants.find((p) => p.id === participantId);
       setTrainingParticipants((prev) => [...prev, addedParticipant]);
-
+      console.log('addedParticipant',addedParticipant)
       // Usuń z listy uczestników projektu
       setProjectParticipants((prev) => prev.filter((p) => p.id !== participantId));
     } catch (error) {
       console.error("Błąd podczas dodawania uczestnika do szkolenia:", error);
     }
   };
-
+  const handleTabChange = (tab) => {
+    if (tab === "calendar") {
+      //fetchProjectParticipants();
+    
+      // Sprawdź liczbę uczestników i szkoleniowców
+      if (trainingParticipants.length < 1) {
+        alert("Musisz dodać przynajmniej jednego uczestnika do grupy, aby otworzyć kalendarz.");
+        return;
+      }
+  
+      if (groupTrainers.length < 1) {
+        alert("Musisz dodać przynajmniej jednego szkoleniowca do grupy, aby otworzyć kalendarz.");
+        return;
+      }
+    }
+  
+    // Przełącz zakładkę
+    setActiveTab(tab);
+  };
   // Usuwanie uczestnika ze szkolenia
   const removeParticipantFromTraining = async (participantId) => {
     try {
@@ -140,7 +160,7 @@ function ProjectGroupTrainingDetails() {
           Uczestnicy
         </button>
         <button
-          onClick={() => setActiveTab("calendar")}
+           onClick={() => handleTabChange("calendar")}
           className={`pb-2 ${activeTab === "calendar" ? "border-b-2 border-blue-500" : ""}`}
         >
           Kalendarz

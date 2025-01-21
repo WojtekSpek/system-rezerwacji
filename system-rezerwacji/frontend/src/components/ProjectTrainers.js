@@ -234,7 +234,7 @@ function ProjectTrainers() {
       <h3 className="text-xl font-semibold mt-8 mb-2">Zajęcia grupowe</h3>
       <ul className="space-y-4">
         {projectGroups.map((group) => (
-          <li key={group.id} className="bg-white p-4 rounded shadow hover:shadow-md">
+          <li key={group.id} className="bg-slate-100 p-4 rounded shadow hover:shadow-md">
             <h4 className="text-lg font-semibold mb-2">{group.name}</h4>
 
             <ul>

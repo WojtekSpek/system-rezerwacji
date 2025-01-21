@@ -155,9 +155,9 @@ function Participants({ onViewChange }) {
       newErrors.phoneNumber = "Numer telefonu musi mieć dokładnie 9 cyfr.";
     }
 
-    if (!/\S+@\S+\.\S+/.test(newParticipant.email)) {
+   /*  if (!/\S+@\S+\.\S+/.test(newParticipant.email)) {
       newErrors.email = "Podaj poprawny adres e-mail.";
-    }
+    } */
     if (!newParticipant.nationality) newErrors.nationality = "Wybór narodowości jest wymagany.";
 
     setErrors(newErrors);
@@ -216,10 +216,10 @@ function Participants({ onViewChange }) {
             }));
           } else if (serverMessage.includes("email")) {
            
-            setErrors((prevErrors) => ({
+            /* setErrors((prevErrors) => ({
               ...prevErrors,
               email: "Uczestnik z tym adresem email już istnieje.",
-            }));
+            })); */
           } else {
             alert(serverMessage); // Fallback na alert w przypadku innych błędów
           }

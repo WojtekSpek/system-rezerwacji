@@ -146,7 +146,10 @@ const handleDeleteEvent = async (eventId) => {
 
   // Stylizowanie wydarzeń
   const eventStyleGetter = (event) => {
-    if (event.trainingId !== trainingId) {
+    console.log('event.GroupID',event.groupId)
+    console.log('trainingId',trainingId)
+    
+    if (Number(event.groupId) !== Number(trainingId)) {
       return {
         style: {
           backgroundColor: "#d3d3d3", // Szary dla innych grup
@@ -155,6 +158,7 @@ const handleDeleteEvent = async (eventId) => {
         },
       };
     } else {
+      console.log('jestem kolor')
       return {
         style: {
           backgroundColor: "#007bff", // Niebieski dla aktualnej grupy

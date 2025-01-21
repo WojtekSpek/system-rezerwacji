@@ -119,8 +119,8 @@ function Trainers() {
                   renderItem={(trainer) => (
                     <>
                       <td className="border px-4 py-2">{trainer.name}</td>
-                      <td className="border px-4 py-2">{trainer.email}</td>
                       <td className="border px-4 py-2">{trainer.phone}</td>
+                      <td className="border px-4 py-2">{trainer.email}</td>
                       <td className="border px-4 py-2">{trainer.types?.join(", ") || "Brak typów"}</td>
                       <td className="border px-4 py-2">
                        <div class="flex justify-between items-center space-x-2">

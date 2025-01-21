@@ -171,7 +171,7 @@ router.get("/events/:projectId/:participantId", async (req, res) => {
 
 router.post("/group-events", async (req, res) => {
   const { title, start, end, description, trainingId, projectId,groupParticipantIds,group_trainer_id } = req.body;
-  console.log('trainingId',trainingId)
+  console.log('trainingId',req.body)
   try {
     const { formatInTimeZone } = require("date-fns-tz");
 
@@ -183,7 +183,7 @@ router.post("/group-events", async (req, res) => {
     // Dodaj główne wydarzenie grupowe
     const [groupEventResult] = await db.promise().query(
       `INSERT INTO events (title, start, end, description, project_id, isGroupEvent, groupParticipantIds, group_trainer_id,type,groupId)
-       VALUES (?, ?, ?, ?, ?, ?, ?,?, 'group_training',?)`,
+       VALUES (?, ?, ?, ?, ?, ?, ?,?,'group_training',?)`,
       [title, start, end, description, projectId, true,groupParticipantIds,group_trainer_id,trainingId]
     );
 
