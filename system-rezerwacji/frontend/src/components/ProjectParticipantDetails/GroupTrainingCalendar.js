@@ -6,7 +6,7 @@ import "react-big-calendar/lib/css/react-big-calendar.css";
 import { useParams, useNavigate } from "react-router-dom";
 import CreateEventModal from "./CreateEventModalGroup";
 import EditGroupEventModal from "./EditGroupEventModal";
-//TODO ZROBIĆ validacje czasu jak przy grupowych w calendar1
+//NOTE: ZROBIĆ validacje czasu jak przy grupowych w calendar1
 
 const localizer = momentLocalizer(moment);
 

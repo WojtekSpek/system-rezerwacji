@@ -82,19 +82,26 @@ router.post("/addParticipant", authenticateUser, async (req, res) => {
   
       // Obsługa błędu unikalności
       if (error.code === "ER_DUP_ENTRY") {
-        const duplicateField = error.sqlMessage.includes("email")
-          ? "email"
-          : "pesel";
-        return res.status(400).json({
-          success: false,
-          message: `Uczestnik z tym ${duplicateField} już istnieje.`,
-        });
+        let duplicateField;
+        
+        if (error.sqlMessage.includes("email") && email) {
+          duplicateField = "email";
+        } else if (error.sqlMessage.includes("pesel")) {
+          duplicateField = "pesel";
+        }
+      
+        if (duplicateField) {
+          return res.status(400).json({
+            success: false,
+            message: `Uczestnik z tym ${duplicateField} już istnieje.`,
+          });
+        }
       }
-  
+      
       res.status(500).json({ success: false, message: "Błąd serwera." });
     }
   });
-  router.put("/editParticipant/:id", authenticateUser, async (req, res) => {
+router.put("/editParticipant/:id", authenticateUser, async (req, res) => {
     const {
       firstName,
       lastName,
@@ -166,15 +173,22 @@ router.post("/addParticipant", authenticateUser, async (req, res) => {
   
       // Obsługa błędu unikalności
       if (error.code === "ER_DUP_ENTRY") {
-        const duplicateField = error.sqlMessage.includes("email")
-          ? "email"
-          : "pesel";
-        return res.status(400).json({
-          success: false,
-          message: `Uczestnik z tym ${duplicateField} już istnieje.`,
-        });
+        let duplicateField;
+        
+        if (error.sqlMessage.includes("email") && email) {
+          duplicateField = "email";
+        } else if (error.sqlMessage.includes("pesel")) {
+          duplicateField = "pesel";
+        }
+      
+        if (duplicateField) {
+          return res.status(400).json({
+            success: false,
+            message: `Uczestnik z tym ${duplicateField} już istnieje.`,
+          });
+        }
       }
-  
+       
       res.status(500).json({ success: false, message: "Błąd serwera." });
     }
   });
