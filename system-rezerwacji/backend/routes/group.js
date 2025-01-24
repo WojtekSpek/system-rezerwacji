@@ -310,7 +310,7 @@ router.get("/:projectId/group-training/hours", async (req, res) => {
     try {
       // Dodaj szkolenie do bazy danych
       const result = await db.promise().query(
-        'INSERT INTO group_trainings (project_id, name, hours) VALUES (?, ?, ?)',
+        'INSERT INTO group_trainings (projectId, name, hours) VALUES (?, ?, ?)',
         [projectId, name, hours]
       );
   
