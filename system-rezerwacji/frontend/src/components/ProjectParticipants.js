@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
+import { useQuery } from "@tanstack/react-query";
 import { useParams, useNavigate } from "react-router-dom";
+import {Spinner, Stack,ChakraProvider,Box,HStack,Avatar, Checkbox, Card, CardHeader, CardBody, CardFooter, Button,Progress, ProgressRoot,ProgressLabel,useProgressStyles } from "@chakra-ui/react";
 
 function ProjectParticipants({ setView, setSelectedParticipant }) {
   const [searchQuery, setSearchQuery] = useState("");
@@ -13,20 +15,71 @@ function ProjectParticipants({ setView, setSelectedParticipant }) {
   const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "http://localhost:5000";
   const navigate = useNavigate();
 
-  // Pobieranie uczestników projektu
-  const fetchProjectParticipants = async () => {
-    try {
-      const response = await axios.get(`/projects/${projectId}/participants`);
-      if (response.data.success) {
-        setProjectParticipants(response.data.participants);
-        console.log('response.data.participants',response.data.participants)
-      }
-    } catch (error) {
-      console.error("Błąd podczas pobierania uczestników projektu:", error);
+ // Obsługa kliknięcia poza komponentem
+ useEffect(() => {
+  const handleClickOutside = (event) => {
+    if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+      setIsDropdownVisible(false);
     }
   };
 
+  document.addEventListener("mousedown", handleClickOutside);
+  return () => {
+    document.removeEventListener("mousedown", handleClickOutside);
+  };
+}, []);
+
+// Pobieranie uczestników projektu i ich godzin
+useEffect(() => {
+  if (!projectId) return; // Zapobiega wywołaniu zapytania, jeśli nie ma ID projektu
+
+  const fetchParticipantsWithHours = async () => {
+    try {
+      const response = await axios.get(`/projects/${projectId}/participants-with-hours`);
+      if (response.data.success) {
+        setProjectParticipants(response.data.participants);
+        console.log("response.data.participants", response.data.participants);
+      } else {
+        console.error("Nie udało się pobrać uczestników i godzin.");
+      }
+    } catch (error) {
+      console.error("Błąd podczas pobierania uczestników i godzin:", error);
+    }
+  };
+
+  fetchParticipantsWithHours();
+}, [projectId]); // Zależność od `projectId`
+
+  // Pobieranie uczestników projektu
+  const fetchProjectParticipants = async (projectId) => {
+    const response = await axios.get(`/projects/${projectId}/participants`);
+    if (!response.data.success) {
+      throw new Error("Błąd podczas pobierania uczestników projektu");
+    }
+    return response.data.participants; 
+  };
+  // Użyj React Query do pobrania uczestników projektu
+  const { data: participants = [], isLoading, isError } = useQuery({
+    queryKey: ["projectParticipants", projectId], // ✅ Klucz zapytania
+    queryFn: () => fetchProjectParticipants(projectId), // ✅ Funkcja pobierająca dane
+  });
   
+
+  if (isLoading) {
+    return  <div className="flex items-center justify-center h-screen"><ChakraProvider><Spinner
+    size="lg"
+    color="colorPalette.600"
+    
+  /></ChakraProvider></div>;
+  }
+
+  if (isError) {
+    return (
+      <div className="text-red-500">
+        Wystąpił błąd podczas pobierania danych uczestników projektu.
+      </div>
+    );
+  }
 
   // Wyszukiwanie uczestników
   const searchParticipants = async (query) => {
@@ -69,43 +122,7 @@ function ProjectParticipants({ setView, setSelectedParticipant }) {
     }
   };
 
-  // Obsługa kliknięcia poza komponentem
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-        setIsDropdownVisible(false);
-      }
-    };
 
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, []);
-
-  // Pobieranie uczestników projektu i ich godzin
-  useEffect(() => {
-    const fetchParticipantsWithHours = async () => {
-      try {
-        const response = await axios.get(`/projects/${projectId}/participants-with-hours`);
-        if (response.data.success) {
-          setProjectParticipants(response.data.participants); // Zapisz pełne dane w stanie
-          console.log('response.data.participants',response.data.participants)
-        } else {
-          console.error("Nie udało się pobrać uczestników i godzin.");
-        }
-      } catch (error) {
-        console.error("Błąd podczas pobierania uczestników i godzin:", error);
-      }
-    };
-  
-    fetchParticipantsWithHours();
-  }, [projectId]);
-
-/*   useEffect(() => {
-    projectParticipants.forEach((participant) => fetchParticipantHours(participant.id));
-  }, [projectParticipants]);
- */
   const handleSearchChange = (e) => {
     const query = e.target.value;
     setSearchQuery(query);
@@ -121,9 +138,11 @@ function ProjectParticipants({ setView, setSelectedParticipant }) {
     setSelectedParticipant(participantId);
     navigate(`/projects/${projectId}/participants/${participantId}/details`);
   };
-
+  console.log('projectParticipants',projectParticipants)
   return (
     <div className="w-full bg-white p-4 rounded shadow hover:shadow-md">
+      
+    
       {/* Sekcja wyszukiwania i dodawania uczestników */}
       <div className="mt-6 relative" ref={dropdownRef}>
         <h3 className="font-semibold mb-2">Dodaj uczestnika:</h3>
@@ -147,13 +166,13 @@ function ProjectParticipants({ setView, setSelectedParticipant }) {
                 <button
                   onClick={() => addParticipantToProject(participant.id)}
                   className={`${
-                    projectParticipants.some((p) => p.id === participant.id)
+                    participants.some((p) => p.id === participant.id)
                       ? "bg-gray-400 cursor-not-allowed"
                       : "bg-blue-500 hover:bg-blue-600"
                   } text-white px-3 py-1 rounded`}
-                  disabled={projectParticipants.some((p) => p.id === participant.id)}
+                  disabled={participants.some((p) => p.id === participant.id)}
                 >
-                  {projectParticipants.some((p) => p.id === participant.id) ? "Dodano" : "Dodaj"}
+                  {participants.some((p) => p.id === participant.id) ? "Dodano" : "Dodaj"}
                 </button>
               </li>
             ))}
@@ -167,7 +186,7 @@ function ProjectParticipants({ setView, setSelectedParticipant }) {
       <div className="mt-2">
           <p className="text-gray-600">
             Liczba uczestników dodanych do projektu:{" "}
-            <span className="font-bold">{projectParticipants.length}</span>
+            <span className="font-bold">{participants.length}</span>
           </p>
         </div>
         {projectParticipants.map((participant) => (
@@ -180,9 +199,11 @@ function ProjectParticipants({ setView, setSelectedParticipant }) {
                 {participant.firstName} {participant.lastName}
               </span>
               <div className="mt-2 text-gray-600 text-sm">
+                
                 {participant.types ? (
                   Object.values(participant.types).map((type) => {
                     // Formatowanie totalHours
+                    
                     const formattedTotalHours = Number.isInteger(parseFloat(type.totalHours))
                       ? parseInt(type.totalHours, 10) // Jeśli całkowita, pokaż bez miejsc po przecinku
                       : parseFloat(type.totalHours).toFixed(1); // Jeśli nie, pokaż 1 miejsce po przecinku
@@ -218,6 +239,8 @@ function ProjectParticipants({ setView, setSelectedParticipant }) {
         ))}
 
       </ul>
+
+       
     </div>
   );
 }

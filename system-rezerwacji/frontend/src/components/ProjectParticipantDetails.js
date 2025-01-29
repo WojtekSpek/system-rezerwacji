@@ -10,7 +10,7 @@ import TotalHours from "./ProjectParticipantDetails/TotalHours"; // Import kompo
 import { useParams } from "react-router-dom";
 import Commentary from "./Commentary";
 import {createEventStyleGetter } from "./function/getEventStyle.js";
-
+import { Tabs } from "@chakra-ui/react"
 
 moment.locale("pl"); // Ustaw język polski
 
