@@ -123,7 +123,7 @@ function Trainers() {
                       <td className="border px-4 py-2">{trainer.email}</td>
                       <td className="border px-4 py-2">{trainer.types?.join(", ") || "Brak typów"}</td>
                       <td className="border px-4 py-2">
-                       <div class="flex justify-between items-center space-x-2">
+                       <div className="flex justify-between items-center space-x-2">
                         <button
                               onClick={() => handleDeleteTrainer(trainer.id)}
                               className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"

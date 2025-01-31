@@ -1,10 +1,14 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useParams } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { ChakraProvider, Spinner } from "@chakra-ui/react";
+
+
 
 function ProjectTrainers() {
   const [projectTypes, setProjectTypes] = useState([]); // Typy projektu
-  const [projectGroups, setProjectGroups] = useState([]); // Grupy projektu
+  //const [projectGroups, setProjectGroups] = useState([]); // Grupy projektu
   const [trainersByType, setTrainersByType] = useState({}); // Szkoleniowcy przypisani do typów
   const [trainersByGroup, setTrainersByGroup] = useState({}); // Szkoleniowcy przypisani do grup
   const [searchQueries, setSearchQueries] = useState({}); // Oddzielne inputy dla typów
@@ -22,7 +26,11 @@ function ProjectTrainers() {
     fetchProjectGroups();
   }, [projectId]);
 
-  const fetchProjectGroups = async () => {
+
+  /// zmiana useEffect na React Query
+
+
+/*   const fetchProjectGroups = async () => {
     try {
       const response = await axios.get(`${API_BASE_URL}/group/group-trainings/${projectId}`);
      console.log('response',response)
@@ -33,7 +41,40 @@ function ProjectTrainers() {
     } catch (error) {
       console.error("Błąd podczas pobierania grup projektu:", error);
     }
-  };
+  }; */
+
+   const fetchProjectGroups = async (projectId) => {
+   const response = await axios.get(`${API_BASE_URL}/group/group-trainings/${projectId}`);
+      if (!response.data.success) {
+        throw new Error("Błąd podczas pobierania grup szkoleniowców projektu");
+      }
+   
+    return response.data.trainings;
+  }; 
+
+// Użyj React Query do pobrania grup projektu
+   const { data: projectGroups = [], isLoading: isLoadingGroup, isError } = useQuery({
+    queryKey: ["projectGroups", projectId], // ✅ Klucz zapytania
+    queryFn: () => fetchProjectGroups(projectId), // ✅ Funkcja pobierająca dane
+  });
+
+
+
+
+  /* const fetchAllTrainersForGroups = async (groups) => {
+    const trainersData = {};
+    try {
+      for (const group of groups) {
+        const response = await axios.get(`${API_BASE_URL}/group/${projectId}/group-trainers/${group.id}`);
+        if (response.data.success) {
+          trainersData[group.id] = response.data.trainers;
+        }
+      }
+      setTrainersByGroup(trainersData);
+    } catch (error) {
+      console.error("Błąd podczas pobierania szkoleniowców dla grup:", error);
+    }
+  }; */
 
   const fetchAllTrainersForGroups = async (groups) => {
     const trainersData = {};
@@ -49,6 +90,9 @@ function ProjectTrainers() {
       console.error("Błąd podczas pobierania szkoleniowców dla grup:", error);
     }
   };
+  
+  /// koniec
+
 
   const addTrainerToGroup = async (trainerId, groupId) => {
     try {
@@ -166,7 +210,16 @@ function ProjectTrainers() {
     }
   };
   
-  
+  if ( isLoadingGroup ) { 
+    return <div className="flex items-center justify-center h-screen">
+      <ChakraProvider>
+        <Spinner
+          size="lg"
+          color="colorPalette.600"          
+        />
+      </ChakraProvider>
+    </div>;
+  }
 
   return (
     <div className="p-4 w-full">
