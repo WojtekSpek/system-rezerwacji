@@ -24,6 +24,7 @@ function ProjectTrainers() {
   useEffect(() => {
     fetchProjectTypes();
     fetchProjectGroups();
+    console.log("useEffect() - finished");
   }, [projectId]);
 
 
@@ -33,14 +34,14 @@ function ProjectTrainers() {
         throw new Error("Błąd podczas pobierania grup szkoleniowców projektu");
       }
       else {
-        console.log("fetchProjectGroups are:", response.data.trainings);
+        console.log("@1fetchProjectGroups are:", response.data.trainings);
       }
          
       return response.data.trainings;
   }; 
 
 /// Użyj React Query do pobrania grup projektu
-   const { data: projectGroups = [], isLoading: isLoadingGroup, isError: isErrorLoadingGroup, isError } = useQuery({
+   const { data: projectGroups = [], isLoading: isLoadingGroup, isError: isErrorLoadingGroup } = useQuery({
     queryKey: ["projectGroups", projectId], // ✅ Klucz zapytania
     queryFn: () => fetchProjectGroups(projectId), // ✅ Funkcja pobierająca dane
   });
@@ -53,43 +54,42 @@ function ProjectTrainers() {
       
           throw new Error("Błąd podczas pobierania szkoleniowców dla grup:");
         }
-        else {
-          console.log("Fetching project and group trainers", [projectId, groupId])
-          console.log("fetchAllTrainersForGroups", response.data);
-        }
-
-        return response.data;
+              
+        return { data: response.data, idOfGroup: groupId };
+              
     };
   
+    
 
     // Pobranie postów dla każdego użytkownika (gdy 'projectGroups'' są już dostępne)
-    const { data: trainerGroups, isLoading: isLoadingTrainersGroups} = useQueries({
+    const allTrainersForGroupsQueryResult = useQueries({
       queries: (projectGroups || []).map((group) => ({
-        queryKey: ['allTrainerForGroups', projectId, group.id],
+        queryKey: ['trainersByGroup', projectId, group.id],
         queryFn: () => fetchAllTrainersForGroups(projectId, group.id),
         enabled: !!projectGroups, // Wykonuje się tylko, jeśli 'projectGroups' są dostępne
       })),
     });
 
+    const isLoadingTrainersGroups = allTrainersForGroupsQueryResult.map((query) => (query.isLoading))
+      .every((query) => (query));
     
 
+    const allSuccessWithData = Array.isArray(allTrainersForGroupsQueryResult) &&
+      allTrainersForGroupsQueryResult.length > 0 &&
+      allTrainersForGroupsQueryResult.every((query) => query && query.isSuccess && query.data);
     // filtrujemy dane szkoleniowców z grup przypisanych do projektu gdy się już pobiorą
-    useEffect(() => {         
-        console.log("Loaded trainerGroups:", trainerGroups);
+     useEffect(() => {  
+      if (allSuccessWithData) {   
+          const trainersData = allTrainersForGroupsQueryResult.reduce((acc, group) => {
+            acc[String(group.data?.idOfGroup)] = group.data?.data.trainers; // 🔹 Przypisujemy tablicę trenerów do grupy
+            return acc;
+          }, {}); 
 
-        const trainersData = {};
-        for (const group in trainerGroups) {
-            if (group.success){
-              trainersData[group.id] = group.data;
-            }          
-          }
-
+          console.log("@3Loaded trainerGroups:",trainersData );
+          setTrainersByGroup(trainersData); // Aktualizujemy stan//trainerGroups?.filter(([group]) => group.success);
         
-        console.log("Filtred trainersByGroup:", trainersData);
-        setTrainersByGroup(trainersData); // Aktualizujemy stan
+      }}, [allSuccessWithData, projectGroups]);   // Uruchamiamy, gdy 'allSuccessWithData', 'projectGroups' się zmienią
       
-      }, [trainerGroups]); // Uruchamiamy, gdy 'trainerGroups' się zmieni
-
   /// koniec
 
 
@@ -211,7 +211,7 @@ function ProjectTrainers() {
   
   
 
-  if ( isLoadingGroup || isLoadingTrainersGroups ) { 
+  if ( isLoadingGroup || isLoadingTrainersGroups || !allSuccessWithData ) { 
     return <div className="flex items-center justify-center h-screen">
       <ChakraProvider>
         <Spinner
@@ -293,7 +293,7 @@ function ProjectTrainers() {
 
             <ul>
               {trainersByGroup[group.id]?.map((trainer) => (
-                <li key={trainer.id} className="flex justify-between items-center p-2 border-b">
+                <li key={trainer.id + '_' + group.id} className="flex justify-between items-center p-2 border-b">
                   <span>{trainer.name}</span>
                   <button
                     onClick={() => removeTrainerFromGroup(trainer.id, group.id)}
@@ -302,7 +302,7 @@ function ProjectTrainers() {
                     Usuń
                   </button>
                 </li>
-              )) || <p>Brak przypisanych szkoleniowców</p>}
+              )) || <p>Brak przypisanych szkoleniowców # {group.id}</p>}
             </ul>
 
             <div className="mt-4">
