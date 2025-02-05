@@ -7,8 +7,6 @@ import { ChakraProvider, Spinner } from "@chakra-ui/react";
 
 
 function ProjectTrainers() {
-  const [projectTypes, setProjectTypes] = useState([]); // Typy projektu
-  //const [projectGroups, setProjectGroups] = useState([]); // Grupy projektu
   const [trainersByType, setTrainersByType] = useState({}); // Szkoleniowcy przypisani do typów
   const [trainersByGroup, setTrainersByGroup] = useState({}); // Szkoleniowcy przypisani do grup
   const [searchQueries, setSearchQueries] = useState({}); // Oddzielne inputy dla typów
@@ -21,76 +19,70 @@ function ProjectTrainers() {
   const projectId = id; // Pobiera ID projektu z URL
   const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "http://localhost:5000";
 
-  useEffect(() => {
-    fetchProjectTypes();
+  useEffect(() => { 
+    fetchProjectTypes(); 
     fetchProjectGroups();
     console.log("useEffect() - finished");
   }, [projectId]);
 
-
+  /// Użyj React Query do pobrania grup projektu
    const fetchProjectGroups = async (projectId) => {
-   const response = await axios.get(`${API_BASE_URL}/group/group-trainings/${projectId}`);
+    const response = await axios.get(`${API_BASE_URL}/group/group-trainings/${projectId}`);
       if (!response.data.success) {
-        throw new Error("Błąd podczas pobierania grup szkoleniowców projektu");
+        throw(new Error("Błąd podczas pobierania grup szkoleniowców projektu"));
       }
-      else {
-        console.log("@1fetchProjectGroups are:", response.data.trainings);
-      }
-         
+      
       return response.data.trainings;
   }; 
 
-/// Użyj React Query do pobrania grup projektu
+  
    const { data: projectGroups = [], isLoading: isLoadingGroup, isError: isErrorLoadingGroup } = useQuery({
-    queryKey: ["projectGroups", projectId], // ✅ Klucz zapytania
-    queryFn: () => fetchProjectGroups(projectId), // ✅ Funkcja pobierająca dane
+    queryKey: ["projectGroups", projectId],
+    queryFn: () => fetchProjectGroups(projectId),
   });
 
-
-  const fetchAllTrainersForGroups = async (projectId, groupId) => {
-   
+  // pobiera trenerów dla grupy
+  const fetchAllTrainersForGroups = async (projectId, groupId) => {   
         const response = await axios.get(`${API_BASE_URL}/group/${projectId}/group-trainers/${groupId}`);
-        if (!response.data.success) {
-      
-          throw new Error("Błąd podczas pobierania szkoleniowców dla grup:");
+        if (!response.data.success) {      
+          throw(new Error("Błąd podczas pobierania szkoleniowców dla grup:"));
         }
               
-        return { data: response.data, idOfGroup: groupId };
-              
+        return { data: response.data, idOfGroup: groupId };              
     };
   
+  // Pobranie grup dla projektu (gdy 'projectGroups'' są już dostępne)
+  const allTrainersForGroupsQueryResult = useQueries({
+    queries: (projectGroups || []).map((group) => ({
+      queryKey: ['trainersByGroupQueries', projectId, group.id],
+      queryFn: () => fetchAllTrainersForGroups(projectId, group.id),
+      enabled: !!projectGroups, // Wykonuje się tylko, jeśli 'projectGroups' są dostępne
+    })),
+  });
+
+  // flaga oznaczająca czy grupy są pobrane
+  const isLoadingTrainersGroups = allTrainersForGroupsQueryResult.map((query) => (query.isLoading))
+    .every((query) => (query));
+  
+  // flaga sygnalizująca, że dane trenerów grup są pobrane
+  const allSuccessWithGroupsData = Array.isArray(allTrainersForGroupsQueryResult) &&
+    allTrainersForGroupsQueryResult.length > 0 &&
+    allTrainersForGroupsQueryResult.every((query) => query && query.isSuccess && query.data);
+
+  // filtrujemy i zapisuje dane szkoleniowców z grup przypisanych do projektu gdy się już pobiorą
+  useEffect(() => {  
+  if (allSuccessWithGroupsData) {   
+      const trainersData = allTrainersForGroupsQueryResult.reduce((acc, group) => {
+        acc[String(group.data?.idOfGroup)] = group.data?.data.trainers;
+        return acc;
+      }, {}); 
+
+      console.log("@3Loaded trainerGroups:",trainersData );
+      setTrainersByGroup(trainersData); // Aktualizujemy stan//trainerGroups?.filter(([group]) => group.success);
     
-
-    // Pobranie postów dla każdego użytkownika (gdy 'projectGroups'' są już dostępne)
-    const allTrainersForGroupsQueryResult = useQueries({
-      queries: (projectGroups || []).map((group) => ({
-        queryKey: ['trainersByGroup', projectId, group.id],
-        queryFn: () => fetchAllTrainersForGroups(projectId, group.id),
-        enabled: !!projectGroups, // Wykonuje się tylko, jeśli 'projectGroups' są dostępne
-      })),
-    });
-
-    const isLoadingTrainersGroups = allTrainersForGroupsQueryResult.map((query) => (query.isLoading))
-      .every((query) => (query));
+  }}, [allSuccessWithGroupsData, projectGroups]);   // Uruchamiamy, gdy 'allSuccessWithData', 'projectGroups' się zmienią
     
-
-    const allSuccessWithData = Array.isArray(allTrainersForGroupsQueryResult) &&
-      allTrainersForGroupsQueryResult.length > 0 &&
-      allTrainersForGroupsQueryResult.every((query) => query && query.isSuccess && query.data);
-    // filtrujemy dane szkoleniowców z grup przypisanych do projektu gdy się już pobiorą
-     useEffect(() => {  
-      if (allSuccessWithData) {   
-          const trainersData = allTrainersForGroupsQueryResult.reduce((acc, group) => {
-            acc[String(group.data?.idOfGroup)] = group.data?.data.trainers; // 🔹 Przypisujemy tablicę trenerów do grupy
-            return acc;
-          }, {}); 
-
-          console.log("@3Loaded trainerGroups:",trainersData );
-          setTrainersByGroup(trainersData); // Aktualizujemy stan//trainerGroups?.filter(([group]) => group.success);
-        
-      }}, [allSuccessWithData, projectGroups]);   // Uruchamiamy, gdy 'allSuccessWithData', 'projectGroups' się zmienią
-      
-  /// koniec
+/// koniec pobierania grup
 
 
   const addTrainerToGroup = async (trainerId, groupId) => {
@@ -120,32 +112,61 @@ function ProjectTrainers() {
     }
   };
 
-  const fetchProjectTypes = async () => {
-    try {
+  /// Użyj React Query do pobrania typów projektu
+  const fetchProjectTypes = async (projectId) => {   
       const response = await axios.get(`${API_BASE_URL}/projects/project_training_types/${projectId}`);
-      if (response.data.success) {
-        setProjectTypes(response.data.types);
-        fetchAllTrainersForTypes(response.data.types);
+      if (!response.data.success) {
+        throw(new Error("Błąd podczas pobierania typów projektu:"));
       }
-    } catch (error) {
-      console.error("Błąd podczas pobierania typów projektu:", error);
-    }
+      
+      return response.data.types;
   };
 
-  const fetchAllTrainersForTypes = async (types) => {
-    const trainersData = {};
-    try {
-      for (const type of types) {
-        const response = await axios.get(`${API_BASE_URL}/projects/${projectId}/trainers/${type.id}`);
-        if (response.data.success) {
-          trainersData[type.id] = response.data.trainers;
-        }
+  const { data: projectTypes = [], isLoading: isLoadingType, isError: isErrorLoadingType } = useQuery({
+    queryKey: ["projectTypes", projectId], 
+    queryFn: () => fetchProjectTypes(projectId),
+  });
+
+  const fetchAllTrainersForTypes = async (projectId, typeId) => {
+    const response = await axios.get(`${API_BASE_URL}/projects/${projectId}/trainers/${typeId}`);
+      if (!response.data.success) {
+        throw(new Error("Błąd podczas pobierania szkoleniowców:"));
       }
+
+      return { data: response.data, idOfType: typeId };
+   };
+
+   const allTrainersForTypesQueryResult = useQueries({
+    queries: (projectTypes || []).map((type) => ({
+      queryKey: ['trainersByTypeQueries', projectId, type.id],
+      queryFn: () => fetchAllTrainersForTypes(projectId, type.id),
+      enabled: !!projectTypes, // Wykonuje się tylko, jeśli 'projectGroups' są dostępne
+    })),
+  });
+
+  const isLoadingTrainersTypes = allTrainersForTypesQueryResult.map((query) => (query.isLoading))
+    .every((query) => (query));
+  
+  // flaga sygnalizująca, że dane typu są pobrane
+  const allSuccessWithTypeData = Array.isArray(allTrainersForTypesQueryResult) &&
+    allTrainersForTypesQueryResult.length > 0 &&
+    allTrainersForTypesQueryResult.every((query) => query && query.isSuccess && query.data);
+
+  // filtrujemy dane szkoleniowców z typów przypisanych do projektu gdy się już pobiorą
+  useEffect(() => {  
+  if (allSuccessWithTypeData) {   
+      const trainersData = allTrainersForTypesQueryResult.reduce((acc, type) => {
+        acc[String(type.data?.idOfType)] = type.data?.data.trainers;
+        console.log("@type:", type.data);
+        return acc;
+      }, {}); 
+
+      console.log("@5Loaded trainerTypes:", trainersData );
       setTrainersByType(trainersData);
-    } catch (error) {
-      console.error("Błąd podczas pobierania szkoleniowców:", error);
-    }
-  };
+    
+  }}, [allSuccessWithTypeData, projectTypes]);
+        
+  /// koniec pobierania typów
 
   const addTrainerToType = async (trainerId, typeId) => {
     try {
@@ -210,8 +231,13 @@ function ProjectTrainers() {
   };
   
   
-
-  if ( isLoadingGroup || isLoadingTrainersGroups || !allSuccessWithData ) { 
+  // wyświetla spiner do momentu pobrania trenerów, grup i typów zajęć
+  if ( isLoadingGroup 
+      || isLoadingType 
+      || isLoadingTrainersTypes
+      || isLoadingTrainersGroups 
+      || !allSuccessWithGroupsData 
+      || !allSuccessWithTypeData ) { 
     return <div className="flex items-center justify-center h-screen">
       <ChakraProvider>
         <Spinner
@@ -302,7 +328,7 @@ function ProjectTrainers() {
                     Usuń
                   </button>
                 </li>
-              )) || <p>Brak przypisanych szkoleniowców # {group.id}</p>}
+              )) || <p>Brak przypisanych szkoleniowców</p>}
             </ul>
 
             <div className="mt-4">
