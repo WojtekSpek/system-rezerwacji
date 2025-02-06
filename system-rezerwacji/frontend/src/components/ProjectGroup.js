@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
+import { useQuery } from "@tanstack/react-query";
 //import Commentary from "./Commentary";
 import { useParams, useNavigate } from "react-router-dom";
+import { ChakraProvider, Spinner } from "@chakra-ui/react";
 import Swal from "sweetalert2";
 
 function GroupTrainings({ setSelectedProject }) {
-  const [trainings, setTrainings] = useState([]);
+  //const [trainings, setTrainings] = useState([]);
   const [newTraining, setNewTraining] = useState({ name: "", hours: 0 });
   const [editingTraining, setEditingTraining] = useState(null);
   const { id } = useParams(); // Pobiera ID projektu z URL
@@ -21,14 +23,31 @@ function GroupTrainings({ setSelectedProject }) {
     navigate(`/projects/${projectId}/Group/${trainingid}`);
   };
 
+  /// Zmiana na użycie 'useQuery'
+
   const fetchTrainings = async () => {
-    try {
-      const response = await axios.get(`/group/group-trainings/${projectId}`);
-      setTrainings(response.data.trainings);
-    } catch (error) {
-      console.error("Błąd podczas pobierania szkoleń grupowych:", error);
-    }
+    const response = await axios.get(`/group/group-trainings/${projectId}`);
+    if (!response.data.success) {
+      throw (new Error("Błąd podczas pobierania szkoleń grupowych:"));
+    }  
+    
+    return response.data.trainings;
   };
+
+  const { data: trainings = [],
+    isLoading: isLoadingTrainings, 
+    isError: isErrorTrainings,
+    error: loadingTrainingsError } = useQuery({
+    queryKey: ["trainings", projectId],
+    queryFn: () => fetchTrainings(),
+  });
+
+   
+  if (isErrorTrainings) {
+    console.log("Błąd podczas pobierania szkoleń grupowych:", loadingTrainingsError);
+  }
+
+  /// Koniec 
 
   const handleAddTraining = async () => {
     if (!newTraining.name.trim() || newTraining.hours <= 0) return;
@@ -82,6 +101,19 @@ function GroupTrainings({ setSelectedProject }) {
       console.error("Błąd podczas edycji szkolenia grupowego:", error);
     }
   };
+
+  if (isLoadingTrainings) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <ChakraProvider>
+          <Spinner
+            size="lg"
+            color="colorPalette.600"          
+          />
+        </ChakraProvider>
+      </div>
+    ); 
+  }
 
   return (
     <div>
