@@ -7,7 +7,7 @@ import {Spinner, Stack,ChakraProvider,Box,HStack,Avatar, Checkbox, Card, CardHea
 function ProjectParticipants({ setView, setSelectedParticipant }) {
   const [searchQuery, setSearchQuery] = useState("");
   const [filteredParticipants, setFilteredParticipants] = useState([]);
-  const [projectParticipants, setProjectParticipants] = useState([]);
+  
   const [hoursByParticipant, setHoursByParticipant] = useState({});
   const [isDropdownVisible, setIsDropdownVisible] = useState(false);
   const dropdownRef = useRef(null);
@@ -29,26 +29,40 @@ function ProjectParticipants({ setView, setSelectedParticipant }) {
   };
 }, []);
 
-// Pobieranie uczestników projektu i ich godzin
-useEffect(() => {
-  if (!projectId) return; // Zapobiega wywołaniu zapytania, jeśli nie ma ID projektu
 
-  const fetchParticipantsWithHours = async () => {
-    try {
-      const response = await axios.get(`/projects/${projectId}/participants-with-hours`);
-      if (response.data.success) {
-        setProjectParticipants(response.data.participants);
-        console.log("response.data.participants", response.data.participants);
-      } else {
-        console.error("Nie udało się pobrać uczestników i godzin.");
-      }
-    } catch (error) {
-      console.error("Błąd podczas pobierania uczestników i godzin:", error);
-    }
+  /// zastąpienie popbierania 'axios' użyciem 'useQuery'
+
+  const fetchParticipantsWithHours = async (projectId) => {
+    const response = await axios.get(`/projects/${projectId}/participants-with-hours`);
+    if (!response.data.success) {
+      //setProjectParticipants(response.data.participants);
+      console.log("response.data.participants", response.data.participants);
+      throw(new Error("Błąd podczas pobierania uczestników i godzin: "));
+      
+    } 
+    
+    return response.data.participants;
   };
 
-  fetchParticipantsWithHours();
-}, [projectId]); // Zależność od `projectId`
+  // Użyj React Query do pobrania uczestników projektu (godzin) i czasu zajęć
+  const { data: projectParticipants = [], 
+    isLoading: isLoadingParticipantsWithHours, 
+    isError: isErrorParticipanstWithHours } = useQuery({
+    queryKey: ["projectParticipantsWithHours", projectId], // ✅ Klucz zapytania
+    queryFn: () => fetchParticipantsWithHours(projectId), // ✅ Funkcja pobierająca dane
+  });
+
+  if (isErrorParticipanstWithHours) {
+    console.error("Nie udało się pobrać uczestników i godzin.");
+  }
+
+  // Pobieranie uczestników projektu i ich godzin
+  useEffect(() => {
+    if (!projectId) return; // Zapobiega wywołaniu zapytania, jeśli nie ma ID projektu
+      fetchParticipantsWithHours(projectId);
+  }, [projectId]); // Zależność od `projectId`
+  
+  /// koniec zmiany sposobu pobierania danych fetchParticipantsWithHours
 
   // Pobieranie uczestników projektu
   const fetchProjectParticipants = async (projectId) => {
@@ -59,13 +73,13 @@ useEffect(() => {
     return response.data.participants; 
   };
   // Użyj React Query do pobrania uczestników projektu
-  const { data: participants = [], isLoading, isError } = useQuery({
+  const { data: participants = [], isLoadingParticipants, isError } = useQuery({
     queryKey: ["projectParticipants", projectId], // ✅ Klucz zapytania
     queryFn: () => fetchProjectParticipants(projectId), // ✅ Funkcja pobierająca dane
   });
   
 
-  if (isLoading) {
+  if (isLoadingParticipants || isLoadingParticipantsWithHours) {
     return  <div className="flex items-center justify-center h-screen"><ChakraProvider><Spinner
     size="lg"
     color="colorPalette.600"
@@ -73,7 +87,7 @@ useEffect(() => {
   /></ChakraProvider></div>;
   }
 
-  if (isError) {
+  if (isError || isErrorParticipanstWithHours) {
     return (
       <div className="text-red-500">
         Wystąpił błąd podczas pobierania danych uczestników projektu.
