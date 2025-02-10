@@ -1,20 +1,21 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useParams, useNavigate } from "react-router-dom";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { ChakraProvider, Spinner } from "@chakra-ui/react";
 
 function ProjectDetails({ onUpdate }) {
   const { id } = useParams(); // Pobiera ID projektu z URL
   const navigate = useNavigate();
-  const [project, setProject] = useState(null); // Dane projektu
   const [isEditing, setIsEditing] = useState(false);
   const [editedName, setEditedName] = useState(""); // Edytowana nazwa projektu
-  const [editedTypes, setEditedTypes] = useState([]); // ID typów przypisanych do projektu
-  const [allTypes, setAllTypes] = useState([]); // Pełna lista typów
-  const [trainingHours, setTrainingHours] = useState([]); // Godziny dla typów
   const [editingHours, setEditingHours] = useState({}); // Bieżące edytowane godziny
   const [shouldRefresh, setShouldRefresh] = useState(false);
-  const [groupHours, setGroupHours] = useState([]); // Czas zajęć grupowych
-const [editingGroupHours, setEditingGroupHours] = useState({}); // Bieżące edytowane godziny zajęć grupowych
+  const [editingGroupHours, setEditingGroupHours] = useState({}); // Bieżące edytowane godziny zajęć grupowych
+
+
+
+
   useEffect(() => {
     fetchAllTypes();
     fetchProject();
@@ -26,18 +27,32 @@ const [editingGroupHours, setEditingGroupHours] = useState({}); // Bieżące edy
     setShouldRefresh(false); // Resetuj flagę po odświeżeniu
   }, [id, shouldRefresh]);
 
-
-  const fetchGroupHours = async () => {
-    try {
-      const response = await axios.get(`/group/${id}/group-training/hours`);
-      if (response.data.success) {
-        setGroupHours(response.data.groupHours);
-        console.log("Pobrane godziny zajęć grupowych:", response.data.groupHours);
+  // Pobiera czas zajęć grupowych
+  const fetchGroupHours = async (id) => {
+    const response = await axios.get(`/group/${id}/group-training/hours`);
+      if (!response.data.success) {
+        throw(new Error("Błąd podczas pobierania godzin zajęć grupowych"));        
       }
-    } catch (error) {
-      console.error("Błąd podczas pobierania godzin zajęć grupowych:", error);
-    }
-  };
+      
+      console.log("Pobrane godziny zajęć grupowych:", response.data.groupHours);
+
+      return response.data.groupHours;
+  }; 
+
+
+  const { data: groupHours = [],
+    isLoading: isLoadingGroupHours, 
+    isError: isErrorLoadingGroupHours,
+    error: errorGroupHours } = useQuery({
+    queryKey: ["groupHours", id, shouldRefresh],
+    queryFn: () => fetchGroupHours(id),
+  });
+
+  if (isErrorLoadingGroupHours) {
+    console.log("Błąd podczas pobierania godzin zajęć grupowych:", errorGroupHours);
+  }
+  
+
   const handleUpdateGroupHours = async (groupId, newHours) => {
     try {
       await axios.put(`/group/${id}/group-training/${groupId}`, {
@@ -50,53 +65,100 @@ const [editingGroupHours, setEditingGroupHours] = useState({}); // Bieżące edy
       alert("Nie udało się zaktualizować godzin zajęć grupowych.");
     }
   };
-  const fetchAllTypes = async () => {
-    try {
-      const url = "/projects/trainingTypes";
-      console.log("Wysyłanie żądania do:", url);
-      const response = await axios.get(url);
-      if (response.data.success) {
-        setAllTypes(response.data.data);
-        console.log("Pobrane wszystkie typy:", response.data.data);
-      }
-    } catch (error) {
-      console.error("Błąd podczas pobierania wszystkich typów:", error);
-    }
-  };
-
-// Pobierz szczegóły projektu
-const fetchProject = async () => {
-  try {
-    const response = await axios.get(`/projects/${id}`);
-    if (response.data.success) {
-      setProject(response.data.project);
-      setEditedName(response.data.project.project_name
-      ); // Ustaw nazwę
-      //setEditedTypes(response.data.project.types || []); // Ustaw przypisane typy
-    }
-    console.log('fetchProject',response.data)
-  } catch (error) {
-    console.error("Błąd podczas pobierania projektu:", error);
-  }
-};
-
-console.log('project',project)
-
-
-  const fetchProjectTypes = async () => {
-    try {
-      const response = await axios.get(`/projects/project_training_types/${id}`);
-      console.log('response-1',response)
-      if (response.data.success) {
-        setEditedTypes(response.data.types.map((type) => type.id)); // Zapisujemy tylko ID typów
-        console.log("Pobrane typy projektu:", response.data.types);
-      }
-    } catch (error) {
-      console.error("Błąd podczas pobierania typów projektu:", error);
-    }
-  };
 
   
+  // Pobiera pełną listę typów
+  const fetchAllTypes = async () => {
+    const url = "/projects/trainingTypes";
+    console.log("Wysyłanie żądania do:", url);
+    const response = await axios.get(url);
+      if (!response.data.success) {
+        
+        throw(new Error("Błąd podczas pobierania godzin zajęć grupowych"));        
+      }
+
+      console.log("Pobrane wszystkie typy:", response.data.data);
+      return response.data.data;
+  }; 
+
+
+  const { data: allTypes = [],
+    isLoading: isLoadingAllTypes, 
+    isError: isErrorLoadingAllTypes,
+    error: errorAllTypes } = useQuery({
+    queryKey: ["allTypes", id, shouldRefresh],
+    queryFn: () => fetchAllTypes(),
+  });
+
+  if (isErrorLoadingAllTypes) {
+    console.log("Błąd podczas pobierania godzin zajęć grupowych:", errorAllTypes);
+  }
+
+
+// Pobierz szczegóły projektu
+const fetchProject = async () => { 
+  const response = await axios.get(`/projects/${id}`);
+    if (!response.data.success) {
+      
+      throw (new Error("Błąd podczas pobierania projektu"));        
+    }
+
+    console.log("Pobrane projekt:", response.data);
+    return response.data.project;
+}; 
+
+
+const { data: project = {},
+  isLoading: isLoadingProject, 
+  isError: isErrorLoadingProject,
+  error: errorProject } = useQuery({
+  queryKey: ["project", id, shouldRefresh],
+  queryFn: () => fetchProject(),
+});
+
+if (isErrorLoadingProject) {
+  console.log("Błąd podczas pobierania projektu:", errorProject);
+}
+
+useEffect(() => {
+  if (!project && project?.project_name) {
+    setEditedName(() => project.project_name);
+    console.log("editedName set:", project.project_name);
+  }
+}, [project, id, shouldRefresh]);
+
+
+  console.log('project', project)
+
+ 
+  // ID typów przypisanych do projektu 
+  const fetchProjectTypes = async (id) => {
+    const response = await axios.get(`/projects/project_training_types/${id}`);
+      if (!response.data.success) {
+        
+        throw(new Error("Błąd podczas pobierania typów projektu"));        
+      }
+
+      console.log("Pobrane typy projektu:", response.data.types);
+      return response.data.types.map((type) => ( type.id ));
+  }; 
+
+
+  const { data: editedTypes = [],
+    isLoading: isLoadingEditedTypes, 
+    isError: isErrorLoadinEditedTypes,
+    error: errorEditedTypes } = useQuery({
+    queryKey: ["editedTypes", id, shouldRefresh],
+    queryFn: () => fetchProjectTypes(id),
+  });
+
+  
+  if (isErrorLoadinEditedTypes) {
+    console.log("Błąd podczas pobierania typów projecktów:", errorEditedTypes);
+  }
+  
+  const queryClient = useQueryClient();
+
 
   const handleSave = async () => {
     try {
@@ -118,18 +180,34 @@ console.log('project',project)
     }
 };
 
+
+
 // Pobierz planned_hours
-const fetchTrainingHours = async () => {
-  try {
-    const response = await axios.get(`/projects/${id}/training-types/hours`);
-    if (response.data.success) {
-      setTrainingHours(response.data.trainingHours);
-      console.log('response.data.trainingHours',response.data.trainingHours)
+const fetchTrainingHours = async (id) => {
+  const response = await axios.get(`/projects/${id}/training-types/hours`);
+    if (!response.data.success) {
+      
+      throw(new Error("Błąd podczas pobierania godzin zajęć"));        
     }
-  } catch (error) {
-    console.error("Błąd podczas pobierania godzin:", error);
-  }
-};
+
+    return response.data.trainingHours;
+}; 
+
+
+const { data: trainingHours = [],
+  isLoading: isLoadingTrainingHours, 
+  isError: isErrorLoadinTrainingHours,
+  error: errorTrainingHours } = useQuery({
+  queryKey: ["trainingHours", id, shouldRefresh],
+  queryFn: () => fetchTrainingHours(id),
+});
+
+
+
+if (isErrorLoadinTrainingHours) {
+  console.log("Błąd podczas pobierania godzin zajęć:", errorTrainingHours);
+}
+
 
 // Aktualizuj planned_hours
 const handleUpdateHours = async (typeId, newHours) => {
@@ -148,11 +226,30 @@ const handleUpdateHours = async (typeId, newHours) => {
 
   const handleCheckboxChange = (typeId) => {
     if (editedTypes.includes(typeId)) {
-      setEditedTypes(editedTypes.filter((id) => id !== typeId));
+      queryClient.setQueryData(['editedTypes'], (oldTypes) => { 
+        return oldTypes.filter((id) => id !== typeId) });
     } else {
-      setEditedTypes([...editedTypes, typeId]);
+      queryClient.setQueryData(['editedTypes'], [...editedTypes, typeId]);
     }
   };
+
+
+  if (isLoadingProject
+      || isLoadingGroupHours 
+      || isLoadingAllTypes 
+      || isLoadingEditedTypes
+      || isLoadingTrainingHours) {
+   
+    return <div className="flex items-center justify-center h-screen">
+      <ChakraProvider>
+        <Spinner
+          size="lg"
+          color="colorPalette.600"          
+        />
+      </ChakraProvider>
+    </div>;
+  }
+
 
   if (!project) {
     return <div>Brak danych projektu</div>;
