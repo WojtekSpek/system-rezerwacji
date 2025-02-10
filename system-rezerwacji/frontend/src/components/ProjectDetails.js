@@ -148,17 +148,15 @@ useEffect(() => {
     isLoading: isLoadingEditedTypes, 
     isError: isErrorLoadinEditedTypes,
     error: errorEditedTypes } = useQuery({
-    queryKey: ["editedTypes", id, shouldRefresh],
+    queryKey: ["editedTypes"],
     queryFn: () => fetchProjectTypes(id),
+    initialData: [],
   });
 
   
   if (isErrorLoadinEditedTypes) {
     console.log("Błąd podczas pobierania typów projecktów:", errorEditedTypes);
   }
-  
-  const queryClient = useQueryClient();
-
 
   const handleSave = async () => {
     try {
@@ -224,13 +222,14 @@ const handleUpdateHours = async (typeId, newHours) => {
   }
 };
 
-  const handleCheckboxChange = (typeId) => {
-    if (editedTypes.includes(typeId)) {
-      queryClient.setQueryData(['editedTypes'], (oldTypes) => { 
-        return oldTypes.filter((id) => id !== typeId) });
-    } else {
-      queryClient.setQueryData(['editedTypes'], [...editedTypes, typeId]);
-    }
+const queryClient = useQueryClient();
+
+const handleCheckboxChange = (typeId) => {
+  queryClient.setQueryData(['editedTypes'], (oldTypes = []) =>
+      oldTypes.includes(typeId)
+        ? oldTypes.filter((id) => id !== typeId)
+        : [...oldTypes, typeId]
+    );    
   };
 
 
