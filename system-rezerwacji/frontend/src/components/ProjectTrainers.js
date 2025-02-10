@@ -77,7 +77,7 @@ function ProjectTrainers() {
         return acc;
       }, {}); 
 
-      console.log("@3Loaded trainerGroups:",trainersData );
+      console.log("Loaded trainerGroups:",trainersData );
       setTrainersByGroup(trainersData); // Aktualizujemy stan//trainerGroups?.filter(([group]) => group.success);
     
   }}, [allSuccessWithGroupsData, projectGroups]);   // Uruchamiamy, gdy 'allSuccessWithData', 'projectGroups' się zmienią
@@ -157,11 +157,11 @@ function ProjectTrainers() {
   if (allSuccessWithTypeData) {   
       const trainersData = allTrainersForTypesQueryResult.reduce((acc, type) => {
         acc[String(type.data?.idOfType)] = type.data?.data.trainers;
-        console.log("@type:", type.data);
+        console.log("type:", type.data);
         return acc;
       }, {}); 
 
-      console.log("@5Loaded trainerTypes:", trainersData );
+      console.log("Loaded trainerTypes:", trainersData );
       setTrainersByType(trainersData);
     
   }}, [allSuccessWithTypeData, projectTypes]);
