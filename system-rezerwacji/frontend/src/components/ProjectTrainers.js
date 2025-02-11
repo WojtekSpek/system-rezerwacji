@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useParams } from "react-router-dom";
-import { useQuery, useQueries } from "@tanstack/react-query";
+import { useQuery, useQueries, useQueryClient } from "@tanstack/react-query";
 import { ChakraProvider, Spinner } from "@chakra-ui/react";
 
 
@@ -25,6 +25,9 @@ function ProjectTrainers() {
     console.log("useEffect() - finished");
   }, [projectId]);
 
+  // Użyty do unieważnienia zapytań zastosowanych przez 'useQueries'
+  const queryClient = useQueryClient();
+
   /// Użyj React Query do pobrania grup projektu
    const fetchProjectGroups = async (projectId) => {
     const response = await axios.get(`${API_BASE_URL}/group/group-trainings/${projectId}`);
@@ -36,13 +39,25 @@ function ProjectTrainers() {
   }; 
 
   
-   const { data: projectGroups = [], isLoading: isLoadingGroup, isError: isErrorLoadingGroup } = useQuery({
+   const { data: projectGroups = [],
+     isLoading: isLoadingGroup, 
+     isError: isErrorLoadingGroup,
+     error: errorLoadingGroup } = useQuery({
     queryKey: ["projectGroups", projectId],
     queryFn: () => fetchProjectGroups(projectId),
   });
 
+  if (isErrorLoadingGroup) {
+    console.log("Błąd errorLoadingGroup:", errorLoadingGroup);
+  }
+
+  const fetchAllTrainersForGroups = async (groups) => {   
+    console.log("@ fetchAllTrainersForGroups:", groups);
+    console.log("@ allTrainersForTypesQueryResult:", allTrainersForGroupsQueryResult);
+    queryClient.invalidateQueries({ queryKey: ['trainersByGroupQueries'], exact: true});
+  };
   // pobiera trenerów dla grupy
-  const fetchAllTrainersForGroups = async (projectId, groupId) => {   
+  const fetchAllTrainersForGroup = async (projectId, groupId) => {   
         const response = await axios.get(`${API_BASE_URL}/group/${projectId}/group-trainers/${groupId}`);
         if (!response.data.success) {      
           throw(new Error("Błąd podczas pobierania szkoleniowców dla grup:"));
@@ -55,7 +70,7 @@ function ProjectTrainers() {
   const allTrainersForGroupsQueryResult = useQueries({
     queries: (projectGroups || []).map((group) => ({
       queryKey: ['trainersByGroupQueries', projectId, group.id],
-      queryFn: () => fetchAllTrainersForGroups(projectId, group.id),
+      queryFn: () => fetchAllTrainersForGroup(projectId, group.id),
       enabled: !!projectGroups, // Wykonuje się tylko, jeśli 'projectGroups' są dostępne
     })),
   });
@@ -122,12 +137,30 @@ function ProjectTrainers() {
       return response.data.types;
   };
 
-  const { data: projectTypes = [], isLoading: isLoadingType, isError: isErrorLoadingType } = useQuery({
+  const { data: projectTypes = [], 
+    isLoading: isLoadingType, 
+    isError: isErrorLoadingType,
+    error: errorLodingType
+   } = useQuery({
     queryKey: ["projectTypes", projectId], 
     queryFn: () => fetchProjectTypes(projectId),
   });
 
-  const fetchAllTrainersForTypes = async (projectId, typeId) => {
+  if (isErrorLoadingType) {
+    console.log("Błąd errorLodingType:", errorLodingType);
+  }
+
+
+  
+
+  const fetchAllTrainersForTypes = async (types) => {    
+    console.log("@ fetchAllTrainersForTypes:", types);
+    console.log("@ allTrainersForTypesQueryResult:", allTrainersForTypesQueryResult);
+    queryClient.invalidateQueries({ queryKey: ['trainersByTypeQueries'], exact: true});
+  };
+
+  const fetchAllTrainersForType = async (projectId, typeId) => {
+    console.log("$projectId, typeId:", [projectId, typeId] );
     const response = await axios.get(`${API_BASE_URL}/projects/${projectId}/trainers/${typeId}`);
       if (!response.data.success) {
         throw(new Error("Błąd podczas pobierania szkoleniowców:"));
@@ -139,8 +172,8 @@ function ProjectTrainers() {
    const allTrainersForTypesQueryResult = useQueries({
     queries: (projectTypes || []).map((type) => ({
       queryKey: ['trainersByTypeQueries', projectId, type.id],
-      queryFn: () => fetchAllTrainersForTypes(projectId, type.id),
-      enabled: !!projectTypes, // Wykonuje się tylko, jeśli 'projectGroups' są dostępne
+      queryFn: () => fetchAllTrainersForType(projectId, type.id),
+      enabled: !!projectGroups, // Wykonuje się tylko, jeśli 'projectGroups' są dostępne
     })),
   });
 
