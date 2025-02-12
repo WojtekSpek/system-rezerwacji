@@ -160,7 +160,6 @@ function ProjectTrainers() {
   };
 
   const fetchAllTrainersForType = async (projectId, typeId) => {
-    console.log("$projectId, typeId:", [projectId, typeId] );
     const response = await axios.get(`${API_BASE_URL}/projects/${projectId}/trainers/${typeId}`);
       if (!response.data.success) {
         throw(new Error("Błąd podczas pobierania szkoleniowców:"));
@@ -190,7 +189,6 @@ function ProjectTrainers() {
   if (allSuccessWithTypeData) {   
       const trainersData = allTrainersForTypesQueryResult.reduce((acc, type) => {
         acc[String(type.data?.idOfType)] = type.data?.data.trainers;
-        console.log("type:", type.data);
         return acc;
       }, {}); 
 
