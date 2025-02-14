@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useParams, useNavigate } from "react-router-dom";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ChakraProvider, Spinner } from "@chakra-ui/react";
+import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
+import { ChakraProvider, Spinner, Toast, useToast } from "@chakra-ui/react";
 
 function ProjectDetails({ onUpdate }) {
   const { id } = useParams(); // Pobiera ID projektu z URL
@@ -14,8 +14,6 @@ function ProjectDetails({ onUpdate }) {
   const [editingGroupHours, setEditingGroupHours] = useState({}); // Bieżące edytowane godziny zajęć grupowych
 
 
-
-
   useEffect(() => {
     fetchAllTypes();
     fetchProject();
@@ -23,12 +21,12 @@ function ProjectDetails({ onUpdate }) {
     fetchProjectTypes();
     fetchTrainingHours();
     fetchGroupHours(); // Dodano pobieranie godzin zajęć grupowych
-    console.log('groupHours',groupHours)
+    console.log('groupHours', groupHours)
     setShouldRefresh(false); // Resetuj flagę po odświeżeniu
   }, [id, shouldRefresh]);
 
   // Pobiera czas zajęć grupowych
-  const fetchGroupHours = async (id) => {
+  const fetchGroupHours = async () => {
     const response = await axios.get(`/group/${id}/group-training/hours`);
       if (!response.data.success) {
         throw(new Error("Błąd podczas pobierania godzin zajęć grupowych"));        
@@ -39,33 +37,121 @@ function ProjectDetails({ onUpdate }) {
       return response.data.groupHours;
   }; 
 
-
+  // Zapytanie pobierające godziny zajęć grupowych ('groupHours') 
   const { data: groupHours = [],
     isLoading: isLoadingGroupHours, 
     isError: isErrorLoadingGroupHours,
-    error: errorGroupHours } = useQuery({
+    error: errorGroupHours,
+    refetch: refetchGroupTrainingHours
+   } = useQuery({
     queryKey: ["groupHours", id, shouldRefresh],
-    queryFn: () => fetchGroupHours(id),
+    queryFn: () => fetchGroupHours(),
   });
 
+  // Loguje błąd zapytania o godziny zajęć grupowych
   if (isErrorLoadingGroupHours) {
     console.log("Błąd podczas pobierania godzin zajęć grupowych:", errorGroupHours);
   }
   
-
-  const handleUpdateGroupHours = async (groupId, newHours) => {
+  // @1 Wysyła godziny zajęć grupowych i pobiera je ponownie
+  /* const handleUpdateGroupHours = async (groupId, newHours) => {
     try {
       await axios.put(`/group/${id}/group-training/${groupId}`, {
         plannedHours: newHours,
       });
-      fetchGroupHours(); // Odśwież dane
+      await refetchGroupHours(); // Odśwież dane      
       alert("Godziny zajęć grupowych zostały zaktualizowane!");
     } catch (error) {
       console.error("Błąd podczas aktualizacji godzin zajęć grupowych:", error);
       alert("Nie udało się zaktualizować godzin zajęć grupowych.");
     }
+  }; */
+
+  const loadingToast = useToast();
+
+  // Definicja funkcji wysyłającej dane do API
+  const updateGroupHours = async ({groupId, newGroupHours}) => {
+    console.log("(groupId, newGroupHours):", {groupId, newGroupHours});
+    // Wywołanie axios.put() - przykładowa mutacja
+    return axios.put(`/group/${id}/group-training/${groupId}`, {
+      plannedHours: newGroupHours 
+    });
   };
 
+  const updateGroupHoursMutation = useMutation({
+    mutationFn: updateGroupHours,  
+    // Gdy 'mutate()' jest wywołane:
+    onMutate: async ({groupId, newGroupHours}) => {
+      // Wyświetlenie toastu o rozpoczęciu operacji
+      //setEditingGroupHours(newGroupHours);
+      loadingToast({
+        title: 'Zapisuję ...',
+        description: 'Proszę czekać, trwa zapisywanie godzin.',
+        status: 'loading',
+        duration: null,  // Toast będzie widoczny do czasu zamknięcia
+        isClosable: true,
+        id: 'loading-toast', // Używamy id, aby później zaktualizować ten sam toast
+      });
+      // Anuluj ponowne pobieranie
+      // (żeby nie nadpisało optymistycznego pobrania)
+      await queryClient.cancelQueries({ queryKey: ['groupHours', id, shouldRefresh] });
+
+      // Zapisz poprzednią wartość
+      const previousGroupHours = queryClient.getQueryData(['groupHours', id, shouldRefresh]);
+      console.log('@6 groupHours:', previousGroupHours)
+      // Optymistycznie ustaw wartość
+      queryClient.setQueryData(['groupHours', id, shouldRefresh], (old) => 
+        old.map((time) => 
+          time.groupId === groupId 
+          ? {...time, hours: newGroupHours}
+          : {...time}));
+
+      // Zwraca zapisaną wartość optymistyczną
+      return {previousGroupHours};
+    },
+    // Jeżeli mutacja zawiedzie
+    // Uzyj konteksu z zapisaną poprednio wartością
+    // Nie udało się pobrać godzin dla zajęć grupowych
+    onError: (error, previous, context) => {      
+      if (loadingToast.isActive('loading-toast')) {
+        loadingToast.update('loading-toast', {
+          title: 'Błąd!',
+          description: error.message || 'Błędna aktualizacja godziny zajęć grupowych.',
+          status: 'error',
+          duration: null,
+          isClosable: true,
+        });
+        
+      }
+
+      // cofnij zapis 'optymistyczny' i załaduj poprzednią wartość
+      queryClient.setQueryData(['groupHours', id, shouldRefresh], () => context.previousGroupHours);
+
+      // Pobierz wartości
+      queryClient.invalidateQueries(['groupHours', id, shouldRefresh]);    
+    },
+    // Udało siępobrać godziny zajęć grupowych
+    onSuccess: (data, variables) => {
+     if (loadingToast.isActive('loading-toast')) {
+      loadingToast.update('loading-toast', {
+          title: 'Sukces!',
+          description: 'Godziny zajęć grupowych zostały zaktualizowane!',
+          status: 'success',
+          duration: 1600,
+          isClosable: true,
+        });
+     }
+      // Pobieraj zapisaną wartość
+      queryClient.invalidateQueries({ queryKey: ['groupHours', id, shouldRefresh] });
+    },
+  });
+
+  if (updateGroupHoursMutation.isLoading) {
+    console.log("Ładuję UpdateGroupHours");
+  }
+
+
+  /// koniec @1
   
   // Pobiera pełną listę typów
   const fetchAllTypes = async () => {
@@ -111,7 +197,8 @@ const fetchProject = async () => {
 const { data: project = {},
   isLoading: isLoadingProject, 
   isError: isErrorLoadingProject,
-  error: errorProject } = useQuery({
+  error: errorProject,
+  refetch: refetchProject } = useQuery({
   queryKey: ["project", id, shouldRefresh],
   queryFn: () => fetchProject(),
 });
@@ -121,7 +208,7 @@ if (isErrorLoadingProject) {
 }
 
 useEffect(() => {
-  if (!project && project?.project_name) {
+  if (project && project?.project_name) {
     setEditedName(() => project.project_name);
     console.log("editedName set:", project.project_name);
   }
@@ -132,7 +219,7 @@ useEffect(() => {
 
  
   // ID typów przypisanych do projektu 
-  const fetchProjectTypes = async (id) => {
+  const fetchProjectTypes = async () => {
     const response = await axios.get(`/projects/project_training_types/${id}`);
       if (!response.data.success) {
         
@@ -149,7 +236,7 @@ useEffect(() => {
     isError: isErrorLoadinEditedTypes,
     error: errorEditedTypes } = useQuery({
     queryKey: ["editedTypes"],
-    queryFn: () => fetchProjectTypes(id),
+    queryFn: () => fetchProjectTypes(),
     initialData: [],
   });
 
@@ -166,8 +253,8 @@ useEffect(() => {
         });
 
         if (response.data?.success) {
+            await refetchProject(); // Pobierz aktualne dane projektu
             alert("Zapisano zmiany!");
-            await fetchProject(); // Pobierz aktualne dane projektu
             setIsEditing(false);
         } else {
             throw new Error("Odpowiedź serwera wskazuje na niepowodzenie");
@@ -181,7 +268,7 @@ useEffect(() => {
 
 
 // Pobierz planned_hours
-const fetchTrainingHours = async (id) => {
+const fetchTrainingHours = async () => {
   const response = await axios.get(`/projects/${id}/training-types/hours`);
     if (!response.data.success) {
       
@@ -195,9 +282,10 @@ const fetchTrainingHours = async (id) => {
 const { data: trainingHours = [],
   isLoading: isLoadingTrainingHours, 
   isError: isErrorLoadinTrainingHours,
-  error: errorTrainingHours } = useQuery({
+  error: errorTrainingHours,
+  refetch: refetchTrainingHours } = useQuery({
   queryKey: ["trainingHours", id, shouldRefresh],
-  queryFn: () => fetchTrainingHours(id),
+  queryFn: () => fetchTrainingHours(),
 });
 
 
@@ -209,12 +297,12 @@ if (isErrorLoadinTrainingHours) {
 
 // Aktualizuj planned_hours
 const handleUpdateHours = async (typeId, newHours) => {
-  console.log('(typeId, newHours)',(typeId, newHours))
+  console.log('(typeId, newHours)',([typeId, newHours]));
   try {
     await axios.put(`/projects/${id}/training-types/${typeId}`, {
       plannedHours: newHours,
     });
-    fetchTrainingHours(); // Odśwież dane
+    await refetchTrainingHours(); // Odśwież dane
     alert("Godziny zostały zaktualizowane!");
   } catch (error) {
     console.error("Błąd podczas aktualizacji godzin:", error);
@@ -376,6 +464,9 @@ const handleCheckboxChange = (typeId) => {
                 <button
                   onClick={() => {
                     handleUpdateHours(training.training_type_id, editingHours[training.training_type_id]);
+                    console.log("@2 training.training_type_id: ", training.training_type_id);
+                    console.log("@2 editingHours[training.training_type_id]: ", editingHours[training.training_type_id]);
+                    console.log("@2 editingHours: ", editingHours);
                     setEditingHours({ ...editingHours, [training.training_type_id]: undefined });
                   }}
                   className="bg-green-500 text-white px-2 py-1 rounded"
@@ -442,7 +533,8 @@ const handleCheckboxChange = (typeId) => {
                   />
                   <button
                     onClick={() => {
-                      handleUpdateGroupHours(group.groupId, editingGroupHours[group.groupId]);
+                      console.log("@3 (group.groupId, editingGroupHours[group.groupId])", [group.groupId, editingGroupHours[group.groupId]]);
+                      updateGroupHoursMutation.mutate({groupId: group?.groupId, newGroupHours: editingGroupHours[group?.groupId]});
                       setEditingGroupHours({ ...editingGroupHours, [group.groupId]: undefined });
                     }}
                     className="bg-green-500 text-white px-2 py-1 rounded"
