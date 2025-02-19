@@ -3,7 +3,9 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faUser } from '@fortawesome/free-solid-svg-icons'; // Import ikony
-import {ChakraProvider,useTooltip,HStack,Avatar,Tooltip, Card, CardHeader, CardBody, CardFooter, Button,Progress, ProgressRoot,ProgressLabel,useProgressStyles } from "@chakra-ui/react";
+
+import { Avatar, HStack } from "@chakra-ui/react";
+import { Tooltip } from "./ui/tooltip";
 
 
 function TopBar({ user, isAdmin, onLogout,selectedProject }) {
@@ -29,14 +31,16 @@ function TopBar({ user, isAdmin, onLogout,selectedProject }) {
       </h1>
       
       <div className="flex items-center space-x-4">
-      <ChakraProvider>  
-      <HStack spacing={4}>
-      <Tooltip label={user.username} hasArrow>
-        <Avatar variant="solid" name={user.username}/>
-      </Tooltip>
-    </HStack>
+       <HStack>          
+            <Avatar.Root>
+              <Tooltip showArrow content={user.username}
+                positioning={{ palacement: "bottom" }} >
+                <Avatar.Fallback name={user.username} size={"80px"} />                
+              </Tooltip>
+            </Avatar.Root>          
+        </HStack>
         
-        </ChakraProvider>
+      
         <span><FontAwesomeIcon  style={{ marginRight: '8px', color: 'white' }} /></span>
         {isAdmin && (
           <button

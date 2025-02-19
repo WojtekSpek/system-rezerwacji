@@ -2,7 +2,8 @@ import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import { useQuery } from "@tanstack/react-query";
 import { useParams, useNavigate } from "react-router-dom";
-import {Spinner, Stack,ChakraProvider,Box,HStack,Avatar, Checkbox, Card, CardHeader, CardBody, CardFooter, Button,Progress, ProgressRoot,ProgressLabel,useProgressStyles } from "@chakra-ui/react";
+//import {Spinner, Stack,ChakraProvider,Box,HStack,Avatar, Checkbox, Card, CardHeader, CardBody, CardFooter, Button,Progress, ProgressRoot,ProgressLabel,useProgressStyles } from "@chakra-ui/react";
+import { ProgressCircle } from "@chakra-ui/react";
 
 function ProjectParticipants({ setView, setSelectedParticipant }) {
   const [searchQuery, setSearchQuery] = useState("");
@@ -80,11 +81,14 @@ function ProjectParticipants({ setView, setSelectedParticipant }) {
   
 
   if (isLoadingParticipants || isLoadingParticipantsWithHours) {
-    return  <div className="flex items-center justify-center h-screen"><ChakraProvider><Spinner
-    size="lg"
-    color="colorPalette.600"
-    
-  /></ChakraProvider></div>;
+    return  (<div className="flex items-center justify-center h-screen">
+        <ProgressCircle.Root value={null} size="sm">
+          <ProgressCircle.Circle>
+            <ProgressCircle.Track />
+            <ProgressCircle.Range />
+          </ProgressCircle.Circle>
+        </ProgressCircle.Root>
+      </div>);
   }
 
   if (isError || isErrorParticipanstWithHours) {

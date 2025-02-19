@@ -3,7 +3,7 @@ import axios from "axios";
 import { useQuery } from "@tanstack/react-query";
 //import Commentary from "./Commentary";
 import { useParams, useNavigate } from "react-router-dom";
-import { ChakraProvider, Spinner } from "@chakra-ui/react";
+import { ProgressCircle } from "@chakra-ui/react";
 import Swal from "sweetalert2";
 
 function GroupTrainings({ setSelectedProject }) {
@@ -105,12 +105,12 @@ function GroupTrainings({ setSelectedProject }) {
   if (isLoadingTrainings) {
     return (
       <div className="flex items-center justify-center h-screen">
-        <ChakraProvider>
-          <Spinner
-            size="lg"
-            color="colorPalette.600"          
-          />
-        </ChakraProvider>
+        <ProgressCircle.Root value={null} size="sm">
+          <ProgressCircle.Circle>
+            <ProgressCircle.Track />
+            <ProgressCircle.Range />
+          </ProgressCircle.Circle>
+        </ProgressCircle.Root>
       </div>
     ); 
   }

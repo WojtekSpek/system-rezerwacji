@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
-import { ChakraProvider, Spinner, Toast, useToast } from "@chakra-ui/react";
+import { ProgressCircle } from "@chakra-ui/react";
 
 function ProjectDetails({ onUpdate }) {
   const { id } = useParams(); // Pobiera ID projektu z URL
@@ -67,7 +67,7 @@ function ProjectDetails({ onUpdate }) {
     }
   }; */
 
-  const loadingToast = useToast();
+  //const loadingToast = useToast();
 
   // Definicja funkcji wysyłającej dane do API
   const updateGroupHours = async ({groupId, newGroupHours}) => {
@@ -84,14 +84,14 @@ function ProjectDetails({ onUpdate }) {
     onMutate: async ({groupId, newGroupHours}) => {
       // Wyświetlenie toastu o rozpoczęciu operacji
       //setEditingGroupHours(newGroupHours);
-      loadingToast({
+      /* loadingToast({
         title: 'Zapisuję ...',
         description: 'Proszę czekać, trwa zapisywanie godzin.',
         status: 'loading',
         duration: null,  // Toast będzie widoczny do czasu zamknięcia
         isClosable: true,
         id: 'loading-toast', // Używamy id, aby później zaktualizować ten sam toast
-      });
+      }); */
       // Anuluj ponowne pobieranie
       // (żeby nie nadpisało optymistycznego pobrania)
       await queryClient.cancelQueries({ queryKey: ['groupHours', id, shouldRefresh] });
@@ -113,17 +113,17 @@ function ProjectDetails({ onUpdate }) {
     // Uzyj konteksu z zapisaną poprednio wartością
     // Nie udało się pobrać godzin dla zajęć grupowych
     onError: (error, previous, context) => {      
-      if (loadingToast.isActive('loading-toast')) {
+      /* if (loadingToast.isActive('loading-toast')) {
         loadingToast.update('loading-toast', {
           title: 'Błąd!',
           description: error.message || 'Błędna aktualizacja godziny zajęć grupowych.',
           status: 'error',
           duration: null,
           isClosable: true,
-        });
+        }); 
         
       }
-
+*/
       // cofnij zapis 'optymistyczny' i załaduj poprzednią wartość
       queryClient.setQueryData(['groupHours', id, shouldRefresh], () => context.previousGroupHours);
 
@@ -132,7 +132,7 @@ function ProjectDetails({ onUpdate }) {
     },
     // Udało siępobrać godziny zajęć grupowych
     onSuccess: (data, variables) => {
-     if (loadingToast.isActive('loading-toast')) {
+     /* if (loadingToast.isActive('loading-toast')) {
       loadingToast.update('loading-toast', {
           title: 'Sukces!',
           description: 'Godziny zajęć grupowych zostały zaktualizowane!',
@@ -140,7 +140,7 @@ function ProjectDetails({ onUpdate }) {
           duration: 1600,
           isClosable: true,
         });
-     }
+     } */
       // Pobieraj zapisaną wartość
       queryClient.invalidateQueries({ queryKey: ['groupHours', id, shouldRefresh] });
     },
@@ -321,22 +321,21 @@ const handleCheckboxChange = (typeId) => {
   };
 
 
-  if (isLoadingProject
+ if (isLoadingProject
       || isLoadingGroupHours 
       || isLoadingAllTypes 
       || isLoadingEditedTypes
       || isLoadingTrainingHours) {
    
-    return <div className="flex items-center justify-center h-screen">
-      <ChakraProvider>
-        <Spinner
-          size="lg"
-          color="colorPalette.600"          
-        />
-      </ChakraProvider>
-    </div>;
-  }
-
+    return (<div className="flex items-center justify-center h-screen">
+        <ProgressCircle.Root value={null} size="sm">
+          <ProgressCircle.Circle>
+            <ProgressCircle.Track />
+            <ProgressCircle.Range />
+          </ProgressCircle.Circle>
+        </ProgressCircle.Root>
+      </div>);
+    }
 
   if (!project) {
     return <div>Brak danych projektu</div>;
