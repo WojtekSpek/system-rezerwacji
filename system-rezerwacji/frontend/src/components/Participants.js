@@ -288,7 +288,7 @@ function Participants({ onViewChange }) {
     </>
   ); */
 
-  /// @1 dodanie Spinnera (ProgressCircle)
+  /// @1 dodanie ProgressCircle (Spinnera) ładowania
   if (isLoadingParticipants) {
     return  (<div className="flex items-center justify-center h-screen">
       <ProgressCircle.Root value={null} size="sm">

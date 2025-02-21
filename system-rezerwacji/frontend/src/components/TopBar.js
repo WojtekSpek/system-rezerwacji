@@ -3,10 +3,11 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faUser } from '@fortawesome/free-solid-svg-icons'; // Import ikony
+import { faGear } from '@fortawesome/free-solid-svg-icons'; // Import ikony
 
 import { Avatar, HStack } from "@chakra-ui/react";
 import { Tooltip } from "./ui/tooltip";
-
+import { Box } from "@chakra-ui/react";
 
 function TopBar({ user, isAdmin, onLogout,selectedProject }) {
     console.log("Dane użytkownika w TopBar:", isAdmin);
@@ -31,23 +32,22 @@ function TopBar({ user, isAdmin, onLogout,selectedProject }) {
       </h1>
       
       <div className="flex items-center space-x-4">
-       <HStack>          
-            <Avatar.Root>
-              <Tooltip showArrow content={user.username}
-                positioning={{ palacement: "bottom" }} >
-                <Avatar.Fallback name={user.username} size={"80px"} />                
-              </Tooltip>
-            </Avatar.Root>          
-        </HStack>
-        
-      
-        <span><FontAwesomeIcon  style={{ marginRight: '8px', color: 'white' }} /></span>
+       <HStack>  
+        <Tooltip showArrow content={user.username}
+          positioning={{ palacement: "bottom" }} >
+          <Box>        
+            <Avatar.Root>              
+                <Avatar.Fallback name={user.username} />              
+            </Avatar.Root> 
+          </Box>         
+          </Tooltip>
+        </HStack> 
         {isAdmin && (
           <button
             onClick={onSettingsClick}
             className="p-2 bg-blue-700 rounded hover:bg-blue-600"
           >
-            ⚙️
+            <span><FontAwesomeIcon icon={faGear} size='lg' /></span>
           </button>
         )}
         <button

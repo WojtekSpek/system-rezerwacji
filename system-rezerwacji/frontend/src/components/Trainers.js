@@ -2,9 +2,11 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import GenericList from "./GenericList";
+import { useQuery } from "@tanstack/react-query";
+import { ProgressCircle } from "@chakra-ui/react";
 
 function Trainers() {
-  const [trainers, setTrainers] = useState([]); // Lista szkoleniowców
+  // @1 const [trainers, setTrainers] = useState([]); // Lista szkoleniowców
   const [trainerName, setTrainerName] = useState(""); // Imię i nazwisko szkoleniowca
   const [trainerTypes, setTrainerTypes] = useState([]); // Lista typów szkoleń
   const [selectedTypes, setSelectedTypes] = useState([]); // Typy szkoleń dla danego szkoleniowca
@@ -20,7 +22,8 @@ function Trainers() {
     fetchTrainingTypes();
   }, []);
 
-  const fetchTrainers = async () => {
+  /// @1 zmina na useQuery 
+  /* const fetchTrainers = async () => {
     try {
       const response = await axios.get(`${API_BASE_URL}/trainers`);
       if (response.data.success) {
@@ -29,7 +32,31 @@ function Trainers() {
     } catch (error) {
       console.error("Błąd podczas pobierania szkoleniowców:", error);
     }
-  };
+  }; */
+  
+     /// Użyj React Query do pobrania grup projektu
+    const fetchTrainers = async () => {
+    const response = await axios.get(`${API_BASE_URL}/trainers`);
+        
+      if (!response.data.success) {
+        throw(new Error("Błąd podczas pobierania szkoleniowców."));
+      }
+      
+      return response.data.trainers;
+    }; 
+    
+    const { data: trainers = [],
+      isLoading: isLoadingTrainers, 
+      isError: isErrorLoadingTrainers,
+      error: errorLoadingTrainers } = useQuery({
+      queryKey: ["trainers"],
+      queryFn: () => fetchTrainers(),
+    });
+  
+    if (isErrorLoadingTrainers) {
+      console.log("Błąd podczas pobierania szkoleniowców:", errorLoadingTrainers);
+    }
+    /// @1 koniec
 
   const fetchTrainingTypes = async () => {
     try {
@@ -91,6 +118,18 @@ function Trainers() {
   const handleViewDetails = (trainerId) => {
     navigate(`/trainer/${trainerId}`);
   };
+
+  /// @1 dodanie Spinnera (ProgressCircle)
+  if (isLoadingTrainers) {
+    return  (<div className="flex items-center justify-center h-screen">
+      <ProgressCircle.Root value={null} size="sm">
+        <ProgressCircle.Circle>
+          <ProgressCircle.Track />
+          <ProgressCircle.Range />
+        </ProgressCircle.Circle>
+      </ProgressCircle.Root>
+    </div>);
+  }
 
   return (
          <div className="p-4 w-full">
