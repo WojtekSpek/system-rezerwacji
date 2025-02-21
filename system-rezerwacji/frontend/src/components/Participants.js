@@ -2,10 +2,13 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import GenericList from "./GenericList";
+import { useQuery } from "@tanstack/react-query";
+import { ProgressCircle } from "@chakra-ui/react";
+
 
 function Participants({ onViewChange }) {
   
-  const [participants, setParticipants] = useState([]);
+  //@1 const [participants, setParticipants] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [showAddForm, setShowAddForm] = useState(false);
   const nationalities = ["Polska", "Ukraińska"]; // Lista dostępnych narodowości
@@ -98,19 +101,46 @@ function Participants({ onViewChange }) {
     fetchParticipants();
   }, []);
 
-  const fetchParticipants = async () => {
-    try {
-      const response = await axios.get(`${API_BASE_URL}/participants`, {
+  /// @1 zmina na useQuery 
+  /*  const fetchParticipants = async () => {
+     try {
+       const response = await axios.get(`${API_BASE_URL}/participants`, {
+         withCredentials: true, // Umożliwia przesyłanie ciasteczek
+       });
+       if (response.data.success) {
+         setParticipants(response.data.participants);
+       }
+       console.log('response.data.participants',response.data.participants)
+     } catch (error) {
+       console.error("Błąd podczas pobierania uczestników:", error);
+     }
+   }; */
+
+   /// Użyj React Query do pobrania grup projektu
+    const fetchParticipants = async () => {
+    const response = await axios.get(`${API_BASE_URL}/participants`, {
         withCredentials: true, // Umożliwia przesyłanie ciasteczek
       });
-      if (response.data.success) {
-        setParticipants(response.data.participants);
+        
+      if (!response.data.success) {
+        throw(new Error("Błąd podczas pobierania uczestników."));
       }
-      console.log('response.data.participants',response.data.participants)
-    } catch (error) {
-      console.error("Błąd podczas pobierania uczestników:", error);
-    }
-  };
+      
+      return response.data.participants;
+  }; 
+  
+  const { data: participants = [],
+    isLoading: isLoadingParticipants, 
+    isError: isErrorLoadingParticipants,
+    error: errorLoadingParticipants } = useQuery({
+    queryKey: ["participants"],
+    queryFn: () => fetchParticipants(),
+  });
+
+  if (isErrorLoadingParticipants) {
+    console.log("Błąd podczas pobierania uczestników:", errorLoadingParticipants);
+  }
+  /// @1 koniec
 
   const validateForm = () => {
     const newErrors = {};
@@ -257,6 +287,19 @@ function Participants({ onViewChange }) {
       </td>
     </>
   ); */
+
+  /// @1 dodanie Spinnera (ProgressCircle)
+  if (isLoadingParticipants) {
+    return  (<div className="flex items-center justify-center h-screen">
+      <ProgressCircle.Root value={null} size="sm">
+        <ProgressCircle.Circle>
+          <ProgressCircle.Track />
+          <ProgressCircle.Range />
+        </ProgressCircle.Circle>
+      </ProgressCircle.Root>
+    </div>);
+  }
+
 console.log(errors);
   return (
     <div className="p-4 w-full">
