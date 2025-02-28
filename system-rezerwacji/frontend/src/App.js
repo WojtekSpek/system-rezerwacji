@@ -22,8 +22,10 @@ import AdminAddUser from "./components/AddUser";
 import AdminTrainingTypes from "./components/TrainingTypes";
 import AdminSkillSettings from "./components/SkillSettings";
 
-import { Provider } from "./components/ui/provider"
-import { defaultSystem } from "@chakra-ui/react"
+import { Provider } from "./components/ui/provider";
+import { defaultSystem } from "@chakra-ui/react";
+
+
 
 const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "http://localhost:5000";
 
@@ -120,6 +122,7 @@ const handleLogin = async (username, role) => {
             <Login onLogin={handleLogin} />
           ) : (
             <>
+              
               <TopBar
                 user={user}
                 isAdmin={isAdmin}

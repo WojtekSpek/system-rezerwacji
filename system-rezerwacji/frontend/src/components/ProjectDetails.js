@@ -4,6 +4,9 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { ProgressCircle } from "@chakra-ui/react";
 
+
+import { Toaster, toaster } from "./ui/toaster";
+
 function ProjectDetails({ onUpdate }) {
   const { id } = useParams(); // Pobiera ID projektu z URL
   const navigate = useNavigate();
@@ -84,14 +87,7 @@ function ProjectDetails({ onUpdate }) {
     onMutate: async ({groupId, newGroupHours}) => {
       // Wyświetlenie toastu o rozpoczęciu operacji
       //setEditingGroupHours(newGroupHours);
-      /* loadingToast({
-        title: 'Zapisuję ...',
-        description: 'Proszę czekać, trwa zapisywanie godzin.',
-        status: 'loading',
-        duration: null,  // Toast będzie widoczny do czasu zamknięcia
-        isClosable: true,
-        id: 'loading-toast', // Używamy id, aby później zaktualizować ten sam toast
-      }); */
+      
       // Anuluj ponowne pobieranie
       // (żeby nie nadpisało optymistycznego pobrania)
       await queryClient.cancelQueries({ queryKey: ['groupHours', id, shouldRefresh] });
@@ -106,24 +102,30 @@ function ProjectDetails({ onUpdate }) {
           ? {...time, hours: newGroupHours}
           : {...time}));
 
+      toaster.promise(
+        new Promise(( ) => { }),
+        { loading : 
+          { 
+            title: "Zapisuję ...", description: "Proszę czekać, trwa zapisywanie godzin.", 
+            duration: null,   
+            type: 'loading',    
+            id: "loading-toast",
+      } });
+
       // Zwraca zapisaną wartość optymistyczną
       return {previousGroupHours};
     },
     // Jeżeli mutacja zawiedzie
     // Uzyj konteksu z zapisaną poprednio wartością
     // Nie udało się pobrać godzin dla zajęć grupowych
-    onError: (error, previous, context) => {      
-      /* if (loadingToast.isActive('loading-toast')) {
-        loadingToast.update('loading-toast', {
-          title: 'Błąd!',
-          description: error.message || 'Błędna aktualizacja godziny zajęć grupowych.',
-          status: 'error',
-          duration: null,
-          isClosable: true,
-        }); 
-        
-      }
-*/
+    onError: (error, previous, context) => {
+      toaster.update("loading-toast",
+        { title: 'Błąd!', description: "Błędna aktualizacja godziny zajęć grupowych.",
+          type: 'error',
+          action : { label: "Zamknij",
+            onClick: () => (toaster.remove("loadingToast")),
+        } } ); 
+
       // cofnij zapis 'optymistyczny' i załaduj poprzednią wartość
       queryClient.setQueryData(['groupHours', id, shouldRefresh], () => context.previousGroupHours);
 
@@ -132,17 +134,14 @@ function ProjectDetails({ onUpdate }) {
     },
     // Udało siępobrać godziny zajęć grupowych
     onSuccess: (data, variables) => {
-     /* if (loadingToast.isActive('loading-toast')) {
-      loadingToast.update('loading-toast', {
-          title: 'Sukces!',
-          description: 'Godziny zajęć grupowych zostały zaktualizowane!',
-          status: 'success',
-          duration: 1600,
-          isClosable: true,
-        });
-     } */
       // Pobieraj zapisaną wartość
       queryClient.invalidateQueries({ queryKey: ['groupHours', id, shouldRefresh] });
+      toaster.update("loading-toast",
+        { title: "Sukces!", description: "Godziny zajęć grupowych zostały zaktualizowane",
+          type: 'success',
+          duration: 1200,
+          id: "loadingToast",
+        } );
     },
   });
 
@@ -321,6 +320,7 @@ const handleCheckboxChange = (typeId) => {
   };
 
 
+
  if (isLoadingProject
       || isLoadingGroupHours 
       || isLoadingAllTypes 
@@ -343,6 +343,7 @@ const handleCheckboxChange = (typeId) => {
 
   return (
     <div>
+      <Toaster />
       {/* Szczegóły projektu */}
       <div className="flex justify-between items-center bg-gray-50 p-4 rounded mb-2 shadow hover:shadow-md">
       {/* Sekcja po lewej */}
