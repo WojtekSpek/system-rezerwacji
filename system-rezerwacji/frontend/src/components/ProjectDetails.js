@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useParams, useNavigate } from "react-router-dom";
-import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ProgressCircle } from "@chakra-ui/react";
 
 
-import { Toaster, toaster } from "./ui/toaster";
+import { Toaster } from "./ui/toaster";
+import { useUpdateData, updateObject } from "../hooks/useUpdateData";
+
+
 
 function ProjectDetails({ onUpdate }) {
   const { id } = useParams(); // Pobiera ID projektu z URL
@@ -22,9 +25,8 @@ function ProjectDetails({ onUpdate }) {
     fetchProject();
     
     fetchProjectTypes();
-    fetchTrainingHours();
-    fetchGroupHours(); // Dodano pobieranie godzin zajęć grupowych
-    console.log('groupHours', groupHours)
+    refetchTrainingHours(); // pobieranie godzin zajęć
+    refetchGroupTrainingHours(); // pobieranie godzin zajęć grupowych
     setShouldRefresh(false); // Resetuj flagę po odświeżeniu
   }, [id, shouldRefresh]);
 
@@ -47,7 +49,7 @@ function ProjectDetails({ onUpdate }) {
     error: errorGroupHours,
     refetch: refetchGroupTrainingHours
    } = useQuery({
-    queryKey: ["groupHours", id, shouldRefresh],
+    queryKey: ['groupHours', id, shouldRefresh],
     queryFn: () => fetchGroupHours(),
   });
 
@@ -73,82 +75,38 @@ function ProjectDetails({ onUpdate }) {
   //const loadingToast = useToast();
 
   // Definicja funkcji wysyłającej dane do API
-  const updateGroupHours = async ({groupId, newGroupHours}) => {
-    console.log("(groupId, newGroupHours):", {groupId, newGroupHours});
-    // Wywołanie axios.put() - przykładowa mutacja
+  const updateGroupHours = async ({groupId, hours}) => {
+    console.log("(groupId, newGroupHours):", {groupId, hours});
+    // Wywołanie axios.put() - mutacja
     return axios.put(`/group/${id}/group-training/${groupId}`, {
-      plannedHours: newGroupHours 
+      plannedHours: hours 
     });
   };
 
-  const updateGroupHoursMutation = useMutation({
-    mutationFn: updateGroupHours,  
-    // Gdy 'mutate()' jest wywołane:
-    onMutate: async ({groupId, newGroupHours}) => {
-      // Wyświetlenie toastu o rozpoczęciu operacji
-      //setEditingGroupHours(newGroupHours);
-      
-      // Anuluj ponowne pobieranie
-      // (żeby nie nadpisało optymistycznego pobrania)
-      await queryClient.cancelQueries({ queryKey: ['groupHours', id, shouldRefresh] });
+  /// #1 optymistyczna zmina wartości w bazie useUpdateData
+ 
 
-      // Zapisz poprzednią wartość
-      const previousGroupHours = queryClient.getQueryData(['groupHours', id, shouldRefresh]);
-      console.log('@6 groupHours:', previousGroupHours)
-      // Optymistycznie ustaw wartość
-      queryClient.setQueryData(['groupHours', id, shouldRefresh], (old) => 
-        old.map((time) => 
-          time.groupId === groupId 
-          ? {...time, hours: newGroupHours}
-          : {...time}));
+  const optimisticGroupHoursSetter = (old, {groupId, hours}) => {
+    return old.map((time) => 
+    time.groupId === groupId 
+    ? {...time, hours}
+    : {...time});
+  };
 
-      toaster.promise(
-        new Promise(( ) => { }),
-        { loading : 
-          { 
-            title: "Zapisuję ...", description: "Proszę czekać, trwa zapisywanie godzin.", 
-            duration: null,   
-            type: 'loading',    
-            id: "loading-toast",
-      } });
-
-      // Zwraca zapisaną wartość optymistyczną
-      return {previousGroupHours};
-    },
-    // Jeżeli mutacja zawiedzie
-    // Uzyj konteksu z zapisaną poprednio wartością
-    // Nie udało się pobrać godzin dla zajęć grupowych
-    onError: (error, previous, context) => {
-      toaster.update("loading-toast",
-        { title: 'Błąd!', description: "Błędna aktualizacja godziny zajęć grupowych.",
-          type: 'error',
-          action : { label: "Zamknij",
-            onClick: () => (toaster.remove("loadingToast")),
-        } } ); 
-
-      // cofnij zapis 'optymistyczny' i załaduj poprzednią wartość
-      queryClient.setQueryData(['groupHours', id, shouldRefresh], () => context.previousGroupHours);
-
-      // Pobierz wartości
-      queryClient.invalidateQueries(['groupHours', id, shouldRefresh]);    
-    },
-    // Udało siępobrać godziny zajęć grupowych
-    onSuccess: (data, variables) => {
-      // Pobieraj zapisaną wartość
-      queryClient.invalidateQueries({ queryKey: ['groupHours', id, shouldRefresh] });
-      toaster.update("loading-toast",
-        { title: "Sukces!", description: "Godziny zajęć grupowych zostały zaktualizowane",
-          type: 'success',
-          duration: 1200,
-          id: "loadingToast",
-        } );
-    },
-  });
+  const updateGroupHoursMutation = useUpdateData(
+    ['groupHours', id, shouldRefresh], // klucz stanu 
+    updateGroupHours,    
+    optimisticGroupHoursSetter,
+    { loading: { description: "Proszę czekać, trwa zapisywanie godzin." },
+      success: { description: "Godziny zajęć grupowych zostały zaktualizowane" },
+      error: { description: "Błędna aktualizacja godziny zajęć grupowych." }
+    }
+  );
 
   if (updateGroupHoursMutation.isLoading) {
     console.log("Ładuję UpdateGroupHours");
   }
-
+  /// koniec #1 useSetDataDB
 
   /// koniec @1
   
@@ -196,8 +154,7 @@ const fetchProject = async () => {
 const { data: project = {},
   isLoading: isLoadingProject, 
   isError: isErrorLoadingProject,
-  error: errorProject,
-  refetch: refetchProject } = useQuery({
+  error: errorProject } = useQuery({
   queryKey: ["project", id, shouldRefresh],
   queryFn: () => fetchProject(),
 });
@@ -212,9 +169,6 @@ useEffect(() => {
     console.log("editedName set:", project.project_name);
   }
 }, [project, id, shouldRefresh]);
-
-
-  console.log('project', project)
 
  
   // ID typów przypisanych do projektu 
@@ -233,7 +187,8 @@ useEffect(() => {
   const { data: editedTypes = [],
     isLoading: isLoadingEditedTypes, 
     isError: isErrorLoadinEditedTypes,
-    error: errorEditedTypes } = useQuery({
+    error: errorEditedTypes,
+    refetch: refetchProjectTypes } = useQuery({
     queryKey: ["editedTypes"],
     queryFn: () => fetchProjectTypes(),
     initialData: [],
@@ -243,8 +198,8 @@ useEffect(() => {
   if (isErrorLoadinEditedTypes) {
     console.log("Błąd podczas pobierania typów projecktów:", errorEditedTypes);
   }
-
-  const handleSave = async () => {
+  /// #3 aktualizacja właściwości projektu
+  /* const updateProject = async () => {
     try {
         const response = await axios.put(`/projects/updateProject/${id}`, {
             name: editedName,
@@ -262,11 +217,36 @@ useEffect(() => {
         console.error("Błąd podczas zapisywania projektu:", error);
         alert("Nie udało się zapisać zmian.");
     }
+}; */
+
+// ustawia wartość optymistyczną
+const optimisticProjectSetter = (oldObj, {project_name, types}) => {  
+  return updateObject(oldObj, { project_name, types });
 };
 
+// aktualizuje wartość w bazie danych
+const updateProjectProperties = async ({project_name, types}) => { 
+  // Wywołanie axios.put() - mutacja
+  return await axios.put(`/projects/updateProject/${id}`, {
+    name: project_name,
+    types: types,
+  });
+};
 
+// obsługuje aktualizuje danych w bazie i wyświetla komunikat ostatusie
+const updateProjectMutation = useUpdateData(
+  ['project', id, shouldRefresh], // klucz stanu
+  updateProjectProperties,
+  optimisticProjectSetter,
+  { loading: { description: "Proszę czekać, trwa zapisywanie zmian." },
+    success: { description: "Zapisano zmiany!" },
+    error: { description: "Błąd podczas zapisywania projektu." }
+  }
+);
 
-// Pobierz planned_hours
+/// #3 koniec aktualizacji właściwości projektu
+
+// Pobierz trainingHours
 const fetchTrainingHours = async () => {
   const response = await axios.get(`/projects/${id}/training-types/hours`);
     if (!response.data.success) {
@@ -283,7 +263,7 @@ const { data: trainingHours = [],
   isError: isErrorLoadinTrainingHours,
   error: errorTrainingHours,
   refetch: refetchTrainingHours } = useQuery({
-  queryKey: ["trainingHours", id, shouldRefresh],
+  queryKey: ['trainingHours', id, shouldRefresh],
   queryFn: () => fetchTrainingHours(),
 });
 
@@ -293,9 +273,9 @@ if (isErrorLoadinTrainingHours) {
   console.log("Błąd podczas pobierania godzin zajęć:", errorTrainingHours);
 }
 
-
+/// @2 zmiana na hook useSetHoursDataDB()
 // Aktualizuj planned_hours
-const handleUpdateHours = async (typeId, newHours) => {
+/* const handleUpdateHours = async (typeId, newHours) => {
   console.log('(typeId, newHours)',([typeId, newHours]));
   try {
     await axios.put(`/projects/${id}/training-types/${typeId}`, {
@@ -307,10 +287,36 @@ const handleUpdateHours = async (typeId, newHours) => {
     console.error("Błąd podczas aktualizacji godzin:", error);
     alert("Nie udało się zaktualizować godzin.");
   }
+}; */
+// Definicja funkcji wysyłającej dane do API
+const updateHours = async ({training_type_id, planned_hours}) => {
+  console.log("(typeId, newHours):", {training_type_id, planned_hours});
+  // Wywołanie axios.put() - mutacja stanu
+  return await axios.put(`/projects/${id}/training-types/${training_type_id}`, {
+    plannedHours: planned_hours 
+  });
 };
 
-const queryClient = useQueryClient();
+const optimisticHoursSetter = (old, {training_type_id, planned_hours}) => {
+  return old.map((time) => 
+  time.training_type_id === training_type_id 
+  ? {...time, planned_hours}
+  : {...time});
+};
 
+const updateHoursMutation = useUpdateData(
+  ['trainingHours', id, shouldRefresh], // klucz stanu
+  updateHours,  
+  optimisticHoursSetter,
+  { loading: { description: "Proszę czekać, trwa zapisywanie godzin." },
+    success: { description: "Godziny zostały zaktualizowane." },
+    error: { description: "Nie udało się zaktualizować godzin." }
+  }
+);
+
+/// koniec @2 użycie hooka useSetDataDB()
+
+const queryClient = useQueryClient();
 const handleCheckboxChange = (typeId) => {
   queryClient.setQueryData(['editedTypes'], (oldTypes = []) =>
       oldTypes.includes(typeId)
@@ -423,7 +429,11 @@ const handleCheckboxChange = (typeId) => {
               Anuluj
             </button>
             <button
-              onClick={handleSave}
+              onClick={() => {
+                updateProjectMutation.mutate({project_name: editedName, types: editedTypes});
+                setShouldRefresh(true);
+                setIsEditing(false);
+              }}
               className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
             >
               Zapisz
@@ -463,10 +473,8 @@ const handleCheckboxChange = (typeId) => {
                 />
                 <button
                   onClick={() => {
-                    handleUpdateHours(training.training_type_id, editingHours[training.training_type_id]);
-                    console.log("@2 training.training_type_id: ", training.training_type_id);
-                    console.log("@2 editingHours[training.training_type_id]: ", editingHours[training.training_type_id]);
-                    console.log("@2 editingHours: ", editingHours);
+                    // aktualizuj godziny zajęć
+                    updateHoursMutation.mutate({training_type_id: training?.training_type_id, planned_hours: editingHours[training?.training_type_id]});
                     setEditingHours({ ...editingHours, [training.training_type_id]: undefined });
                   }}
                   className="bg-green-500 text-white px-2 py-1 rounded"
@@ -534,7 +542,7 @@ const handleCheckboxChange = (typeId) => {
                   <button
                     onClick={() => {
                       console.log("@3 (group.groupId, editingGroupHours[group.groupId])", [group.groupId, editingGroupHours[group.groupId]]);
-                      updateGroupHoursMutation.mutate({groupId: group?.groupId, newGroupHours: editingGroupHours[group?.groupId]});
+                      updateGroupHoursMutation.mutate({groupId: group?.groupId, hours: editingGroupHours[group?.groupId]});
                       setEditingGroupHours({ ...editingGroupHours, [group.groupId]: undefined });
                     }}
                     className="bg-green-500 text-white px-2 py-1 rounded"
