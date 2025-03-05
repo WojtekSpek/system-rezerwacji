@@ -10,8 +10,10 @@ import TotalHours from "./ProjectParticipantDetails/TotalHours"; // Import kompo
 import { useParams } from "react-router-dom";
 import Commentary from "./Commentary";
 import {createEventStyleGetter } from "./function/getEventStyle.js";
-//import { Tabs } from "@chakra-ui/react"
 
+// Chakra UI, Tabs, ikony, ProgressCircle itd.
+import { Tabs, Box } from "@chakra-ui/react";
+import { LuFolder, LuSquareCheck, LuUser, LuCalendar } from "react-icons/lu"
 import { useQuery, useQueryClient } from "@tanstack/react-query"; // query do pobierania z bazy
 import { ProgressCircle } from "@chakra-ui/react"; // kółko ładowania zawartości
 
@@ -19,7 +21,77 @@ moment.locale("pl"); // Ustaw język polski
 
 const localizer = momentLocalizer(moment);
 
+/// # jeśli to czytasz, to spróbuj poprawić czytelność tego kodu w komponencie
+const DynamicTabContent = ({tabValues}) => {
+  const {projectTypesAll, participantId, projectId, activeTab,
+    events, trainers, selectedTrainer, handleEditEvent, setEvents, 
+    projectTypes, newEvent, setNewEvent, setSelectedTrainer, 
+    calendarView, handleCalendarViewChange, showEditModal, selectedEvent,
+    setSelectedEvent, setShowEditModal} = tabValues;
+    const currentType = projectTypesAll.find((type) => {
+      console.log({type, activeTab});
+      return type.name === activeTab;});
+    const typeId = currentType?.id;
 
+    useEffect(() => {
+      console.warn("REFRESHING DynamicTabContent ");
+
+    }, []);
+
+  
+  return (
+    <div>
+      <h2 className="text-2xl font-bold mb-4">Kalendarz - {activeTab}</h2>
+      {/* Dodawanie wydarzenia */}
+      <div className="mb-4">
+        <TotalHours participantId={participantId} projectId={projectId} type={activeTab} typeId={typeId} initialPlannedHours={0}/>
+      </div>
+      <div>
+        <Calendar1
+          key={`${activeTab}-${events.length}`} // Klucz bazujący na activeTab i liczbie wydarzeń
+          projectId={projectId}
+          participantId={participantId}
+          trainerId={selectedTrainer?.id}
+          activeTab={activeTab}
+          events={events}
+          trainers={trainers}
+          onEditEvent={handleEditEvent} // Dodaj obsługę edycji
+          setEvents={setEvents} // Dodano setEvents
+          currentType={currentType}
+          projectTypes={projectTypes}
+          projectTypesAll={projectTypesAll} // Przekazanie projectTypes // Przekazanie projectTypes
+          newEvent={newEvent}
+          setNewEvent={setNewEvent}
+          selectedTrainer={selectedTrainer} // Przekazanie selectedTrainer
+          setSelectedTrainer={setSelectedTrainer} // Przekazanie setSelectedTrainer
+          //eventPropGetter={eventStyleGetter} // Przypisanie stylu do wydarzenia
+          view={calendarView} // Przekazanie bieżącego widoku
+          onViewChange={handleCalendarViewChange} // Przekazanie funkcji zmiany widoku
+          
+        />
+        {showEditModal && selectedEvent && (
+          <EditEventModal
+            show={showEditModal}
+            event={selectedEvent}
+            setEventData={(updatedEvent) => {
+              setSelectedEvent((prevEvent) => ({ ...prevEvent, ...updatedEvent }));
+            }}
+            trainers={trainers} // Jeśli korzystasz z listy trenerów
+            onSave={(updatedEvent) => {
+              setEvents((prevEvents) =>
+                prevEvents.map((evt) =>
+                  evt.id === updatedEvent.id ? { ...evt, ...updatedEvent } : evt
+                )
+              );
+              setShowEditModal(false);
+            }}
+            onClose={() => setShowEditModal(false)}
+          />
+        )}
+      </div>
+    </div>
+  );
+};
 
 
 function ProjectParticipantDetails({onBack}) {
@@ -196,8 +268,8 @@ function ProjectParticipantDetails({onBack}) {
 
   /// koniec @1 
 
-  console.log("Obecne typeId:", activeTab);
-
+  console.log("Obecne activeTab:", activeTab);
+  console.log("Obecne typeId:", typeId);
   /// @2 zamiana na reactQuery do pobierania danych z bazy 
   /* useEffect(() => {
     //fetchParticipantDetails();
@@ -244,9 +316,11 @@ function ProjectParticipantDetails({onBack}) {
       queryFn: () => fetchParticipantDetails(),
     });
 
-    useEffect(() => {
-      console.warn(participant);
+    useEffect(() => {      
       if(isParticipantLoadSuccess && participant) {
+        const tabsExtra = participant.types.map((type, index) => {
+          return { ...type, id: index }
+        });
         setProjectTypesAll(participant.types); // Zakładki dynamiczne z `types`
         setProjectTypes(participant.types.map((type) => type.name));
       }
@@ -414,6 +488,238 @@ function ProjectParticipantDetails({onBack}) {
       </div>);
   }
 
+  /// @5 Renderowanie zakładek w Chakra UI
+
+const renderDynamicTabsContent = (tabsProps) => {
+  const {projectTypesAll} = tabsProps;
+
+  return (projectTypesAll.map((tab) => (
+    <Tabs.Content key={tab.id + 3} value={tab.name}>
+      <DynamicTabContent tabValues={{...tabsProps}} />
+    </Tabs.Content>)));  
+};
+
+const renderDynamicTabsTrigger = (tabsData) => {
+  
+  return tabsData.map((tab) => (
+    <Tabs.Trigger key={tab.id + 3} value={tab.name} whiteSpace="nowrap" >
+      <LuCalendar boxSize="16px"/>
+      {tab.name}
+    </Tabs.Trigger>
+  ));
+};
+
+const renderParticipantTabContent = () => {
+  return (<div>
+      <h3 className="text-lg font-semibold mb-4">Dane osobowe:</h3>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <strong>Imię:</strong> {participant?.firstName || "Brak danych"}
+        </div>
+        <div>
+          <strong>Nazwisko:</strong> {participant?.lastName || "Brak danych"}
+        </div>
+        <div>
+          <strong>PESEL:</strong> {participant?.pesel || "Brak danych"}
+        </div>
+        <div>
+          <strong>Płeć:</strong> {participant?.gender || "Brak danych"}
+        </div>
+        <div>
+          <strong>Województwo:</strong> {participant?.voivodeship || "Brak danych"}
+        </div>
+        <div>
+          <strong>Miasto:</strong> {participant?.city || "Brak danych"}
+        </div>
+        <div>
+          <strong>Kod pocztowy:</strong> {participant?.postalCode || "Brak danych"}
+        </div>
+        <div>
+          <strong>Ulica:</strong> {participant?.street || "Brak danych"}
+        </div>
+        <div>
+          <strong>Numer domu:</strong> {participant?.houseNumber || "Brak danych"}
+        </div>
+        <div>
+          <strong>Numer mieszkania:</strong> {participant?.apartmentNumber || "Brak danych"}
+        </div>
+        <div>
+          <strong>Numer telefonu:</strong> {participant?.phoneNumber || "Brak danych"}
+        </div>
+        <div>
+          <strong>Email:</strong> {participant?.email || "Brak danych"}
+        </div>
+        <div>
+          <strong>Stopień niepełnosprawności:</strong> {participant?.disabilityLevel || "Brak danych"}
+        </div>
+        </div>
+      </div>);
+    };
+
+const renderFilesTabContnet = () => {
+  return (<div>
+      <h3 className="text-lg font-semibold mb-4">Pliki uczestnika:</h3>
+      {/* Lista plików */}
+      <ul className="list-disc list-inside mb-4">
+        {uploadedFiles?.length > 0 ? (
+            uploadedFiles.map((file, index) => (
+            <li key={index} className="flex justify-between items-center">
+                {/* Klikalny link do otwierania pliku */}
+                <a
+                href={`${API_BASE_URL}/files/participant_read/${projectId}/${participantId}/${file}`} // Ścieżka do pliku
+                target="_blank" // Otwiera plik w nowej karcie
+                rel="noopener noreferrer" // Bezpieczeństwo dla linków zewnętrznych
+                className="text-blue-500 hover:underline"
+                >
+                {file}
+                </a>
+                <button
+                onClick={() => handleFileDelete(file)}
+                className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600"
+                >
+                Usuń
+                </button>
+            </li>
+            ))
+        ) : (
+            <p>Brak plików</p>
+        )}
+        </ul>
+      {/* Dodawanie pliku */}
+    <input
+      type="file"
+      accept=".pdf,.doc,.docx,.xls"
+      onChange={(e) => setFile(e.target.files[0])}
+      className="mb-2"
+    />
+    <button
+      onClick={handleFileUpload}
+      className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+    >
+      Dodaj plik
+    </button>
+  </div>);
+};
+
+const renderActivityTabContent = () => { 
+  return (
+    <div>
+      {/* <h2 className="text-2xl font-bold mb-4">Szczegóły projektu</h2> */}
+      {/* Inne szczegóły projektu */}
+      <Commentary entityId={projectId} entityType="participant" />
+    </div>);
+};  
+  
+const renderTabContentChakraUI = () => {
+  return (<div className="p-4">
+    {/* Górny pasek z imieniem i nazwiskiem oraz przyciskiem powrotu */}
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-2xl font-bold">
+        {participant?.firstName} {participant?.lastName}
+        </h2>
+        <button
+        onClick={onBack}
+        className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-400"
+        >
+        Wróć
+        </button>
+      </div>
+      {/* Zakładki */}
+      <div className="flex justify-between items-center mb-2">
+        {/* Zakładki stałe */}
+        <Tabs.Root lazyMount unmountOnExit defaultValue="Dane osobowe" value={activeTab}
+          onValueChange={(activeTabValue) => setActiveTab(activeTabValue.value)} >
+          <Tabs.List gap={5} borderBottomWidth={3}>
+            <Tabs.Trigger value="Dane osobowe" key={0} whiteSpace="nowrap" >
+              <LuUser boxSize="16px" />
+              Dane osobowe
+            </Tabs.Trigger>
+            <Tabs.Trigger value="Pliki" key={1} whiteSpace="nowrap" >
+              <LuFolder boxSize="16px" />
+              Pliki
+            </Tabs.Trigger>
+            <Tabs.Trigger value="Aktywność" key={2} whiteSpace="nowrap" >
+              <LuSquareCheck boxSize="16px" />
+              Aktywność
+            </Tabs.Trigger>
+            {/* Zakładki dynamiczne */}
+            {renderDynamicTabsTrigger(projectTypesAll)}
+          </Tabs.List>
+          <Tabs.Content value="Dane osobowe" key={0}>{renderParticipantTabContent()}</Tabs.Content>
+          <Tabs.Content value="Pliki" key={1}>{renderFilesTabContnet()}</Tabs.Content>
+          <Tabs.Content value="Aktywność" key={2}>{renderActivityTabContent()}</Tabs.Content>
+          {/* Treści zakładek dynamicznych */}
+          {renderDynamicTabsContent({projectTypesAll, participantId, projectId, activeTab,  
+      events, trainers, selectedTrainer, handleEditEvent, setEvents, setActiveTab,
+      projectTypes, newEvent, setNewEvent, setSelectedTrainer, 
+      calendarView, handleCalendarViewChange, showEditModal, selectedEvent,
+      setSelectedEvent, setShowEditModal})}
+          </Tabs.Root>
+      </div>
+    </div>);
+  };
+
+  return renderTabContentChakraUI();
+  /// koniec @5 
+  
+  /// !@6 początek martwego kodu, nie wykonuje się, zostawiony do porównania, po tym można usunąć
+  
+  return (
+    <div className="p-4">
+      {/* Górny pasek z imieniem i nazwiskiem oraz przyciskiem powrotu */}
+            <div className="flex justify-between items-center mb-4">
+                <h2 className="text-2xl font-bold">
+                {participant?.firstName} {participant?.lastName}
+                </h2>
+                <button
+                onClick={onBack}
+                className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-400"
+                >
+                Wróć
+                </button>
+            </div>
+      {/* Zakładki */}
+      <div className="flex gap-4 border-b mb-4">
+        {/* Zakładki stałe */}
+        <button
+          onClick={() => setActiveTab("Dane osobowe")}
+          className={`pb-2 ${activeTab === "Dane osobowe" ? "border-b-2 border-blue-500" : ""}`}
+        >
+          Dane osobowe
+        </button>
+        <button
+          onClick={() => setActiveTab("Pliki")}
+          className={`pb-2 ${activeTab === "Pliki" ? "border-b-2 border-blue-500" : ""}`}
+        >
+          Pliki
+        </button>
+        <button
+          onClick={() => setActiveTab("Aktywność")}
+          className={`pb-2 ${activeTab === "Aktywność" ? "border-b-2 border-blue-500" : ""}`}
+        >
+          Aktywności
+        </button>
+        {/* Zakładki dynamiczne */}
+        {projectTypes.map((type) => (
+          <button
+            key={type}
+            onClick={() => setActiveTab(type)}
+            className={`pb-2 ${activeTab === type ? "border-b-2 border-blue-500" : ""}`}
+          >
+            {type}
+          </button>
+        ))}
+      </div>
+      {/* Zawartość aktywnej zakładki */}
+      {participant ? renderTabContent() : <p>Ładowanie danych...</p>}
+      
+    </div>
+  );
+
+  
+
+
+  
   // Obsługa renderowania zawartości zakładek
   const renderTabContent = () => {
     
@@ -641,6 +947,8 @@ function ProjectParticipantDetails({onBack}) {
       
     </div>
   );
+
+  /// !@6 koniec martwego kodu, nie wykonuje się, zostawiony do porównania, po tym można usunąć
 }
 
 export default ProjectParticipantDetails;
