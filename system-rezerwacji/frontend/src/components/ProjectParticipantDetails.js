@@ -12,6 +12,9 @@ import Commentary from "./Commentary";
 import {createEventStyleGetter } from "./function/getEventStyle.js";
 //import { Tabs } from "@chakra-ui/react"
 
+import { useQuery, useQueryClient } from "@tanstack/react-query"; // query do pobierania z bazy
+import { ProgressCircle } from "@chakra-ui/react"; // kółko ładowania zawartości
+
 moment.locale("pl"); // Ustaw język polski
 
 const localizer = momentLocalizer(moment);
@@ -20,15 +23,15 @@ const localizer = momentLocalizer(moment);
 
 
 function ProjectParticipantDetails({onBack}) {
-  const [participant, setParticipant] = useState(null); // Dane uczestnika w ramach projektu
+  /// @2 const [participant, setParticipant] = useState(null); // Dane uczestnika w ramach projektu
   const [activeTab, setActiveTab] = useState("Dane osobowe"); // Domyślna zakładka
  
-  const [uploadedFiles, setUploadedFiles] = useState([]); // Lista plików
+  /// @4 const [uploadedFiles, setUploadedFiles] = useState([]); // Lista plików
   const [file, setFile] = useState(null); // Wybrany plik do dodania
   const [selectedAdvisor, setSelectedAdvisor] = useState(null);
-  const [trainers, setTrainers] = useState([]); // Trenerzy przypisani do projektu
+  /// @1 const [trainers, setTrainers] = useState([]); // Trenerzy przypisani do projektu
   const [selectedTrainer, setSelectedTrainer] = useState(null); // Wybrany trener
-  const [events, setEvents] = useState([]); // Wydarzenia w kalendarzu
+  /// @3 const [events, setEvents] = useState([]); // Wydarzenia w kalendarzu
   const [newEvent, setNewEvent] = useState({ start: "", end: "", title: "" }); // Nowe wydarzenie
   const [projectTypes, setProjectTypes] = useState([]); // Typy przypisane do uczestnika w projekcie
   const [projectTypesAll, setProjectTypesAll] = useState([]); // Typy przypisane do uczestnika w projekcie
@@ -80,6 +83,62 @@ function ProjectParticipantDetails({onBack}) {
     setShowEditModal(true); // Pokaż modal edycji
   };
 
+  /// @3 Zmiana na react query do pobierania danych
+   /*  const fetchEvents = async () => {
+      try {
+        const response = await axios.get(`calendar/events/${projectId}/${participantId}`);
+        if (response.data.success) {
+         // console.log('response.data.events',response.data.events.start)
+          setEvents(
+            response.data.events.map((event) => ({
+              ...event,
+              start: event.start, // Dodaj "Z", aby wymusić UTC
+              end: event.end,
+              type: (event.type), // Przypisz typ na podstawie logiki
+            }))
+          );
+        console.log('events',events)  
+
+        }
+      } catch (error) {
+        console.error("Błąd podczas pobierania wydarzeń:", error);
+      }
+    }; */
+
+    const fetchEvents = async () => {
+      const response = await axios.get(`calendar/events/${projectId}/${participantId}`);
+        if (!response.data.success) {
+          throw(new Error("Błąd podczas pobierania wydarzeń."));        
+        
+        }
+        console.log('events',events)  
+        console.log("Udane pobieranie wydarzeń.");
+        
+        return response.data.events.map((event) => ({
+          ...event,
+          start: event.start, // Dodaj "Z", aby wymusić UTC
+          end: event.end,
+          type: (event.type), // Przypisz typ na podstawie logiki
+      }));
+    }; 
+  
+    // Zapytanie pobierające wydarzenia
+    const { data: events,
+      isLoading: isLoadingEvents, 
+      isError: isErrorEvents,
+      error: errorEvents,
+      refetch: refetchEvents
+      } = useQuery({
+      queryKey: ['events', participantId, projectId],
+      queryFn: () => fetchEvents(),     
+    });
+  
+  if (isErrorEvents) {
+    console.log("Błąd podczas pobierania wydarzeń:", errorEvents);
+  }
+
+  /// @3 koniec
+
   useEffect(() => {
     if (events) {
       events.forEach((event) => {
@@ -91,8 +150,10 @@ function ProjectParticipantDetails({onBack}) {
   }, [events]);
   console.log('event',events)
 
+  /// @1 zmiana na react query do pobierania danych
 
-  useEffect(() => {
+  /* useEffect(() => {
+    
     const fetchTrainers = async () => {
       try {
         const response = await axios.get(`/projects/${projectId}/trainers/${typeId}`);
@@ -106,13 +167,39 @@ function ProjectParticipantDetails({onBack}) {
     };
     
     fetchTrainers();
-  }, [projectId, activeTab]);
+  }, [projectId, activeTab]); */
 
-  
+  // Pobiera czas zajęć grupowych
+  const fetchTrainers = async () => {
+    const response = await axios.get(`/projects/${projectId}/trainers/${typeId}`);
+      if (!response.data.success) {
+        throw(new Error("Błąd podczas pobierania trenerów projektu."));        
+      }
+      
+      console.log("Udane pobieranie trenerów projektu.");
+
+      return response.data.trainers;
+  }; 
+
+  // Zapytanie pobierające trenerów
+  const { data: trainers,
+    isLoading: isLoadingTrainers, 
+    isError: isErrorTrainers,
+    error: errorTrainers,
+    refetch: refetchTrainers
+    } = useQuery({
+    queryKey: ['trainers', projectId, typeId, activeTab],
+    queryFn: () => fetchTrainers(),
+    enabled: !!typeId,
+  });
+
+
+  /// koniec @1 
+
   console.log("Obecne typeId:", activeTab);
-  useEffect(() => {
-    
 
+  /// @2 zamiana na reactQuery do pobierania danych z bazy 
+  /* useEffect(() => {
     //fetchParticipantDetails();
     fetchFiles();
     fetchParticipantDetails();
@@ -132,7 +219,44 @@ function ProjectParticipantDetails({onBack}) {
       } catch (error) {
         console.error("Błąd podczas pobierania danych uczestnika projektu:", error);
       }
-    };
+    }; */
+
+    const fetchParticipantDetails = async () => {
+      const response = await axios.get(`/projects/${projectId}/participants/${participantId}`);
+        if (!response.data.success) {
+          throw(new Error("Błąd podczas pobierania danych uczestnika projektu."));        
+        }
+                
+        console.log("Udane pobieranie danych uczestnika projektu.");
+        
+        return response.data.participant;
+    }; 
+  
+    // Zapytanie pobierające trenerów
+    const { data: participant = {},
+      isLoading: isLoadingParticipant, 
+      isError: isErrorParticipant,
+      error: errorParticipant,
+      isSuccess: isParticipantLoadSuccess,
+      refetch: refetchParticipant,
+      } = useQuery({
+      queryKey: ['participant', participantId, projectId],
+      queryFn: () => fetchParticipantDetails(),
+    });
+
+    useEffect(() => {
+      console.warn(participant);
+      if(isParticipantLoadSuccess && participant) {
+        setProjectTypesAll(participant.types); // Zakładki dynamiczne z `types`
+        setProjectTypes(participant.types.map((type) => type.name));
+      }
+    }, [isParticipantLoadSuccess, participant]);
+    
+    if (isErrorParticipant) {
+      console.log("Błąd podczas pobierania danych uczestnika projektu:", errorParticipant);
+    }
+    
+    /// @2 koniec
 
     /* const getTypeIdByName = (typeName) => {
       const type = projectTypesAll.find((t) => t.name === typeName);
@@ -144,30 +268,6 @@ function ProjectParticipantDetails({onBack}) {
     console.log("Type ID dla aktywnego typu:", currentType);
 
   
-
-    const fetchEvents = async () => {
-      try {
-        const response = await axios.get(`calendar/events/${projectId}/${participantId}`);
-        if (response.data.success) {
-         // console.log('response.data.events',response.data.events.start)
-          setEvents(
-            response.data.events.map((event) => ({
-              ...event,
-              start: event.start, // Dodaj "Z", aby wymusić UTC
-              end: event.end,
-              type: (event.type), // Przypisz typ na podstawie logiki
-            }))
-          );
-        console.log('events',events)  
-
-        }
-      } catch (error) {
-        console.error("Błąd podczas pobierania wydarzeń:", error);
-      }
-    };
-
-  
-
   // Sumowanie godzin na trenera
   const calculateHoursPerTrainer = () => {
     const hours = {};
@@ -181,8 +281,9 @@ function ProjectParticipantDetails({onBack}) {
     return hours;
   };
   
+  /// @4 zmiana na react query do pobierania listy plików z bazy
  // Pobierz pliki uczestnika
- const fetchFiles = async () => {
+ /* const fetchFiles = async () => {
     try {
       const response = await axios.get(`/files/participant/${projectId}/${participantId}`);
       if (response.data.success) {
@@ -191,7 +292,38 @@ function ProjectParticipantDetails({onBack}) {
     } catch (error) {
       console.error("Błąd podczas pobierania plików uczestnika:", error);
     }
-  };
+  }; */
+
+  const fetchFiles = async () => {
+    const response = await axios.get(`/files/participant/${projectId}/${participantId}`);
+      if (!response.data.success) {
+        throw(new Error("Błąd podczas pobierania plików uczestnika."));        
+      }
+
+      console.log("Udane pobieranie listy plików użytkownika.");
+
+      return response.data.files;
+  }; 
+
+  // Zapytanie pobierające wydarzenia
+  const { data: uploadedFiles = [],
+    isLoading: isLoadingUploadedFiles, 
+    isError: isErrorUploadedFiles,
+    error: errorUploadedFiles,
+    refetch: refetchFiles
+    } = useQuery({
+    queryKey: ['uploadedFiles', participantId, projectId],
+    queryFn: () => fetchFiles(),
+    retry: false, // tymczasowo ustawionena na false
+    // to jest nie pobieranie ponownie gdy wystąpi błąd 
+
+  });
+
+  if (isErrorUploadedFiles) {
+    console.log("Błąd podczas pobierania plików uczestnika:", errorUploadedFiles);
+  }
+
+  /// @4 koniec
 
   // Dodaj plik
   const handleFileUpload = async () => {
@@ -247,8 +379,15 @@ function ProjectParticipantDetails({onBack}) {
     }
   }; */
 
+  /// @3 definicja setEvents
   
- 
+  const queryClient = useQueryClient();
+  function setEvents(eventsData) {  
+    queryClient.setQueryData(['events'], eventsData | []);         
+  } 
+
+  /// @3 koniec
+  
   const handleSelectSlot = (slotInfo) => {
     const title = window.prompt("Podaj tytuł wydarzenia:");
     if (title) {
@@ -263,7 +402,17 @@ function ProjectParticipantDetails({onBack}) {
     }
   };
 
-
+  /// kółko ładowania danych
+  if (isLoadingParticipant) {  
+    return (<div className="flex items-center justify-center h-screen">
+        <ProgressCircle.Root value={null} size="sm">
+          <ProgressCircle.Circle>
+            <ProgressCircle.Track />
+            <ProgressCircle.Range />
+          </ProgressCircle.Circle>
+        </ProgressCircle.Root>
+      </div>);
+  }
 
   // Obsługa renderowania zawartości zakładek
   const renderTabContent = () => {
@@ -332,7 +481,7 @@ function ProjectParticipantDetails({onBack}) {
               <h3 className="text-lg font-semibold mb-4">Pliki uczestnika:</h3>
               {/* Lista plików */}
               <ul className="list-disc list-inside mb-4">
-                {uploadedFiles.length > 0 ? (
+                {uploadedFiles?.length > 0 ? (
                     uploadedFiles.map((file, index) => (
                     <li key={index} className="flex justify-between items-center">
                         {/* Klikalny link do otwierania pliku */}
