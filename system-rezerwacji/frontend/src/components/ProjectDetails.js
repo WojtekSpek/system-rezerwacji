@@ -88,9 +88,9 @@ function ProjectDetails({ onUpdate }) {
 
   const optimisticGroupHoursSetter = (old, {groupId, hours}) => {
     return old.map((time) => 
-    time.groupId === groupId 
-    ? {...time, hours}
-    : {...time});
+      time.groupId === groupId 
+      ? {...time, hours}
+      : {...time});
   };
 
   const updateGroupHoursMutation = useUpdateData(
@@ -100,7 +100,7 @@ function ProjectDetails({ onUpdate }) {
     { loading: { description: "Proszę czekać, trwa zapisywanie godzin." },
       success: { description: "Godziny zajęć grupowych zostały zaktualizowane" },
       error: { description: "Błędna aktualizacja godziny zajęć grupowych." }
-    }
+    },    
   );
 
   if (updateGroupHoursMutation.isLoading) {
@@ -311,7 +311,7 @@ const updateHoursMutation = useUpdateData(
   { loading: { description: "Proszę czekać, trwa zapisywanie godzin." },
     success: { description: "Godziny zostały zaktualizowane." },
     error: { description: "Nie udało się zaktualizować godzin." }
-  }
+  },  
 );
 
 /// koniec @2 użycie hooka useSetDataDB()
@@ -474,8 +474,19 @@ const handleCheckboxChange = (typeId) => {
                 <button
                   onClick={() => {
                     // aktualizuj godziny zajęć
-                    updateHoursMutation.mutate({training_type_id: training?.training_type_id, planned_hours: editingHours[training?.training_type_id]});
-                    setEditingHours({ ...editingHours, [training.training_type_id]: undefined });
+                    updateHoursMutation.mutate({
+                      training_type_id: training?.training_type_id, 
+                      planned_hours: editingHours[training?.training_type_id] }, 
+                      { onSuccess: () => {                        
+                        setEditingHours({ 
+                        ...editingHours,
+                        [training.training_type_id]: undefined })
+                  }});
+                    /* 
+                    przeniesione do onSuccess
+                     setEditingHours({ 
+                      ...editingHours,
+                      [training.training_type_id]: undefined }); */
                   }}
                   className="bg-green-500 text-white px-2 py-1 rounded"
                 >
@@ -542,8 +553,18 @@ const handleCheckboxChange = (typeId) => {
                   <button
                     onClick={() => {
                       console.log("@3 (group.groupId, editingGroupHours[group.groupId])", [group.groupId, editingGroupHours[group.groupId]]);
-                      updateGroupHoursMutation.mutate({groupId: group?.groupId, hours: editingGroupHours[group?.groupId]});
-                      setEditingGroupHours({ ...editingGroupHours, [group.groupId]: undefined });
+                      updateGroupHoursMutation.mutate({groupId: group?.groupId,
+                          hours: editingGroupHours[group?.groupId] }, 
+                          { onSuccess: () => {                            
+                            setEditingGroupHours({ 
+                              ...editingGroupHours, 
+                              [group.groupId]: undefined })
+                          }
+                        });
+                      /*
+                      przeniesione do onSuccess setEditingGroupHours({ 
+                        ...editingGroupHours, 
+                        [group.groupId]: undefined }); */
                     }}
                     className="bg-green-500 text-white px-2 py-1 rounded"
                   >

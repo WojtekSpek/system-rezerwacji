@@ -38,6 +38,8 @@ import { toaster } from "../components/ui/toaster";
  * funkcję wysyłającą zapytanie,
  * funkcję ustawiającą wartość optymistyczną
  * communikaty wyświetlane na status 'loading', 'success', 'error' 
+ * funkcja wywoływana po: udanym wykonaniu zmiany: onSuccess
+ * funkcja wywoływana po nieudanym wykonaniu zmiany: onError
  * zwraca: obiekt useMutation z react-query
  *
  
@@ -48,7 +50,11 @@ import { toaster } from "../components/ui/toaster";
      { loading: { description: "Proszę czekać, trwa zapisywanie..." },
        success: { description: "Wartości zostały zaktualizowane." },
        error: { description: "Błędna aktualizacja wartości." } // komunikaty statusu 'loading', 'success' i 'error'
-     }
+     },
+    {
+      onSuccess: undefined, // funkcja wywoływana po udanej operacji zmiany danych 
+      onError: undefined, // funkcja wywoływana po nieudanej operacji zmiany danych
+    }
    );
   
  *
@@ -78,7 +84,8 @@ export function useUpdateData(
     queryKeys, // klucz zapytania, dostępu do obiektu w cache
     updateValues, // funkcja wywołująca zapytanie    
     optimisticValueSetter, // funkcja ustawiająca wartość optymistyczną
-    comunicates) { // komunikaty 'loading', 'success' i 'error'
+    comunicates, // komunikaty 'loading', 'success' i 'error'
+  ) {
    
     const queryClient = useQueryClient();
 
@@ -126,12 +133,18 @@ export function useUpdateData(
     
           // cofnij zapis 'optymistyczny' i załaduj poprzednią wartość
           queryClient.setQueryData(queryKeys, () => context.previousValue);
+          console.warn({ onError: "onErrorCallback", context} );
     
+          if (context?.onErrorCallback ) {
+            context.onErrorCallback();
+          }
+          
           // Pobierz wartość ponownie
           queryClient.invalidateQueries(queryKeys);    
+          
         },
         // Udało się pobrać vartość
-        onSuccess: (data, variables) => {
+        onSuccess: (data, variables, context) => {
           // Pobieraj zapisaną wartość
           queryClient.invalidateQueries(queryKeys);
           
@@ -140,6 +153,11 @@ export function useUpdateData(
               type: 'success',
               duration: 1200
             } );
+            console.warn({ onSuccess: "onSuccessCallback", context} );
+
+            if (context?.onSuccessCallback) {
+              context.onSuccessCallback();
+            }
         },
     });
 
