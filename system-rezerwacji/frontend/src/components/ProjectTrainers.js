@@ -3,12 +3,18 @@ import axios from "axios";
 import { useParams } from "react-router-dom";
 import { useQuery, useQueries, useQueryClient } from "@tanstack/react-query";
 import { ProgressCircle } from "@chakra-ui/react";
+import { Toaster } from "./ui/toaster";
 
+import { useUpdateData } from "../hooks/useUpdateData";
 
 
 function ProjectTrainers() {
   const [trainersByType, setTrainersByType] = useState({}); // Szkoleniowcy przypisani do typów
   const [trainersByGroup, setTrainersByGroup] = useState({}); // Szkoleniowcy przypisani do grup
+  
+  const [shouldRefreshGroups, setShouldRefreshGroups] = useState(false); // flaga aktualizująca trenerów zajęć grupowych
+  const [shouldRefreshTypes, setShouldRefreshTypes] = useState(false); // flaga aktualizująca trenerów zajęć
+  
   const [searchQueries, setSearchQueries] = useState({}); // Oddzielne inputy dla typów
   const [groupSearchQueries, setGroupSearchQueries] = useState({}); // Wyszukiwanie dla grup
   const [typeSearchQueries, setTypeSearchQueries] = useState({}); // Wyszukiwanie dla typów
@@ -18,15 +24,54 @@ function ProjectTrainers() {
   const {id} = useParams(); // Pobiera ID projektu z URL
   const projectId = id; // Pobiera ID projektu z URL
   const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "http://localhost:5000";
-
-  useEffect(() => { 
-    fetchProjectTypes(); 
-    fetchProjectGroups();
-    console.log("useEffect() - finished");
-  }, [projectId]);
-
+  
   // Użyty do unieważnienia zapytań zastosowanych przez 'useQueries'
   const queryClient = useQueryClient();
+
+  useEffect(() => { 
+   
+    fetchProjectTypes(projectId); 
+    fetchProjectGroups(projectId);
+  }, [projectId]);
+
+
+  /// #1 zmina na useQuery mutation
+
+  /* const addTrainerToGroup = async (trainerId, groupId) => {
+    try {
+      const response = await axios.post(`${API_BASE_URL}/group/${projectId}/group-trainers`, {
+        trainerId,
+        groupId,
+      });
+      if (response.data.success) {
+        alert("Szkoleniowiec został przypisany do grupy!");
+      }
+    } catch (error) {
+      console.error("Błąd podczas przypisywania szkoleniowca do grupy:", error);
+    }
+  }; */
+
+  const addTrainerToGroup = async ({trainerId, groupId}) => {
+    return await axios.post(`${API_BASE_URL}/group/${projectId}/group-trainers`, {
+        trainerId,
+        groupId,
+      });
+  };
+
+  const addTrainerToGroupMutation = useUpdateData(
+    ['trainersByGroupQueries'], // klucz stanu 
+    addTrainerToGroup, // funkcja aktualizująca dane w bazie   
+    undefined, // funkcja ustawiająca wartość 'optymistyczną'
+    { loading: { description: "Proszę czekać, trwa przypisowanie szkoleniowca..." },
+      success: { description: "Szkoleniowiec został przypisany do grupy!" },
+      error: { description: "Błąd podczas przypisywania szkoleniowca do grupy." } // komunikaty statusu 'loading', 'success' i 'error'
+    },
+    true
+  );
+
+
+
+  /// #1 koniec 
 
   /// Użyj React Query do pobrania grup projektu
    const fetchProjectGroups = async (projectId) => {
@@ -40,10 +85,11 @@ function ProjectTrainers() {
 
   
    const { data: projectGroups = [],
-     isLoading: isLoadingGroup, 
-     isError: isErrorLoadingGroup,
-     error: errorLoadingGroup } = useQuery({
-    queryKey: ["projectGroups", projectId],
+      isLoading: isLoadingGroup, 
+      isError: isErrorLoadingGroup,
+      error: errorLoadingGroup,
+      } = useQuery({
+    queryKey: ['projectGroups'],
     queryFn: () => fetchProjectGroups(projectId),
   });
 
@@ -51,11 +97,12 @@ function ProjectTrainers() {
     console.log("Błąd errorLoadingGroup:", errorLoadingGroup);
   }
 
-  const fetchAllTrainersForGroups = async (groups) => {   
-    console.log("@ fetchAllTrainersForGroups:", groups);
+  /* const fetchAllTrainersForGroups = async (groups) => {   
+    console.log("!@ fetchAllTrainersForGroups:", groups);
     console.log("@ allTrainersForTypesQueryResult:", allTrainersForGroupsQueryResult);
-    queryClient.invalidateQueries({ queryKey: ['trainersByGroupQueries'], exact: true});
-  };
+    queryClient.invalidateQueries(['trainersByGroupQueries']);
+  }; */
+
   // pobiera trenerów dla grupy
   const fetchAllTrainersForGroup = async (projectId, groupId) => {   
         const response = await axios.get(`${API_BASE_URL}/group/${projectId}/group-trainers/${groupId}`);
@@ -69,7 +116,7 @@ function ProjectTrainers() {
   // Pobranie grup dla projektu (gdy 'projectGroups'' są już dostępne)
   const allTrainersForGroupsQueryResult = useQueries({
     queries: (projectGroups || []).map((group) => ({
-      queryKey: ['trainersByGroupQueries', projectId, group.id],
+      queryKey: ['trainersByGroupQueries', group.id],
       queryFn: () => fetchAllTrainersForGroup(projectId, group.id),
       enabled: !!projectGroups, // Wykonuje się tylko, jeśli 'projectGroups' są dostępne
     })),
@@ -86,46 +133,60 @@ function ProjectTrainers() {
 
   // filtrujemy i zapisuje dane szkoleniowców z grup przypisanych do projektu gdy się już pobiorą
   useEffect(() => {  
-  if (allSuccessWithGroupsData) {   
+    if (allSuccessWithGroupsData) {   
       const trainersData = allTrainersForGroupsQueryResult.reduce((acc, group) => {
         acc[String(group.data?.idOfGroup)] = group.data?.data.trainers;
         return acc;
       }, {}); 
 
-      console.log("Loaded trainerGroups:",trainersData );
-      setTrainersByGroup(trainersData); // Aktualizujemy stan//trainerGroups?.filter(([group]) => group.success);
-    
-  }}, [allSuccessWithGroupsData, projectGroups]);   // Uruchamiamy, gdy 'allSuccessWithData', 'projectGroups' się zmienią
+      console.log("Loaded trainerGroups:", trainersData);
+      
+      if (shouldRefreshGroups) {
+        setShouldRefreshGroups(false);
+        //trainerGroups?.filter(([group]) => group.success);
+        console.log("useEffect() - finished");
+      }
+
+      setTrainersByGroup(trainersData); // Aktualizujemy stan
+    }
+  }, [allSuccessWithGroupsData, projectGroups, shouldRefreshGroups]);   // Uruchamiamy, gdy 'allSuccessWithData', 'projectGroups' się zmienią
     
 /// koniec pobierania grup
 
 
-  const addTrainerToGroup = async (trainerId, groupId) => {
-    try {
-      const response = await axios.post(`${API_BASE_URL}/group/${projectId}/group-trainers`, {
-        trainerId,
-        groupId,
-      });
-      if (response.data.success) {
-        fetchAllTrainersForGroups(projectGroups);
-        alert("Szkoleniowiec został przypisany do grupy!");
-      }
-    } catch (error) {
-      console.error("Błąd podczas przypisywania szkoleniowca do grupy:", error);
-    }
-  };
+  /// #3 zmiana na query mutation
 
-  const removeTrainerFromGroup = async (trainerId, groupId) => {
+  /* const removeTrainerFromGroup = async (trainerId, groupId) => {
     try {
       const response = await axios.delete(`${API_BASE_URL}/group/projects/${projectId}/group-trainers/${groupId}/${trainerId}`);
       if (response.data.success) {
-        fetchAllTrainersForGroups(projectGroups);
+       
+        setShouldRefreshGroups(true);
         alert("Szkoleniowiec został usunięty z grupy!");
       }
     } catch (error) {
       console.error("Błąd podczas usuwania szkoleniowca z grupy:", error);
     }
+  }; */
+  
+  const removeTrainerFromGroup = async ({trainerId, groupId}) => {
+    return await axios.delete(`${API_BASE_URL}/group/projects/${projectId}/group-trainers/${groupId}/${trainerId}`);
   };
+
+  const removeTrainerFromGroupMutation = useUpdateData(
+    ['trainersByGroupQueries'], // klucz stanu 
+    removeTrainerFromGroup, // funkcja aktualizująca dane w bazie   
+    undefined, // funkcja ustawiająca wartość 'optymistyczną'
+    { 
+      loading: { description: "Proszę czekać, trwa usuwanie szkoleniowca..." },
+      success: { description: "Szkoleniowiec został usunięty z grupy!" },
+      error: { description: "Błąd podczas usuwania szkoleniowca z grupy." } // komunikaty statusu 'loading', 'success' i 'error'
+    },
+    true
+  );
+
+
+  /// #3 koniec 
 
   /// Użyj React Query do pobrania typów projektu
   const fetchProjectTypes = async (projectId) => {   
@@ -156,7 +217,7 @@ function ProjectTrainers() {
   const fetchAllTrainersForTypes = async (types) => {    
     console.log("@ fetchAllTrainersForTypes:", types);
     console.log("@ allTrainersForTypesQueryResult:", allTrainersForTypesQueryResult);
-    queryClient.invalidateQueries({ queryKey: ['trainersByTypeQueries'], exact: true});
+    queryClient.invalidateQueries(['projectTypes']);
   };
 
   const fetchAllTrainersForType = async (projectId, typeId) => {
@@ -193,13 +254,19 @@ function ProjectTrainers() {
       }, {}); 
 
       console.log("Loaded trainerTypes:", trainersData );
+      
+      if (shouldRefreshTypes) {
+        setShouldRefreshTypes(false);
+        console.log("useEffect() - finished");
+      }
+      
       setTrainersByType(trainersData);
-    
-  }}, [allSuccessWithTypeData, projectTypes]);
+    }
+  }, [allSuccessWithTypeData, projectTypes, shouldRefreshTypes]);
         
   /// koniec pobierania typów
-
-  const addTrainerToType = async (trainerId, typeId) => {
+  /// #2 zmiana na useQuery mutation
+  /* const addTrainerToType = async (trainerId, typeId) => {
     try {
       const response = await axios.post(`${API_BASE_URL}/projects/${projectId}/trainers`, { trainerId, typeId });
       if (response.data.success) {
@@ -209,9 +276,27 @@ function ProjectTrainers() {
     } catch (error) {
       console.error("Błąd podczas dodawania szkoleniowca:", error);
     }
+  }; */
+
+  const addTrainerToType = async ({trainerId, typeId}) => {
+    return await axios.post(`${API_BASE_URL}/projects/${projectId}/trainers`, { trainerId, typeId });
   };
 
-  const removeTrainerFromType = async (trainerId, typeId) => {
+  const addTrainerToTypeMutation = useUpdateData(
+    ['trainersByTypeQueries'], // klucz stanu 
+    addTrainerToType, // funkcja aktualizująca dane w bazie   
+    undefined, // funkcja ustawiająca wartość 'optymistyczną'
+    { loading: { description: "Proszę czekać, trwa przypisowanie szkoleniowca..." },
+      success: { description: "Szkoleniowiec został przypisany do grupy!" },
+      error: { description: "Błąd podczas przypisywania szkoleniowca do grupy." } // komunikaty statusu 'loading', 'success' i 'error'
+    },
+    true
+  );
+
+  /// #2 koniec
+
+  /// #4 
+ /*  const removeTrainerFromType = async (trainerId, typeId) => {
     try {
       const response = await axios.delete(`${API_BASE_URL}/projects/${projectId}/trainers/${typeId}/${trainerId}`);
       if (response.data.success) {
@@ -221,7 +306,26 @@ function ProjectTrainers() {
     } catch (error) {
       console.error("Błąd podczas usuwania szkoleniowca:", error);
     }
+  }; */
+
+  const removeTrainerFromType = async ({trainerId, typeId}) => {
+    return await axios.delete(`${API_BASE_URL}/projects/${projectId}/trainers/${typeId}/${trainerId}`);
   };
+
+  const removeTrainerFromTypeMutation = useUpdateData(
+    ['trainersByTypeQueries'], // klucz stanu 
+    removeTrainerFromType, // funkcja aktualizująca dane w bazie   
+    undefined, // funkcja ustawiająca wartość 'optymistyczną'
+    { loading: { description: "Proszę czekać, trwa usuwanie szkoleniowca..." },
+      success: { description: "Szkoleniowiec został usunięty!" },
+      error: { description: "Błąd podczas usuwania szkoleniowca." } // komunikaty statusu 'loading', 'success' i 'error'
+    },
+    true
+  );
+
+
+  /// #4 koniec
+
 
   const searchAvailableTrainers = async (id, query, context) => {
     try {
@@ -280,6 +384,8 @@ function ProjectTrainers() {
   }
 
   return (
+  <div>
+    <Toaster />
     <div className="p-4 w-full">
       <h2 className="text-2xl font-bold mb-4">Szkoleniowcy projektu</h2>
       <ul className="space-y-4">
@@ -294,7 +400,15 @@ function ProjectTrainers() {
                 <li key={trainer.id} className="flex justify-between items-center p-2 border-b">
                   <span>{trainer.name}</span>
                   <button
-                    onClick={() => removeTrainerFromType(trainer.id, type.id)}
+                    /* onClick={() => removeTrainerFromType(trainer.id, type.id)} */
+                    onClick = {() => {
+                      removeTrainerFromTypeMutation.mutate({
+                        trainerId: trainer.id, 
+                        typeId: type.id,
+                        singleQueryKey: type.id,
+                      }, 
+                      { onSuccess: () => { setShouldRefreshTypes(true); }});
+                    }}
                     className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600"
                   >
                     Usuń
@@ -322,7 +436,16 @@ function ProjectTrainers() {
                   <li key={trainer.id} className="flex justify-between items-center p-2 border-b">
                     <span>{trainer.name}</span>
                     <button
-                      onClick={() => addTrainerToType(trainer.id, type.id)}
+                      onClick={() => {
+                        /*addTrainerToType(trainer.id, type.id)}*/
+                        addTrainerToTypeMutation.mutate({
+                          trainerId: trainer.id, 
+                          typeId: type.id, 
+                          singleQueryKey: type.id
+                        }, 
+                            { onSuccess: () => { setShouldRefreshTypes(true); }});
+                        }}
+
                       className={`${
                         trainersByType[type.id]?.some((t) => t.id === trainer.id)
                           ? "bg-gray-400 cursor-not-allowed"
@@ -353,7 +476,16 @@ function ProjectTrainers() {
                 <li key={trainer.id + '_' + group.id} className="flex justify-between items-center p-2 border-b">
                   <span>{trainer.name}</span>
                   <button
-                    onClick={() => removeTrainerFromGroup(trainer.id, group.id)}
+                    /*onClick={() => removeTrainerFromGroup(trainer.id, group.id)}*/
+                    onClick = {() => {
+                      removeTrainerFromGroupMutation.mutate({
+                        trainerId: trainer.id, 
+                        groupId: group.id,
+                        singleQueryKey: group.id,
+                      }, 
+                      { onSuccess: () => { setShouldRefreshGroups(true); }});
+                    }}
+
                     className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600"
                   >
                     Usuń
@@ -379,10 +511,25 @@ function ProjectTrainers() {
                 <li key={trainer.id} className="flex justify-between items-center p-2 border-b">
                   <span>{trainer.name}</span>
                   <button
-                    onClick={() => addTrainerToGroup(trainer.id, group.id)}
-                    className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded"
+                    onClick={() => {
+                      /*addTrainerToGroup(trainer.id, group.id)*/
+                      addTrainerToGroupMutation.mutate({
+                        trainerId: trainer.id, 
+                        groupId: group.id,
+                        singleQueryKey: group.id,
+                      }, 
+                      { onSuccess: () => { setShouldRefreshGroups(true); }});
+                    }}
+                    className={`${
+                      trainersByGroup[group.id]?.some((t) => t.id === trainer.id)
+                        ? "bg-gray-400 cursor-not-allowed"
+                        : "bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded"
+                    } text-white px-3 py-1 rounded`}
+                    disabled={trainersByType[group.id]?.some((t) => t.id === trainer.id)}
                   >
-                    Dodaj
+                   {trainersByGroup[group.id]?.some((t) => t.id === trainer.id)
+                        ? "Dodano"
+                        : "Dodaj"}
                   </button>
                 </li>
               ))}
@@ -392,6 +539,7 @@ function ProjectTrainers() {
           </li>
         ))}
       </ul>
+    </div>
     </div>
   );
 }

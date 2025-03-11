@@ -38,8 +38,6 @@ import { toaster } from "../components/ui/toaster";
  * funkcję wysyłającą zapytanie,
  * funkcję ustawiającą wartość optymistyczną
  * communikaty wyświetlane na status 'loading', 'success', 'error' 
- * funkcja wywoływana po: udanym wykonaniu zmiany: onSuccess
- * funkcja wywoływana po nieudanym wykonaniu zmiany: onError
  * zwraca: obiekt useMutation z react-query
  *
  
@@ -51,10 +49,6 @@ import { toaster } from "../components/ui/toaster";
        success: { description: "Wartości zostały zaktualizowane." },
        error: { description: "Błędna aktualizacja wartości." } // komunikaty statusu 'loading', 'success' i 'error'
      },
-    {
-      onSuccess: undefined, // funkcja wywoływana po udanej operacji zmiany danych 
-      onError: undefined, // funkcja wywoływana po nieudanej operacji zmiany danych
-    }
    );
   
  *
@@ -85,9 +79,11 @@ export function useUpdateData(
     updateValues, // funkcja wywołująca zapytanie    
     optimisticValueSetter, // funkcja ustawiająca wartość optymistyczną
     comunicates, // komunikaty 'loading', 'success' i 'error'
+    clearCache = false, // flaga, do czyszczenia cachu React Queries
   ) {
    
     const queryClient = useQueryClient();
+    let singleQueryKey = undefined;
 
     const updateMutation = useMutation({
         mutationFn: updateValues,  
@@ -95,18 +91,24 @@ export function useUpdateData(
         onMutate: async (values) => {
           // Wyświetlenie toastu o rozpoczęciu operacji
           
+          singleQueryKey = values.singleQueryKey;
+          const mutiKey = singleQueryKey !== undefined ? [...queryKeys, singleQueryKey] : [...queryKeys];
           // Anuluj ponowne pobieranie
           // (żeby nie nadpisało optymistycznego pobrania)
-          await queryClient.cancelQueries({ queryKey: queryKeys });
+          await queryClient.cancelQueries({ queryKey: mutiKey });
     
           // Zapisz poprzednią wartość
-          const previousValue = queryClient.getQueryData(queryKeys);
+          const previousValue = queryClient.getQueryData(mutiKey);
           
-          // Optymistycznie ustaw wartość          
-          queryClient.setQueryData(queryKeys, (old) => 
-            optimisticValueSetter(old, values)      
-          );
-    
+          // Optymistycznie ustaw wartość  
+          if (optimisticValueSetter !== undefined) {        
+            queryClient.setQueryData(mutiKey, (old) => {
+              const updatedValues = optimisticValueSetter(old, values, mutiKey);
+              return updatedValues ?? old; // Zawsze zwracaj tablicę, nigdy `undefined`
+          });
+          }
+
+
           toaster.promise(
             new Promise(( ) => { }),
             { loading : 
@@ -118,12 +120,12 @@ export function useUpdateData(
           } });
     
           // Zwraca zapisaną wartość optymistyczną
-          return {previousValue};
+          return {previousValue, mutiKey};
         },
         // Jeżeli mutacja zawiedzie
         // Uzyj konteksu z zapisaną poprednio wartością
         // Nie udało się pobrać godzin dla zajęć grupowych
-        onError: (error, previous, context) => {
+        onError: (error, {previousValue, mutiKey}, context) => {
           toaster.update(toasterName,
             { title: 'Błąd!', description:  comunicates.error.description,
               type: 'error',
@@ -132,21 +134,33 @@ export function useUpdateData(
             } } ); 
     
           // cofnij zapis 'optymistyczny' i załaduj poprzednią wartość
-          queryClient.setQueryData(queryKeys, () => context.previousValue);
+          queryClient.setQueryData(mutiKey, () => previousValue);          
+          console.warn(previousValue);
           console.warn({ onError: "onErrorCallback", context} );
     
           if (context?.onErrorCallback ) {
             context.onErrorCallback();
           }
+
+          // usuwa cache react query, powoduje natychmiastowe odświeżenie
+          if (clearCache) {
+            queryClient.removeQueries(mutiKey);
+          }
           
           // Pobierz wartość ponownie
-          queryClient.invalidateQueries(queryKeys);    
+          queryClient.invalidateQueries(mutiKey);    
           
         },
         // Udało się pobrać vartość
-        onSuccess: (data, variables, context) => {
+        onSuccess: (data, {variables, mutiKey}, context) => {
+          
+          // usuwa cache react query, powoduje natychmiastowe odświeżenie
+          if (clearCache) {
+            queryClient.removeQueries(mutiKey);
+          }
+          
           // Pobieraj zapisaną wartość
-          queryClient.invalidateQueries(queryKeys);
+          queryClient.invalidateQueries(mutiKey);
           
           toaster.update(toasterName,
             { title: "Sukces!", description: comunicates.success.description,
