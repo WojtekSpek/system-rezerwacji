@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useParams } from "react-router-dom";
 import { useQuery, useQueries, useQueryClient } from "@tanstack/react-query";
-import { ProgressCircle } from "@chakra-ui/react";
+import { ProgressCircle, Input, InputGroup } from "@chakra-ui/react";
 import { Toaster } from "./ui/toaster";
 
 import { useUpdateData } from "../hooks/useUpdateData";
@@ -15,11 +15,16 @@ function ProjectTrainers() {
   const [shouldRefreshGroups, setShouldRefreshGroups] = useState(false); // flaga aktualizująca trenerów zajęć grupowych
   const [shouldRefreshTypes, setShouldRefreshTypes] = useState(false); // flaga aktualizująca trenerów zajęć
   
+  /* const [searchId, setSearchId] = useState(null); // flaga aktualizująca trenerów zajęć
+  const [searchQuery, setSearchQuery] = useState(null); // flaga aktualizująca trenerów zajęć
+  const [searchContext, setSearchContext] = useState(null); // flaga aktualizująca trenerów zajęć */
+  
+
   const [searchQueries, setSearchQueries] = useState({}); // Oddzielne inputy dla typów
   const [groupSearchQueries, setGroupSearchQueries] = useState({}); // Wyszukiwanie dla grup
   const [typeSearchQueries, setTypeSearchQueries] = useState({}); // Wyszukiwanie dla typów
   const [filteredGroupTrainers, setFilteredGroupTrainers] = useState({}); // Wyniki wyszukiwania dla grup
-  const [filteredTypeTrainers, setFilteredTypeTrainers] = useState({});   // Wyniki wyszukiwania dla typów
+  ///#5 const [filteredTypeTrainers, setFilteredTypeTrainers] = useState({});   // Wyniki wyszukiwania dla typów
   const [filteredTrainers, setFilteredTrainers] = useState({}); // Filtrowana lista szkoleniowców
   const {id} = useParams(); // Pobiera ID projektu z URL
   const projectId = id; // Pobiera ID projektu z URL
@@ -58,11 +63,17 @@ function ProjectTrainers() {
       });
   };
 
+  /* const optimisticAddTrainerToGroup = (old, values, mutiKey) => {
+    console.warn({old, values, mutiKey});
+    return undefined;
+  }; */
+
   const addTrainerToGroupMutation = useUpdateData(
     ['trainersByGroupQueries'], // klucz stanu 
     addTrainerToGroup, // funkcja aktualizująca dane w bazie   
-    undefined, // funkcja ustawiająca wartość 'optymistyczną'
-    { loading: { description: "Proszę czekać, trwa przypisowanie szkoleniowca..." },
+    undefined,//optimisticAddTrainerToGroup, // funkcja ustawiająca wartość 'optymistyczną'
+    {
+      loading: { description: "Proszę czekać, trwa przypisowanie szkoleniowca..." },
       success: { description: "Szkoleniowiec został przypisany do grupy!" },
       error: { description: "Błąd podczas przypisywania szkoleniowca do grupy." } // komunikaty statusu 'loading', 'success' i 'error'
     },
@@ -326,6 +337,13 @@ function ProjectTrainers() {
 
   /// #4 koniec
 
+  /// #5 fałszywy test na ładowanie, do zmiany
+  const isSearchingTrainersQuery = (searched, found, key, isLoadingSearch) => {    
+    return (Object.keys(searched).includes(key.toString()) 
+      && Object.keys(searched).length > 0 
+      && found !== undefined 
+      && isLoadingSearch );
+  };
 
   const searchAvailableTrainers = async (id, query, context) => {
     try {
@@ -349,7 +367,8 @@ function ProjectTrainers() {
           setFilteredGroupTrainers((prev) => ({ ...prev, [id]: filtered }));
           console.log("Stan filteredGroupTrainers:", filteredGroupTrainers);
         } else if (context === "type") {
-          setFilteredTypeTrainers((prev) => ({ ...prev, [id]: filtered }));
+          //setFilteredTypeTrainers((prev) => ({ ...prev, [id]: filtered }));
+          console.warn("just stop");
         }
       } else {
         console.warn(
@@ -365,23 +384,99 @@ function ProjectTrainers() {
     }
   };
   
+
+  const searchAvailableTrainersFunc = async (variables) => {
+    const {searchId:id, searchQuery: query, searchContext: context} = variables?.meta;
+
+    console.error("REFREASH");
+    // zapobiega zapytaniu z pustą listą
+    if (query === undefined || query === "") {
+      console.warn(
+        "Wynik zapytania do backendu wskazuje niepowodzenie:",
+        query
+      );
+      return [];
+    }
+
+    const params = { query: query.trim() };
+  
+    // Dodanie odpowiednich parametrów w zależności od kontekstu
+    if (context === "group") {
+      params.groupId = id;
+    } else if (context === "type") {
+      params.typeId = id;
+    }
+
+    const response = await axios.get(`${API_BASE_URL}/trainers/trainersType`, { params });
+    if (!response.data.success) {      
+      console.warn(
+        "Wynik zapytania do backendu wskazuje niepowodzenie:",
+        response.data
+      );
+
+      throw(new Error("Błąd podczas wyszukiwania szkoleniowców"));        
+    }
+
+    return ([{[id]: [...response.data.trainers]}]);   
+    
+  }; 
+  
+  const onTrainersSearchSuccess = (data) => {
+    const {filtered, context} = data;
+    console.log("Przefiltrowani trenerzy:", filtered);
+    // Obsługa wyników w zależności od kontekstu
+    if (context === "group") {
+      setFilteredGroupTrainers((prev) => ({ ...prev, [id]: filtered }));
+      console.log("Stan filteredGroupTrainers:", filteredGroupTrainers);
+    } else if (context === "type") {
+      //setFilteredTypeTrainers((prev) => ({ ...prev, [id]: filtered }));
+      queryClient.setQueryData('filteredTypeTrainers', (prev) => ({ ...prev, [id]: filtered }) );
+    }
+  };
+  
+  const { data: filteredTypeTrainers = {},
+    isLoading: isLoadingSearchAvailableTrainers, 
+    isError: isErrorSearchAvailableTrainers,
+    error: errorSearchAvailableTrainers,
+    refetch: reSearchAvailableTrainersFunc} = useQuery({
+      queryKey: ['filteredTypeTrainers', ],
+      queryFn: (meta) => searchAvailableTrainersFunc(meta),
+      enabled: false,
+      meta: {},      
+      staleTime: 0,
+  });
+  
+  
+  
+  if (isErrorSearchAvailableTrainers) {
+    console.log("Błąd podczas wyszukiwania szkoleniowców:",
+      errorSearchAvailableTrainers.response?.data 
+      || errorSearchAvailableTrainers.message);
+  }
+
+
+  /// #5 koniec 
+
+  const getRenderLoadingSpiner = () => (
+    <ProgressCircle.Root value={null} size="xs">
+      <ProgressCircle.Circle>
+        <ProgressCircle.Track />
+        <ProgressCircle.Range />
+      </ProgressCircle.Circle>
+    </ProgressCircle.Root>
+  );
+
   
   // wyświetla spiner do momentu pobrania trenerów, grup i typów zajęć
-  if ( isLoadingGroup 
+ /*  if (isLoadingGroup 
       || isLoadingType 
       || isLoadingTrainersTypes
       || isLoadingTrainersGroups 
       || !allSuccessWithGroupsData 
-      || !allSuccessWithTypeData ) { 
-    return (<div className="flex items-center justify-center h-screen">
-      <ProgressCircle.Root value={null} size="sm">
-        <ProgressCircle.Circle>
-          <ProgressCircle.Track />
-          <ProgressCircle.Range />
-        </ProgressCircle.Circle>
-      </ProgressCircle.Root>
-    </div>);
-  }
+      || !allSuccessWithTypeData) { 
+      return <div className="flex items-center justify-center h-screen">
+        {renderLoadingSpiner()}</div>;
+  } */
 
   return (
   <div>
@@ -389,90 +484,111 @@ function ProjectTrainers() {
     <div className="p-4 w-full">
       <h2 className="text-2xl font-bold mb-4">Szkoleniowcy projektu</h2>
       <ul className="space-y-4">
-        {projectTypes.map((type) => (
-          <li key={type.id} className="bg-white p-4 rounded  shadow hover:shadow-md">
-            <h3 className="text-lg font-semibold mb-2">{type.type}</h3>
+        { (isLoadingType || !allSuccessWithTypeData) 
+        ? getRenderLoadingSpiner()
+          : projectTypes.map((type) => (
+            <li key={type.id} className="bg-white p-4 rounded  shadow hover:shadow-md">
+              <h3 className="text-lg font-semibold mb-2">{type.type}</h3>
 
-            {/* Lista przypisanych szkoleniowców */}
-            
-            <ul>
-              {trainersByType[type.id]?.map((trainer) => (
-                <li key={trainer.id} className="flex justify-between items-center p-2 border-b">
-                  <span>{trainer.name}</span>
-                  <button
-                    /* onClick={() => removeTrainerFromType(trainer.id, type.id)} */
-                    onClick = {() => {
-                      removeTrainerFromTypeMutation.mutate({
-                        trainerId: trainer.id, 
-                        typeId: type.id,
-                        singleQueryKey: type.id,
-                      }, 
-                      { onSuccess: () => { setShouldRefreshTypes(true); }});
-                    }}
-                    className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600"
-                  >
-                    Usuń
-                  </button>
-                </li>
-              )) || <p>Brak przypisanych szkoleniowców</p>}
-            </ul>
-
-            {/* Sekcja Dodawania szkoleniowców */}
-            <div className="mt-4">
-              <h4 className="font-semibold mb-2">Dodaj szkoleniowca:</h4>
-              <input
-                type="text"
-                placeholder="Wyszukaj szkoleniowca dla typu..."
-                value={typeSearchQueries[type.id] || ""} // Korzystaj z typowego stanu
-                onChange={(e) => {
-                  const query = e.target.value;
-                  setTypeSearchQueries((prev) => ({ ...prev, [type.id]: query })); // Aktualizuj typowy stan
-                  searchAvailableTrainers(type.id, query, "type");
-                }}
-                className="border border-gray-300 p-2 rounded w-full mb-2"
-              />
+              {/* Lista przypisanych szkoleniowców */}
+              
               <ul>
-                {filteredTypeTrainers[type.id]?.map((trainer) => (
-                  <li key={trainer.id} className="flex justify-between items-center p-2 border-b">
-                    <span>{trainer.name}</span>
-                    <button
-                      onClick={() => {
-                        /*addTrainerToType(trainer.id, type.id)}*/
-                        addTrainerToTypeMutation.mutate({
-                          trainerId: trainer.id, 
-                          typeId: type.id, 
-                          singleQueryKey: type.id
-                        }, 
-                            { onSuccess: () => { setShouldRefreshTypes(true); }});
+                { (isLoadingTrainersTypes) 
+                  ? getRenderLoadingSpiner()
+                  : trainersByType[type.id]?.map((trainer) => (
+                    <li key={trainer.id} className="flex justify-between items-center p-2 border-b">
+                      <span>{trainer.name}</span>
+                      <button
+                        /* onClick={() => removeTrainerFromType(trainer.id, type.id)} */
+                        onClick = {() => {
+                          removeTrainerFromTypeMutation.mutate({
+                            trainerId: trainer.id, 
+                            typeId: type.id,
+                            singleQueryKey: type.id,
+                          }, 
+                          { onSuccess: () => { setShouldRefreshTypes(true); }});
                         }}
+                        className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600"
+                      >
+                        Usuń
+                      </button>
+                    </li>
+                  )) || <p>Brak przypisanych szkoleniowców</p>
+                }
+                </ul>
 
-                      className={`${
-                        trainersByType[type.id]?.some((t) => t.id === trainer.id)
-                          ? "bg-gray-400 cursor-not-allowed"
-                          : "bg-blue-500 hover:bg-blue-600"
-                      } text-white px-3 py-1 rounded`}
-                      disabled={trainersByType[type.id]?.some((t) => t.id === trainer.id)}
-                    >
-                      {trainersByType[type.id]?.some((t) => t.id === trainer.id)
-                        ? "Dodano"
-                        : "Dodaj"}
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </li>
-        ))}
-      </ul>
+                {/* Sekcja Dodawania szkoleniowców */}
+                <div className="mt-4" >
+                  
+                  <h4 className="font-semibold mb-2">Dodaj szkoleniowca:</h4>                  
+                  <InputGroup endElement={
+                    (isSearchingTrainersQuery(typeSearchQueries, filteredTypeTrainers, type.id, isLoadingSearchAvailableTrainers))
+                      ? getRenderLoadingSpiner() : null} >
+                    <Input 
+                      type="text"
+                      placeholder="Wyszukaj szkoleniowca dla typu..."
+                      value={typeSearchQueries[type.id] || ""} // Korzystaj z typowego stanu
+                      onChange={(e) => {
+                        const query = e.target.value;
+                        setTypeSearchQueries((prev) => ({ ...prev, [type.id]: query })); // Aktualizuj typowy stan
+                        // zamienione na poniższe 
+                        // searchAvailableTrainers(type.id, query, "type");
+                        /* setSearchId(type.id);
+                        setSearchQuery(query);
+                        setSearchContext("type"); */
+                        searchAvailableTrainersFunc({ meta: { searchId: type.id, searchQuery: query, searchContext: "type" } });
+                      }}
+                      className="border border-gray-300 p-2 rounded w-full mb-2"
+                    />    
+                  </InputGroup>          
+                  <ul>
+                  <div>TAG 1 : {filteredTypeTrainers.length < 0 ? "zero": filteredTypeTrainers[type.id]?.name}</div>
+                    {filteredTypeTrainers[type.id]?.map((trainer) => (
+                      <li key={trainer.id} className="flex justify-between items-center p-2 border-b">
+                        <span>{trainer.name}</span>
+                        <button
+                          onClick={() => {
+                            /*addTrainerToType(trainer.id, type.id)}*/
+                            addTrainerToTypeMutation.mutate({
+                              trainerId: trainer.id, 
+                              typeId: type.id, 
+                              singleQueryKey: type.id
+                            }, 
+                                { onSuccess: () => { setShouldRefreshTypes(true); }});
+                            }}
+
+                          className={`${
+                            trainersByType[type.id]?.some((t) => t.id === trainer.id)
+                              ? "bg-gray-400 cursor-not-allowed"
+                              : "bg-blue-500 hover:bg-blue-600"
+                          } text-white px-3 py-1 rounded`}
+                          disabled={trainersByType[type.id]?.some((t) => t.id === trainer.id)}
+                        >
+                          {trainersByType[type.id]?.some((t) => t.id === trainer.id)
+                            ? "Dodano"
+                            : "Dodaj"}
+                        </button>
+                      </li>
+                  ))}
+                </ul>
+              </div>
+            </li>
+          ))}
+        </ul>
+
       {/* Sekcja dla grup */}
       <h3 className="text-xl font-semibold mt-8 mb-2">Zajęcia grupowe</h3>
       <ul className="space-y-4">
-        {projectGroups.map((group) => (
+        { (isLoadingGroup || !allSuccessWithGroupsData) 
+          ? getRenderLoadingSpiner()
+          : projectGroups.map((group) => (
           <li key={group.id} className="bg-slate-100 p-4 rounded shadow hover:shadow-md">
             <h4 className="text-lg font-semibold mb-2">{group.name}</h4>
 
             <ul>
-              {trainersByGroup[group.id]?.map((trainer) => (
+              {(isLoadingTrainersGroups)
+              ? isLoadingTrainersGroups()
+              : trainersByGroup[group.id]?.map((trainer) => (
                 <li key={trainer.id + '_' + group.id} className="flex justify-between items-center p-2 border-b">
                   <span>{trainer.name}</span>
                   <button
@@ -494,7 +610,7 @@ function ProjectTrainers() {
               )) || <p>Brak przypisanych szkoleniowców</p>}
             </ul>
 
-            <div className="mt-4">
+            <div className="mt-4">            
             <input
               type="text"
               placeholder="Wyszukaj szkoleniowca (po imieniu lub umiejętnościach)..."
@@ -505,7 +621,7 @@ function ProjectTrainers() {
                 searchAvailableTrainers(group.id, query, "group");
               }}
               className="border border-gray-300 p-2 rounded w-full mb-2"
-            />
+            />            
             <ul>
               {filteredGroupTrainers[group.id]?.map((trainer) => (
                 <li key={trainer.id} className="flex justify-between items-center p-2 border-b">
@@ -535,7 +651,6 @@ function ProjectTrainers() {
               ))}
             </ul>
           </div>
-
           </li>
         ))}
       </ul>
