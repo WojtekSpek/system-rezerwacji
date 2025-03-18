@@ -15,10 +15,6 @@ function ProjectTrainers() {
   const [shouldRefreshGroups, setShouldRefreshGroups] = useState(false); // flaga aktualizująca trenerów zajęć grupowych
   const [shouldRefreshTypes, setShouldRefreshTypes] = useState(false); // flaga aktualizująca trenerów zajęć
   
-  /* const [searchId, setSearchId] = useState(null); // flaga aktualizująca trenerów zajęć
-  const [searchQuery, setSearchQuery] = useState(null); // flaga aktualizująca trenerów zajęć
-  const [searchContext, setSearchContext] = useState(null); // flaga aktualizująca trenerów zajęć */
-  
 
   const [searchQueries, setSearchQueries] = useState({}); // Oddzielne inputy dla typów
   const [groupSearchQueries, setGroupSearchQueries] = useState({}); // Wyszukiwanie dla grup
@@ -244,7 +240,7 @@ function ProjectTrainers() {
     queries: (projectTypes || []).map((type) => ({
       queryKey: ['trainersByTypeQueries', projectId, type.id],
       queryFn: () => fetchAllTrainersForType(projectId, type.id),
-      enabled: !!projectGroups, // Wykonuje się tylko, jeśli 'projectGroups' są dostępne
+      enabled: !!projectTypes, // Wykonuje się tylko, jeśli 'projectGroups' są dostępne
     })),
   });
 
@@ -257,7 +253,7 @@ function ProjectTrainers() {
     allTrainersForTypesQueryResult.every((query) => query && query.isSuccess && query.data);
 
   // filtrujemy dane szkoleniowców z typów przypisanych do projektu gdy się już pobiorą
-  useEffect(() => {  
+  /* useEffect(() => {  
   if (allSuccessWithTypeData) {   
       const trainersData = allTrainersForTypesQueryResult.reduce((acc, type) => {
         acc[String(type.data?.idOfType)] = type.data?.data.trainers;
@@ -273,7 +269,7 @@ function ProjectTrainers() {
       
       setTrainersByType(trainersData);
     }
-  }, [allSuccessWithTypeData, projectTypes, shouldRefreshTypes]);
+  }, [allSuccessWithTypeData, projectTypes, shouldRefreshTypes]); */
         
   /// koniec pobierania typów
   /// #2 zmiana na useQuery mutation
@@ -417,6 +413,7 @@ function ProjectTrainers() {
       throw(new Error("Błąd podczas wyszukiwania szkoleniowców"));        
     }
 
+    
     return ([{[id]: [...response.data.trainers]}]);   
     
   }; 
@@ -496,7 +493,7 @@ function ProjectTrainers() {
                 { (isLoadingTrainersTypes) 
                   ? getRenderLoadingSpiner()
                   : trainersByType[type.id]?.map((trainer) => (
-                    <li key={trainer.id} className="flex justify-between items-center p-2 border-b">
+                    <li key={trainer.id +'_' + type.id} className="flex justify-between items-center p-2 border-b">
                       <span>{trainer.name}</span>
                       <button
                         /* onClick={() => removeTrainerFromType(trainer.id, type.id)} */
@@ -531,11 +528,6 @@ function ProjectTrainers() {
                       onChange={(e) => {
                         const query = e.target.value;
                         setTypeSearchQueries((prev) => ({ ...prev, [type.id]: query })); // Aktualizuj typowy stan
-                        // zamienione na poniższe 
-                        // searchAvailableTrainers(type.id, query, "type");
-                        /* setSearchId(type.id);
-                        setSearchQuery(query);
-                        setSearchContext("type"); */
                         searchAvailableTrainersFunc({ meta: { searchId: type.id, searchQuery: query, searchContext: "type" } });
                       }}
                       className="border border-gray-300 p-2 rounded w-full mb-2"
@@ -641,7 +633,7 @@ function ProjectTrainers() {
                         ? "bg-gray-400 cursor-not-allowed"
                         : "bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded"
                     } text-white px-3 py-1 rounded`}
-                    disabled={trainersByType[group.id]?.some((t) => t.id === trainer.id)}
+                    disabled={trainersByGroup[group.id]?.some((t) => t.id === trainer.id)}
                   >
                    {trainersByGroup[group.id]?.some((t) => t.id === trainer.id)
                         ? "Dodano"
