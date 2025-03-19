@@ -92,18 +92,30 @@ export function useUpdateData(
           // Wyświetlenie toastu o rozpoczęciu operacji
           
           singleQueryKey = values.singleQueryKey;
-          const mutiKey = singleQueryKey !== undefined ? [...queryKeys, singleQueryKey] : [...queryKeys];
+          let tempKey = undefined;
+          if (singleQueryKey !== undefined) {
+            if (Array.isArray(singleQueryKey)) {
+              tempKey = [...queryKeys, ...singleQueryKey];
+            }
+            else {
+              tempKey = [...queryKeys, singleQueryKey];
+            }
+          }
+          else {
+            tempKey = [...queryKeys];
+          }
+          const multiKey = tempKey;
           // Anuluj ponowne pobieranie
           // (żeby nie nadpisało optymistycznego pobrania)
-          await queryClient.cancelQueries({ queryKey: mutiKey });
+          await queryClient.cancelQueries({ queryKey: multiKey });
     
           // Zapisz poprzednią wartość
-          const previousValue = queryClient.getQueryData(mutiKey);
+          const previousValue = queryClient.getQueryData(multiKey);
           
           // Optymistycznie ustaw wartość  
           if (optimisticValueSetter !== undefined) {        
-            queryClient.setQueryData(mutiKey, (old) => {
-              const updatedValues = optimisticValueSetter(old, values, mutiKey);
+            queryClient.setQueryData(multiKey, (old) => {
+              const updatedValues = optimisticValueSetter(old, values, multiKey);
               return updatedValues ?? old; // Zawsze zwracaj tablicę, nigdy `undefined`
           });
           }
@@ -120,12 +132,13 @@ export function useUpdateData(
           } });
     
           // Zwraca zapisaną wartość optymistyczną
-          return {previousValue, mutiKey};
+          return {previousValue, multiKey};
         },
         // Jeżeli mutacja zawiedzie
         // Uzyj konteksu z zapisaną poprednio wartością
         // Nie udało się pobrać godzin dla zajęć grupowych
-        onError: (error, {previousValue, mutiKey}, context) => {
+        onError: (error, values, context) => {
+          const {previousValue, multiKey} = context;
           toaster.update(toasterName,
             { title: 'Błąd!', description:  comunicates.error.description,
               type: 'error',
@@ -134,7 +147,7 @@ export function useUpdateData(
             } } ); 
     
           // cofnij zapis 'optymistyczny' i załaduj poprzednią wartość
-          queryClient.setQueryData(mutiKey, () => previousValue);          
+          queryClient.setQueryData(multiKey, () => previousValue);          
           console.warn(previousValue);
           console.warn({ onError: "onErrorCallback", context} );
     
@@ -144,23 +157,26 @@ export function useUpdateData(
 
           // usuwa cache react query, powoduje natychmiastowe odświeżenie
           if (clearCache) {
-            queryClient.removeQueries(mutiKey);
+            queryClient.removeQueries(multiKey);
           }
           
           // Pobierz wartość ponownie
-          queryClient.invalidateQueries(mutiKey);    
+          queryClient.invalidateQueries(multiKey);    
           
         },
         // Udało się pobrać vartość
-        onSuccess: (data, {variables, mutiKey}, context) => {
-          
+        onSuccess: (data, variables, context) => {
+          const { multiKey } = context;
           // usuwa cache react query, powoduje natychmiastowe odświeżenie
           if (clearCache) {
-            queryClient.removeQueries(mutiKey);
+            console.warn({cmd: "removing query", key: multiKey});
+            queryClient.removeQueries(multiKey);
           }
           
+          console.warn({cmd: "invalidating query", key: multiKey});
+
           // Pobieraj zapisaną wartość
-          queryClient.invalidateQueries(mutiKey);
+          queryClient.invalidateQueries(multiKey);
           
           toaster.update(toasterName,
             { title: "Sukces!", description: comunicates.success.description,

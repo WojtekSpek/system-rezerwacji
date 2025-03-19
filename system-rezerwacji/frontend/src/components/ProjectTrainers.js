@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useParams } from "react-router-dom";
-import { useQuery, useQueries, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueries, useQueryClient, useMutation } from "@tanstack/react-query";
 import { ProgressCircle, Input, InputGroup } from "@chakra-ui/react";
 import { Toaster } from "./ui/toaster";
 
 import { useUpdateData } from "../hooks/useUpdateData";
+
 
 
 function ProjectTrainers() {
@@ -15,12 +16,15 @@ function ProjectTrainers() {
   const [shouldRefreshGroups, setShouldRefreshGroups] = useState(false); // flaga aktualizująca trenerów zajęć grupowych
   const [shouldRefreshTypes, setShouldRefreshTypes] = useState(false); // flaga aktualizująca trenerów zajęć
   
+  const [isLoadingTrainersType, setIsLoadingTrainersType] = useState(false);
+  const [isLoadingTrainersGroup, setIsLoadingTrainersGroup] = useState(false);
 
   const [searchQueries, setSearchQueries] = useState({}); // Oddzielne inputy dla typów
   const [groupSearchQueries, setGroupSearchQueries] = useState({}); // Wyszukiwanie dla grup
   const [typeSearchQueries, setTypeSearchQueries] = useState({}); // Wyszukiwanie dla typów
   const [filteredGroupTrainers, setFilteredGroupTrainers] = useState({}); // Wyniki wyszukiwania dla grup
-  ///#5 const [filteredTypeTrainers, setFilteredTypeTrainers] = useState({});   // Wyniki wyszukiwania dla typów
+  ///#5 
+  const [filteredTypeTrainers, setFilteredTypeTrainers] = useState({});   // Wyniki wyszukiwania dla typów
   const [filteredTrainers, setFilteredTrainers] = useState({}); // Filtrowana lista szkoleniowców
   const {id} = useParams(); // Pobiera ID projektu z URL
   const projectId = id; // Pobiera ID projektu z URL
@@ -35,7 +39,37 @@ function ProjectTrainers() {
     fetchProjectGroups(projectId);
   }, [projectId]);
 
-
+  const setOnlyModifiedTrainers = (queries, context) => {
+    queries.forEach((query, index) => {
+      if (query.data?.data?.success) {
+        if (context === "type") {
+          setTrainersByType((prev) => {
+            const newData = query.data?.data.trainers;
+            const dataId = String(query.data?.idOfType);
+            // Jeśli wartość w stanie jest taka sama, nie aktualizuj stanu
+            if (prev[dataId] === newData) {
+              return prev; // Brak zmian → brak re-renderu!
+            }
+    
+            return ({ ...prev, [dataId]: newData }); // Aktualizujemy tylko zmieniony element
+        });
+      }
+      else if (context === "group") {
+        setTrainersByGroup((prev) => {
+          const newData = query.data?.data.trainers;
+          const dataId = String(query.data?.idOfGroup);
+          // Jeśli wartość w stanie jest taka sama, nie aktualizuj stanu
+          if (prev[dataId] === newData) {
+            return prev; // Brak zmian → brak re-renderu!
+          }
+  
+          return ({ ...prev, [dataId]: newData }); // Aktualizujemy tylko zmieniony element
+      });
+      }
+    } 
+    });
+  };
+  
   /// #1 zmina na useQuery mutation
 
   /* const addTrainerToGroup = async (trainerId, groupId) => {
@@ -59,15 +93,10 @@ function ProjectTrainers() {
       });
   };
 
-  /* const optimisticAddTrainerToGroup = (old, values, mutiKey) => {
-    console.warn({old, values, mutiKey});
-    return undefined;
-  }; */
-
   const addTrainerToGroupMutation = useUpdateData(
     ['trainersByGroupQueries'], // klucz stanu 
     addTrainerToGroup, // funkcja aktualizująca dane w bazie   
-    undefined,//optimisticAddTrainerToGroup, // funkcja ustawiająca wartość 'optymistyczną'
+    undefined, // funkcja ustawiająca wartość 'optymistyczną'
     {
       loading: { description: "Proszę czekać, trwa przypisowanie szkoleniowca..." },
       success: { description: "Szkoleniowiec został przypisany do grupy!" },
@@ -82,11 +111,13 @@ function ProjectTrainers() {
 
   /// Użyj React Query do pobrania grup projektu
    const fetchProjectGroups = async (projectId) => {
+    console.warn({cmd: "group fetchProjectGroups", projectId });
     const response = await axios.get(`${API_BASE_URL}/group/group-trainings/${projectId}`);
       if (!response.data.success) {
         throw(new Error("Błąd podczas pobierania grup szkoleniowców projektu"));
       }
       
+      console.warn({cmd: "fetchProjectGroups() ", response: response.data.trainings });
       return response.data.trainings;
   }; 
 
@@ -96,22 +127,18 @@ function ProjectTrainers() {
       isError: isErrorLoadingGroup,
       error: errorLoadingGroup,
       } = useQuery({
-    queryKey: ['projectGroups'],
+    queryKey: ['projectGroups', projectId],
     queryFn: () => fetchProjectGroups(projectId),
+    enabled: true,
   });
 
   if (isErrorLoadingGroup) {
     console.log("Błąd errorLoadingGroup:", errorLoadingGroup);
   }
 
-  /* const fetchAllTrainersForGroups = async (groups) => {   
-    console.log("!@ fetchAllTrainersForGroups:", groups);
-    console.log("@ allTrainersForTypesQueryResult:", allTrainersForGroupsQueryResult);
-    queryClient.invalidateQueries(['trainersByGroupQueries']);
-  }; */
-
   // pobiera trenerów dla grupy
-  const fetchAllTrainersForGroup = async (projectId, groupId) => {   
+  const fetchAllTrainersForGroup = async (projectId, groupId) => { 
+        console.warn({cmd:"fetchAllTrainersForGroup()", projectId, groupId});  
         const response = await axios.get(`${API_BASE_URL}/group/${projectId}/group-trainers/${groupId}`);
         if (!response.data.success) {      
           throw(new Error("Błąd podczas pobierania szkoleniowców dla grup:"));
@@ -120,10 +147,10 @@ function ProjectTrainers() {
         return { data: response.data, idOfGroup: groupId };              
     };
   
-  // Pobranie grup dla projektu (gdy 'projectGroups'' są już dostępne)
+  // Pobranie grup dla projektu (gdy 'projectGroups' są już dostępne)
   const allTrainersForGroupsQueryResult = useQueries({
     queries: (projectGroups || []).map((group) => ({
-      queryKey: ['trainersByGroupQueries', group.id],
+      queryKey: ['trainersByGroupQueries', projectId, group.id],
       queryFn: () => fetchAllTrainersForGroup(projectId, group.id),
       enabled: !!projectGroups, // Wykonuje się tylko, jeśli 'projectGroups' są dostępne
     })),
@@ -140,23 +167,25 @@ function ProjectTrainers() {
 
   // filtrujemy i zapisuje dane szkoleniowców z grup przypisanych do projektu gdy się już pobiorą
   useEffect(() => {  
+    console.warn({cmd: "useEffect ", allSuccessWithGroupsData, projectGroups, shouldRefreshGroups});
     if (allSuccessWithGroupsData) {   
-      const trainersData = allTrainersForGroupsQueryResult.reduce((acc, group) => {
-        acc[String(group.data?.idOfGroup)] = group.data?.data.trainers;
+      /* const trainersData = allTrainersForGroupsQueryResult.reduce((acc, group) => {
+        acc[String(group.data.idOfGroup)] = group.data?.data?.trainers || [];
         return acc;
-      }, {}); 
+      }, {});  */
 
-      console.log("Loaded trainerGroups:", trainersData);
-      
+      //console.log("Loaded trainerGroups:", trainersData);
+      setOnlyModifiedTrainers(allTrainersForGroupsQueryResult, "group");
+
       if (shouldRefreshGroups) {
         setShouldRefreshGroups(false);
         //trainerGroups?.filter(([group]) => group.success);
         console.log("useEffect() - finished");
       }
 
-      setTrainersByGroup(trainersData); // Aktualizujemy stan
+      //setTrainersByGroup(trainersData); // Aktualizujemy stan
     }
-  }, [allSuccessWithGroupsData, projectGroups, shouldRefreshGroups]);   // Uruchamiamy, gdy 'allSuccessWithData', 'projectGroups' się zmienią
+  }, [allSuccessWithGroupsData, shouldRefreshGroups]);   // Uruchamiamy, gdy 'allSuccessWithData', 'projectGroups' się zmienią
     
 /// koniec pobierania grup
 
@@ -197,6 +226,7 @@ function ProjectTrainers() {
 
   /// Użyj React Query do pobrania typów projektu
   const fetchProjectTypes = async (projectId) => {   
+    console.warn({cmd: "fetchProjectTypes", projectId});
       const response = await axios.get(`${API_BASE_URL}/projects/project_training_types/${projectId}`);
       if (!response.data.success) {
         throw(new Error("Błąd podczas pobierania typów projektu:"));
@@ -221,13 +251,15 @@ function ProjectTrainers() {
 
   
 
-  const fetchAllTrainersForTypes = async (types) => {    
+ /*  do usunięcia?
+    const fetchAllTrainersForTypes = async (types) => {    
     console.log("@ fetchAllTrainersForTypes:", types);
     console.log("@ allTrainersForTypesQueryResult:", allTrainersForTypesQueryResult);
     queryClient.invalidateQueries(['projectTypes']);
-  };
+  }; */
 
   const fetchAllTrainersForType = async (projectId, typeId) => {
+    console.warn({cmd: "fetchAllTrainersForType", projectId, typeId});
     const response = await axios.get(`${API_BASE_URL}/projects/${projectId}/trainers/${typeId}`);
       if (!response.data.success) {
         throw(new Error("Błąd podczas pobierania szkoleniowców:"));
@@ -240,7 +272,7 @@ function ProjectTrainers() {
     queries: (projectTypes || []).map((type) => ({
       queryKey: ['trainersByTypeQueries', projectId, type.id],
       queryFn: () => fetchAllTrainersForType(projectId, type.id),
-      enabled: !!projectTypes, // Wykonuje się tylko, jeśli 'projectGroups' są dostępne
+      enabled: !!projectTypes, // Wykonuje się tylko, jeśli 'projectTypes' są dostępne
     })),
   });
 
@@ -253,23 +285,25 @@ function ProjectTrainers() {
     allTrainersForTypesQueryResult.every((query) => query && query.isSuccess && query.data);
 
   // filtrujemy dane szkoleniowców z typów przypisanych do projektu gdy się już pobiorą
-  /* useEffect(() => {  
+  useEffect(() => {  
   if (allSuccessWithTypeData) {   
-      const trainersData = allTrainersForTypesQueryResult.reduce((acc, type) => {
+      /* const trainersData = allTrainersForTypesQueryResult.reduce((acc, type) => {
         acc[String(type.data?.idOfType)] = type.data?.data.trainers;
         return acc;
-      }, {}); 
+      }, {});  */
 
-      console.log("Loaded trainerTypes:", trainersData );
+      setOnlyModifiedTrainers(allTrainersForTypesQueryResult, "type");
+      
+      /* console.log("Loaded trainerTypes:", trainersData ); */
       
       if (shouldRefreshTypes) {
         setShouldRefreshTypes(false);
         console.log("useEffect() - finished");
       }
       
-      setTrainersByType(trainersData);
+      //setTrainersByType(trainersData);
     }
-  }, [allSuccessWithTypeData, projectTypes, shouldRefreshTypes]); */
+  }, [allSuccessWithTypeData, projectTypes, shouldRefreshTypes]);
         
   /// koniec pobierania typów
   /// #2 zmiana na useQuery mutation
@@ -333,14 +367,16 @@ function ProjectTrainers() {
 
   /// #4 koniec
 
-  /// #5 fałszywy test na ładowanie, do zmiany
+  /// #5 test na ładowanie
   const isSearchingTrainersQuery = (searched, found, key, isLoadingSearch) => {    
-    return (Object.keys(searched).includes(key.toString()) 
-      && Object.keys(searched).length > 0 
-      && found !== undefined 
-      && isLoadingSearch );
+    const isSearching = Object.keys(searched).includes(key.toString());
+    const isFound = found !== undefined;
+    
+    return isSearching && isFound && isLoadingSearch;
   };
 
+  /* 
+  /// #6 zmienione na.., poniżej nie zakomantowane
   const searchAvailableTrainers = async (id, query, context) => {
     try {
       const params = { query: query.trim() };
@@ -351,7 +387,8 @@ function ProjectTrainers() {
       } else if (context === "type") {
         params.typeId = id;
       }
-  
+      
+      console.warn({ cmd: "searchAvailableTrainers",id, query, context});
       // Wysłanie zapytania
       const response = await axios.get(`${API_BASE_URL}/trainers/trainersType`, { params });
       console.log('response.data',response.data)
@@ -380,18 +417,19 @@ function ProjectTrainers() {
     }
   };
   
+  */
+  
 
   const searchAvailableTrainersFunc = async (variables) => {
-    const {searchId:id, searchQuery: query, searchContext: context} = variables?.meta;
+    const {searchId:id, searchQuery: query, searchContext: context} = variables;
 
     console.error("REFREASH");
     // zapobiega zapytaniu z pustą listą
     if (query === undefined || query === "") {
       console.warn(
-        "Wynik zapytania do backendu wskazuje niepowodzenie:",
-        query
+        "Puste zapytanie do backendu"
       );
-      return [];
+      return {};
     }
 
     const params = { query: query.trim() };
@@ -403,6 +441,7 @@ function ProjectTrainers() {
       params.typeId = id;
     }
 
+    console.warn( { cmd: "searchAvailableTrainersFunc", variables } );
     const response = await axios.get(`${API_BASE_URL}/trainers/trainersType`, { params });
     if (!response.data.success) {      
       console.warn(
@@ -413,12 +452,15 @@ function ProjectTrainers() {
       throw(new Error("Błąd podczas wyszukiwania szkoleniowców"));        
     }
 
-    
-    return ([{[id]: [...response.data.trainers]}]);   
+    const filtered = response.data.trainers;
+
+    return ({id, filtered, context});   
     
   }; 
   
-  const onTrainersSearchSuccess = (data) => {
+  /// #6 koniec
+  /* 
+  do wywalenia? const onTrainersSearchSuccess = (data) => {
     const {filtered, context} = data;
     console.log("Przefiltrowani trenerzy:", filtered);
     // Obsługa wyników w zależności od kontekstu
@@ -429,21 +471,68 @@ function ProjectTrainers() {
       //setFilteredTypeTrainers((prev) => ({ ...prev, [id]: filtered }));
       queryClient.setQueryData('filteredTypeTrainers', (prev) => ({ ...prev, [id]: filtered }) );
     }
-  };
+  }; */
   
-  const { data: filteredTypeTrainers = {},
+  const { data: filteredTypeTrainersData,
     isLoading: isLoadingSearchAvailableTrainers, 
     isError: isErrorSearchAvailableTrainers,
-    error: errorSearchAvailableTrainers,
-    refetch: reSearchAvailableTrainersFunc} = useQuery({
-      queryKey: ['filteredTypeTrainers', ],
-      queryFn: (meta) => searchAvailableTrainersFunc(meta),
-      enabled: false,
-      meta: {},      
-      staleTime: 0,
+    error: errorSearchAvailableTrainers } = useQuery({
+      queryKey: ['filteredTypeTrainersData'],
+      queryFn: (variables) => searchAvailableTrainersFunc(variables),
+      enabled: true,
   });
   
+  const updatefilteredTypeTrainers = useMutation( {
+    mutationFn: (variables) => searchAvailableTrainersFunc(variables),
+    onMutate: (variables) => async (variables) => {
+      const {searchId: id, searchQuery: query, searchContext: context} = variables;
+      
+      console.error("REFREASH");
+      // zapobiega zapytaniu z pustą listą
+      if (query === undefined || query === "") {
+        console.warn(
+          "Wynik zapytania do backendu wskazuje niepowodzenie:",
+          query
+        );
+        return {};
+      }
+
+      const params = { query: query.trim() };
+    
+      // Dodanie odpowiednich parametrów w zależności od kontekstu
+      if (context === "group") {
+        params.groupId = id;
+      } else if (context === "type") {
+        params.typeId = id;
+      }
+
+      console.warn({cmd: "updatefilteredTypeTrainers", variables});
+      const response = await axios.get(`${API_BASE_URL}/trainers/trainersType`, { params });
+      if (!response.data.success) {      
+        console.warn(
+          "Wynik zapytania do backendu wskazuje niepowodzenie:",
+          response.data
+        );
+
+        throw(new Error("Błąd podczas wyszukiwania szkoleniowców"));        
+      }
+
+      const filtered = response.data.trainers;
+
+      return ({id, filtered, context});   
+    
+    },
   
+    onSuccess: (data) => {
+      queryClient.setQueryData(["filteredTypeTrainersData"], (oldData) => {
+        const {id, filtered, context } = data;
+        if (!oldData) return { [id]: filtered }; // Jeśli brak danych, utwórz nową strukturę
+        
+        setIsLoadingTrainersType(false);
+        setFilteredTypeTrainers((prev) => ({ ...prev, [id]: filtered }));
+        //setShouldRefreshTypes(true);
+      });
+    }} );
   
   if (isErrorSearchAvailableTrainers) {
     console.log("Błąd podczas wyszukiwania szkoleniowców:",
@@ -451,6 +540,66 @@ function ProjectTrainers() {
       || errorSearchAvailableTrainers.message);
   }
 
+  const { data: filteredGroupTrainersData,
+    isLoading: isLoadingSearchAvailableGroupTrainers, 
+    isError: isErrorSearchAvailableGroupTrainers,
+    error: errorSearchAvailableGroupTrainers } = useQuery({
+      queryKey: ['filteredGroupTrainersData'],
+      queryFn: (variables) => searchAvailableTrainersFunc(variables),
+      enabled: true,
+  });
+  
+  const updatefilteredGroupTrainers = useMutation( {
+    mutationFn: (variables) => searchAvailableTrainersFunc(variables),
+    onMutate: (variables) => async (variables) => {
+      const {searchId: id, searchQuery: query, searchContext: context} = variables;
+      
+      console.error("REFREASH");
+      // zapobiega zapytaniu z pustą listą
+      if (query === undefined || query === "") {
+        console.warn(
+          "Wynik zapytania do backendu wskazuje niepowodzenie:",
+          query
+        );
+        return {};
+      }
+
+      const params = { query: query.trim() };
+    
+      // Dodanie odpowiednich parametrów w zależności od kontekstu
+      if (context === "group") {
+        params.groupId = id;
+      } else if (context === "type") {
+        params.typeId = id;
+      }
+
+      console.warn({cmd: "updatefilteredGroupTrainers", variables});
+      const response = await axios.get(`${API_BASE_URL}/trainers/trainersGroup`, { params });
+      if (!response.data.success) {      
+        console.warn(
+          "Wynik zapytania do backendu wskazuje niepowodzenie:",
+          response.data
+        );
+
+        throw(new Error("Błąd podczas wyszukiwania szkoleniowców"));        
+      }
+
+      const filtered = response.data.trainers;
+
+      return ({id, filtered, context});   
+    
+    },
+  
+    onSuccess: (data) => {
+      queryClient.setQueryData(["filteredGroupTrainersData"], (oldData) => {
+        const {id, filtered, context } = data;
+        if (!oldData) return { [id]: filtered }; // Jeśli brak danych, utwórz nową strukturę
+        
+        setIsLoadingTrainersGroup(false);
+        setFilteredGroupTrainers((prev) => ({ ...prev, [id]: filtered }));
+        //setShouldRefreshGroups(true);
+      });
+    }} );
 
   /// #5 koniec 
 
@@ -464,24 +613,13 @@ function ProjectTrainers() {
   );
 
   
-  // wyświetla spiner do momentu pobrania trenerów, grup i typów zajęć
- /*  if (isLoadingGroup 
-      || isLoadingType 
-      || isLoadingTrainersTypes
-      || isLoadingTrainersGroups 
-      || !allSuccessWithGroupsData 
-      || !allSuccessWithTypeData) { 
-      return <div className="flex items-center justify-center h-screen">
-        {renderLoadingSpiner()}</div>;
-  } */
-
   return (
   <div>
     <Toaster />
     <div className="p-4 w-full">
       <h2 className="text-2xl font-bold mb-4">Szkoleniowcy projektu</h2>
       <ul className="space-y-4">
-        { (isLoadingType || !allSuccessWithTypeData) 
+        { (isLoadingType) 
         ? getRenderLoadingSpiner()
           : projectTypes.map((type) => (
             <li key={type.id} className="bg-white p-4 rounded  shadow hover:shadow-md">
@@ -501,9 +639,9 @@ function ProjectTrainers() {
                           removeTrainerFromTypeMutation.mutate({
                             trainerId: trainer.id, 
                             typeId: type.id,
-                            singleQueryKey: type.id,
+                            singleQueryKey: [projectId, type.id],
                           }, 
-                          { onSuccess: () => { setShouldRefreshTypes(true); }});
+                         /*  { onSuccess: () => { setShouldRefreshTypes(true); }} */);
                         }}
                         className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600"
                       >
@@ -517,9 +655,9 @@ function ProjectTrainers() {
                 {/* Sekcja Dodawania szkoleniowców */}
                 <div className="mt-4" >
                   
-                  <h4 className="font-semibold mb-2">Dodaj szkoleniowca:</h4>                  
+                  <h4 className="font-semibold mb-2">Dodaj szkoleniowca:</h4>             
                   <InputGroup endElement={
-                    (isSearchingTrainersQuery(typeSearchQueries, filteredTypeTrainers, type.id, isLoadingSearchAvailableTrainers))
+                    (isSearchingTrainersQuery(typeSearchQueries, filteredTypeTrainers, type.id, isLoadingTrainersType))
                       ? getRenderLoadingSpiner() : null} >
                     <Input 
                       type="text"
@@ -527,14 +665,18 @@ function ProjectTrainers() {
                       value={typeSearchQueries[type.id] || ""} // Korzystaj z typowego stanu
                       onChange={(e) => {
                         const query = e.target.value;
+                        setIsLoadingTrainersType(true);
                         setTypeSearchQueries((prev) => ({ ...prev, [type.id]: query })); // Aktualizuj typowy stan
-                        searchAvailableTrainersFunc({ meta: { searchId: type.id, searchQuery: query, searchContext: "type" } });
+                        updatefilteredTypeTrainers.mutate({ 
+                          searchId: type.id, 
+                          searchQuery: query,
+                          singleQueryKey: [projectId, type.id], 
+                          searchContext: "type" });
                       }}
                       className="border border-gray-300 p-2 rounded w-full mb-2"
                     />    
-                  </InputGroup>          
+                  </InputGroup>
                   <ul>
-                  <div>TAG 1 : {filteredTypeTrainers.length < 0 ? "zero": filteredTypeTrainers[type.id]?.name}</div>
                     {filteredTypeTrainers[type.id]?.map((trainer) => (
                       <li key={trainer.id} className="flex justify-between items-center p-2 border-b">
                         <span>{trainer.name}</span>
@@ -544,9 +686,9 @@ function ProjectTrainers() {
                             addTrainerToTypeMutation.mutate({
                               trainerId: trainer.id, 
                               typeId: type.id, 
-                              singleQueryKey: type.id
+                              singleQueryKey: [projectId, type.id]
                             }, 
-                                { onSuccess: () => { setShouldRefreshTypes(true); }});
+                               /*  { onSuccess: () => { setShouldRefreshTypes(true); }} */);
                             }}
 
                           className={`${
@@ -571,7 +713,7 @@ function ProjectTrainers() {
       {/* Sekcja dla grup */}
       <h3 className="text-xl font-semibold mt-8 mb-2">Zajęcia grupowe</h3>
       <ul className="space-y-4">
-        { (isLoadingGroup || !allSuccessWithGroupsData) 
+        { (isLoadingGroup) 
           ? getRenderLoadingSpiner()
           : projectGroups.map((group) => (
           <li key={group.id} className="bg-slate-100 p-4 rounded shadow hover:shadow-md">
@@ -579,7 +721,7 @@ function ProjectTrainers() {
 
             <ul>
               {(isLoadingTrainersGroups)
-              ? isLoadingTrainersGroups()
+              ? getRenderLoadingSpiner()
               : trainersByGroup[group.id]?.map((trainer) => (
                 <li key={trainer.id + '_' + group.id} className="flex justify-between items-center p-2 border-b">
                   <span>{trainer.name}</span>
@@ -589,9 +731,9 @@ function ProjectTrainers() {
                       removeTrainerFromGroupMutation.mutate({
                         trainerId: trainer.id, 
                         groupId: group.id,
-                        singleQueryKey: group.id,
+                        singleQueryKey: [projectId, group.id],
                       }, 
-                      { onSuccess: () => { setShouldRefreshGroups(true); }});
+                      /* { onSuccess: () => { setShouldRefreshGroups(true); } } */);
                     }}
 
                     className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600"
@@ -602,8 +744,28 @@ function ProjectTrainers() {
               )) || <p>Brak przypisanych szkoleniowców</p>}
             </ul>
 
-            <div className="mt-4">            
-            <input
+            <div className="mt-4"> 
+            <InputGroup endElement={
+              (isSearchingTrainersQuery(groupSearchQueries, filteredGroupTrainers, group.id, isLoadingTrainersGroup))
+                ? getRenderLoadingSpiner() : null} >
+              <Input 
+                type="text"
+                placeholder="Wyszukaj szkoleniowca (po imieniu lub umiejętnościach)..."
+                value={groupSearchQueries[group.id] || ""} // Korzystaj z typowego stanu
+                onChange={(e) => {
+                  const query = e.target.value;
+                  setIsLoadingTrainersGroup(true);
+                  setGroupSearchQueries((prev) => ({ ...prev, [group.id]: query })); // Aktualizuj typowy stan
+                  updatefilteredGroupTrainers.mutate({ 
+                    searchId: group.id, 
+                    searchQuery: query, 
+                    singleQueryKey: [projectId, group.id],
+                    searchContext: "group" });
+                }}
+                className="bg-white border border-gray-300 p-2 rounded w-full mb-2"
+              />    
+            </InputGroup>                     
+           {/*  <input
               type="text"
               placeholder="Wyszukaj szkoleniowca (po imieniu lub umiejętnościach)..."
               value={groupSearchQueries[group.id] || ""}
@@ -613,7 +775,7 @@ function ProjectTrainers() {
                 searchAvailableTrainers(group.id, query, "group");
               }}
               className="border border-gray-300 p-2 rounded w-full mb-2"
-            />            
+            />   */}          
             <ul>
               {filteredGroupTrainers[group.id]?.map((trainer) => (
                 <li key={trainer.id} className="flex justify-between items-center p-2 border-b">
@@ -624,9 +786,9 @@ function ProjectTrainers() {
                       addTrainerToGroupMutation.mutate({
                         trainerId: trainer.id, 
                         groupId: group.id,
-                        singleQueryKey: group.id,
+                        singleQueryKey: [projectId, group.id],
                       }, 
-                      { onSuccess: () => { setShouldRefreshGroups(true); }});
+                      /* { onSuccess: () => { setShouldRefreshGroups(true); }} */);
                     }}
                     className={`${
                       trainersByGroup[group.id]?.some((t) => t.id === trainer.id)
