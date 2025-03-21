@@ -84,7 +84,7 @@ export function useUpdateData(
    
     const queryClient = useQueryClient();
     let singleQueryKey = undefined;
-
+    console.log(" useUpdateData()", {queryKeys, updateValues, optimisticValueSetter});
     const updateMutation = useMutation({
         mutationFn: updateValues,  
         // Gdy 'mutate()' jest wywołane:
@@ -105,15 +105,23 @@ export function useUpdateData(
             tempKey = [...queryKeys];
           }
           const multiKey = tempKey;
-          // Anuluj ponowne pobieranie
-          // (żeby nie nadpisało optymistycznego pobrania)
-          await queryClient.cancelQueries({ queryKey: multiKey });
-    
+          
+          if (optimisticValueSetter) {
+            console.warn({cmd: "cancelQueries on mutate", key: multiKey});
+
+            // Anuluj ponowne pobieranie
+            // (żeby nie nadpisało optymistycznego pobrania)
+            await queryClient.cancelQueries({ queryKey: multiKey });
+          }
+
           // Zapisz poprzednią wartość
-          const previousValue = queryClient.getQueryData(multiKey);
+          const previousValue = (optimisticValueSetter) 
+            ? queryClient.getQueryData(multiKey) 
+            : undefined;
           
           // Optymistycznie ustaw wartość  
           if (optimisticValueSetter !== undefined) {        
+            console.warn({cmd: "setQueryData on mutate", key: multiKey});
             queryClient.setQueryData(multiKey, (old) => {
               const updatedValues = optimisticValueSetter(old, values, multiKey);
               return updatedValues ?? old; // Zawsze zwracaj tablicę, nigdy `undefined`
@@ -146,11 +154,13 @@ export function useUpdateData(
                 onClick: () => (toaster.remove(toasterName)),
             } } ); 
     
-          // cofnij zapis 'optymistyczny' i załaduj poprzednią wartość
-          queryClient.setQueryData(multiKey, () => previousValue);          
-          console.warn(previousValue);
-          console.warn({ onError: "onErrorCallback", context} );
-    
+          if (optimisticValueSetter) {
+            // cofnij zapis 'optymistyczny' i załaduj poprzednią wartość
+            queryClient.setQueryData(multiKey, () => previousValue);          
+            console.warn(previousValue);
+            console.warn({ onError: "onErrorCallback", context} );
+          }
+          
           if (context?.onErrorCallback ) {
             context.onErrorCallback();
           }
@@ -160,6 +170,7 @@ export function useUpdateData(
             queryClient.removeQueries(multiKey);
           }
           
+          console.warn({cmd: "invalidating query onError", key: multiKey});
           // Pobierz wartość ponownie
           queryClient.invalidateQueries(multiKey);    
           
@@ -173,7 +184,7 @@ export function useUpdateData(
             queryClient.removeQueries(multiKey);
           }
           
-          console.warn({cmd: "invalidating query", key: multiKey});
+          console.warn({cmd: "invalidating query onSuccess", key: multiKey});
 
           // Pobieraj zapisaną wartość
           queryClient.invalidateQueries(multiKey);
