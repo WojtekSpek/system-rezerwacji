@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { useQuery, QueryClient, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 
 export function useUpdateSearch({
     queryKey: pasedQueryKeys,
@@ -23,10 +23,9 @@ export function useUpdateSearch({
             onSaveSearch(searchedDataQuery?.data, searchedDataQuery?.isSuccess, meta?.queryId);
         }
     }, [searchedDataQuery?.data,
-        onSaveSearch,
         searchedDataQuery?.isSuccess,
-        
-    ]);
+        onSaveSearch]
+    );
 
     const handleOnSearch = (searchCallback) => {
         if (searchCallback !== undefined) {
