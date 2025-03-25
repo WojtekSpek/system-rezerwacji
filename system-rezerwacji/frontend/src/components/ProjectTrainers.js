@@ -6,7 +6,7 @@ import { ProgressCircle, Input, InputGroup } from "@chakra-ui/react";
 import { Toaster } from "./ui/toaster";
 
 import { useUpdateData } from "../hooks/useUpdateData";
-import { useUpdaeSearch } from "../hooks/useUpdateSearch";
+import { useUpdateSearch } from "../hooks/useUpdateSearch";
 
 const isSameData = (oldData, newData) => {
   
@@ -609,10 +609,10 @@ function ProjectTrainers() {
   const updateFilteredGroupTrainers = async (variables) => {
     console.error("REFREASH searchAvailableTrainersGroupFunc", variables);
 
-    const {groupId: groupId , groupQuery: groupQuery} = variables.meta;
+    const {queryId, queryObj} = variables.meta;
 
     // zapobiega zapytaniu z pustą listą
-    if (groupQuery === undefined || groupQuery === "") {
+    if (queryObj === undefined || queryObj === "") {
       console.warn(
         "Puste zapytanie do backendu", variables
       );
@@ -620,15 +620,15 @@ function ProjectTrainers() {
     }
 
     const params = { 
-      query: groupQuery.trim(),
-      groupId: groupId
+      query: queryObj[queryId].trim(),
+      groupId: queryId
      };
   
     // Dodanie odpowiednich parametrów w zależności od kontekstu
     console.warn( { cmd: "searchAvailableTrainersGroupFunc", variables } );
     const response = await axios.get(`${API_BASE_URL}/trainers/trainersType`, { params });
     
-    return ({ [String(groupId)]: response.data.trainers });
+    return ({ [String(queryId)]: response.data.trainers });
 
     /* if (!response.data.success) {      
       console.warn(
@@ -644,7 +644,39 @@ function ProjectTrainers() {
     return ({searchId, filtered, context});  */
   };
 
+  const searchedGroupTrainers = useUpdateSearch({
+    queryKey: ['filteredGroupTrainersData', projectId, searchedTrainersGroup],
+    queryFn: updateFilteredGroupTrainers,
+    meta: { queryId: searchedTrainersGroup,
+      queryObj: groupSearchQueries
+    },
+    getEnabled: () => {
+      console.log("getEnabled()", {projectGroups, searchedTrainersGroup});
+      return (!!projectGroups && !!searchedTrainersGroup);},
+    onSaveSearch: (filteredGroupTrainersData, isSuccessfulUpdate) => {
+      console.log("onSaveSearch", {filteredGroupTrainersData, isSuccessfulUpdate})
+      if (filteredGroupTrainersData && isSuccessfulUpdate) {
+        console.log({cmd: "filteredGroupTrainersData useEffect"});
+        //const {searchId, filtered, context } = data;
+        /* queryClient.setQueryData(["filteredGroupTrainersData"], (oldData) => {
+          if (!oldData) return { [String(searchId)]: filtered }; // Jeśli brak danych, utwórz nową strukturę
+            return ({ [String(searchId)]: filtered});
+        });  
+        setIsLoadingTrainersGroup(false);   */
+        const filtered = filteredGroupTrainersData[searchedTrainersGroup];
+        setFilteredGroupTrainers((prev) => ({ ...prev, [String(searchedTrainersGroup)]: filtered })); 
+      }
+    },
+  });
+
   const { data: filteredGroupTrainersData = {},
+    isLoading: isLoadingSearchAvailableGroupTrainers, 
+    isError: isErrorSearchAvailableGroupTrainers,
+    error: errorSearchAvailableGroupTrainers,
+    isSuccess: isSuccessUpdateFilteredGroupTrainers,
+  } = searchedGroupTrainers;
+
+  /* const { data: filteredGroupTrainersData = {},
     isLoading: isLoadingSearchAvailableGroupTrainers, 
     isError: isErrorSearchAvailableGroupTrainers,
     error: errorSearchAvailableGroupTrainers,
@@ -655,7 +687,7 @@ function ProjectTrainers() {
       meta: { groupId: searchedTrainersGroup,
         groupQuery: groupSearchQueries[searchedTrainersGroup]},
       enabled: !!projectGroups && !!searchedTrainersGroup,
-  });
+  }); */
 
 
 /*   const updatefilteredGroupTrainers = useMutation( {
@@ -712,25 +744,25 @@ function ProjectTrainers() {
       //setShouldRefreshGroups(true);
     }} ); */
 
-  const updateSearchedGroupTrainers = useEffect(() => {
+  /* const updateSearchedGroupTrainers = useEffect(() => {
     if (filteredGroupTrainersData && isSuccessUpdateFilteredGroupTrainers) {
       console.log({cmd: "filteredGroupTrainersData useEffect"});
 
 
       //const {searchId, filtered, context } = data;
       
-      /* queryClient.setQueryData(["filteredGroupTrainersData"], (oldData) => {
-        if (!oldData) return { [String(searchId)]: filtered }; // Jeśli brak danych, utwórz nową strukturę
+      //queryClient.setQueryData(["filteredGroupTrainersData"], (oldData) => {
+      //  if (!oldData) return { [String(searchId)]: filtered }; // Jeśli brak danych, utwórz nową strukturę
       
-        return ({ [String(searchId)]: filtered});
-      });
+      //  return ({ [String(searchId)]: filtered});
+      //});
 
       setIsLoadingTrainersGroup(false);
-      */
       const filtered = filteredGroupTrainersData[searchedTrainersGroup];
       setFilteredGroupTrainers((prev) => ({ ...prev, [String(searchedTrainersGroup)]: filtered })); 
     }
-  }, [filteredGroupTrainersData, isSuccessUpdateFilteredGroupTrainers, searchedTrainersGroup]);
+  }, [filteredGroupTrainersData, isSuccessUpdateFilteredGroupTrainers, searchedTrainersGroup]); 
+  */
 
   /// #5 koniec 
 
@@ -876,11 +908,12 @@ function ProjectTrainers() {
                             ? getTrainersByType(type, tIndex)?.some((t) => t.id === trainer.id)
                           : ""}
                         >
-                          {(!getIsLoadingType(type, tIndex)) 
-                            ? ((getTrainersByType(type, tIndex)?.some((t) => t.id === trainer.id))
+                          {(getIsLoadingType(type, tIndex)) 
+                          ? getRenderLoadingSpiner()
+                          : ((getTrainersByType(type, tIndex)?.some((t) => t.id === trainer.id))
                             ? "Dodano"
                             : "Dodaj")
-                          :""}
+                          }
                         </button>
                       </li>
                   ))}
@@ -936,13 +969,10 @@ function ProjectTrainers() {
                 value={groupSearchQueries[group.id] || ""} // Korzystaj z typowego stanu
                 onChange={(e) => {
                   const query = e.target.value;
-                  setGroupSearchQueries((prev) => ({ ...prev, [group.id]: query })); // Aktualizuj typowy stan
-                  setSearchedTrainersGroup(group.id);
-                  /* updatefilteredGroupTrainers.mutate({
-                    searchId: group.id, 
-                    searchQuery: query, 
-                    singleQueryKey: [projectId, group.id],
-                    searchContext: "group" }); */
+                  searchedGroupTrainers.handleOnSearch( () => {
+                    setGroupSearchQueries((prev) => ({ ...prev, [group.id]: query })); // Aktualizuj typowy stan
+                    setSearchedTrainersGroup(group.id);
+                  });
                 }}
                 className="bg-white border border-gray-300 p-2 rounded w-full mb-2"
               />    
@@ -981,13 +1011,14 @@ function ProjectTrainers() {
                     } text-white px-3 py-1 rounded`}
                     disabled={(getIsLoadingGroup(group, gIndex)) 
                       ? getTrainersByGroup(group, gIndex)?.some((t) => t.id === trainer.id)
-                    : ""}
+                      : false}
                   >
-                    {(!getIsLoadingGroup(group, gIndex)) 
-                      ? ((getTrainersByGroup(group, gIndex)?.some((t) => t.id === trainer.id))
+                    {(getIsLoadingGroup(group, gIndex)) 
+                    ? getRenderLoadingSpiner()
+                    :((getTrainersByGroup(group, gIndex)?.some((t) => t.id === trainer.id))
                       ? "Dodano"
                       : "Dodaj")
-                    :""}
+                    }
                   </button>
                 </li>
               ))}
