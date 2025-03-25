@@ -1,6 +1,5 @@
-import { useEffect, useState } from "react";
-import React from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useEffect } from "react";
+import { useQuery, QueryClient, useQueryClient } from "@tanstack/react-query";
 
 export function useUpdateSearch({
     queryKey: pasedQueryKeys,
@@ -8,26 +7,30 @@ export function useUpdateSearch({
     meta = {},
     getEnabled = undefined,
     onSaveSearch = undefined,
-    }) {
+    }, queryClient) {
 
     const searchedDataQuery = useQuery({
         queryKey: pasedQueryKeys,
         queryFn: udateFiltered,
         meta: meta,
         enabled: getEnabled(),
-    });
+    }, queryClient);
 
-    const updateSearchedEffect = useEffect(() => {
-        if (onSaveSearch !== undefined) {
-            onSaveSearch(searchedDataQuery.data, searchedDataQuery.isSuccess);
+    useEffect(() => {
+        if (onSaveSearch !== undefined 
+            && searchedDataQuery?.data 
+            && searchedDataQuery?.isSuccess) {
+            onSaveSearch(searchedDataQuery?.data, searchedDataQuery?.isSuccess, meta?.queryId);
         }
-    }, [searchedDataQuery?.isSuccess 
-        , meta?.queryObj
-        , meta?.queryId]);
+    }, [searchedDataQuery?.data,
+        onSaveSearch,
+        searchedDataQuery?.isSuccess,
+        
+    ]);
 
     const handleOnSearch = (searchCallback) => {
         if (searchCallback !== undefined) {
-            searchCallback();
+            searchCallback();           
         }
     };
 

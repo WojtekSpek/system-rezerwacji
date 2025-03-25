@@ -612,7 +612,7 @@ function ProjectTrainers() {
     const {queryId, queryObj} = variables.meta;
 
     // zapobiega zapytaniu z pustą listą
-    if (queryObj === undefined || queryObj === "") {
+    if (queryObj === undefined || queryObj?.[queryId] === "") {
       console.warn(
         "Puste zapytanie do backendu", variables
       );
@@ -645,29 +645,28 @@ function ProjectTrainers() {
   };
 
   const searchedGroupTrainers = useUpdateSearch({
-    queryKey: ['filteredGroupTrainersData', projectId, searchedTrainersGroup],
+    queryKey: ['filteredGroupTrainersData', projectId, searchedTrainersGroup, groupSearchQueries?.[searchedTrainersGroup]],
     queryFn: updateFilteredGroupTrainers,
     meta: { queryId: searchedTrainersGroup,
       queryObj: groupSearchQueries
     },
     getEnabled: () => {
       console.log("getEnabled()", {projectGroups, searchedTrainersGroup});
-      return (!!projectGroups && !!searchedTrainersGroup);},
-    onSaveSearch: (filteredGroupTrainersData, isSuccessfulUpdate) => {
-      console.log("onSaveSearch", {filteredGroupTrainersData, isSuccessfulUpdate})
-      if (filteredGroupTrainersData && isSuccessfulUpdate) {
-        console.log({cmd: "filteredGroupTrainersData useEffect"});
-        //const {searchId, filtered, context } = data;
-        /* queryClient.setQueryData(["filteredGroupTrainersData"], (oldData) => {
-          if (!oldData) return { [String(searchId)]: filtered }; // Jeśli brak danych, utwórz nową strukturę
-            return ({ [String(searchId)]: filtered});
-        });  
-        setIsLoadingTrainersGroup(false);   */
-        const filtered = filteredGroupTrainersData[searchedTrainersGroup];
-        setFilteredGroupTrainers((prev) => ({ ...prev, [String(searchedTrainersGroup)]: filtered })); 
-      }
+      return (!!projectGroups && !!searchedTrainersGroup);
     },
-  });
+    onSaveSearch: (filteredData, isSuccessfulUpdate, searchedId, filteredGroupTrainers) => {
+      console.log("onSaveSearch", {filteredData, isSuccessfulUpdate});
+      console.log({cmd: "filteredData useEffect"});
+      //const {searchId, filtered, context } = data;
+      /* queryClient.setQueryData(["filteredData"], (oldData) => {
+        if (!oldData) return { [String(searchId)]: filtered }; // Jeśli brak danych, utwórz nową strukturę
+          return ({ [String(searchId)]: filtered});
+      });  
+      setIsLoadingTrainersGroup(false);   */
+      const filtered = filteredData[searchedId];
+      setFilteredGroupTrainers((prev) => ({ ...prev, [String(searchedId)]: filtered }));     
+    },
+  }, queryClient);
 
   const { data: filteredGroupTrainersData = {},
     isLoading: isLoadingSearchAvailableGroupTrainers, 
@@ -969,9 +968,12 @@ function ProjectTrainers() {
                 value={groupSearchQueries[group.id] || ""} // Korzystaj z typowego stanu
                 onChange={(e) => {
                   const query = e.target.value;
+                  const groupId = group.id;
+                  
+                  if (!searchedGroupTrainers?.handleOnSearch) return;
                   searchedGroupTrainers.handleOnSearch( () => {
-                    setGroupSearchQueries((prev) => ({ ...prev, [group.id]: query })); // Aktualizuj typowy stan
-                    setSearchedTrainersGroup(group.id);
+                    setSearchedTrainersGroup(groupId);
+                    setGroupSearchQueries((prev) => ({ ...prev, [groupId]: query })); // Aktualizuj typowy 
                   });
                 }}
                 className="bg-white border border-gray-300 p-2 rounded w-full mb-2"
