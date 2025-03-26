@@ -107,7 +107,7 @@ export function useUpdateData(
           const multiKey = tempKey;
           
           if (optimisticValueSetter) {
-            console.warn({cmd: "cancelQueries on mutate", key: multiKey});
+            console.log({cmd: "cancelQueries on mutate", key: multiKey});
 
             // Anuluj ponowne pobieranie
             // (żeby nie nadpisało optymistycznego pobrania)
@@ -121,11 +121,11 @@ export function useUpdateData(
           
           // Optymistycznie ustaw wartość  
           if (optimisticValueSetter !== undefined) {        
-            console.warn({cmd: "setQueryData on mutate", key: multiKey});
+            console.log({cmd: "setQueryData on mutate", key: multiKey});
             queryClient.setQueryData(multiKey, (old) => {
               const updatedValues = optimisticValueSetter(old, values, multiKey);
               return updatedValues ?? old; // Zawsze zwracaj tablicę, nigdy `undefined`
-          });
+            });
           }
 
 
@@ -157,8 +157,8 @@ export function useUpdateData(
           if (optimisticValueSetter) {
             // cofnij zapis 'optymistyczny' i załaduj poprzednią wartość
             queryClient.setQueryData(multiKey, () => previousValue);          
-            console.warn(previousValue);
-            console.warn({ onError: "onErrorCallback", context} );
+            console.log(previousValue);
+            console.log({ onError: "onErrorCallback", context} );
           }
           
           if (context?.onErrorCallback ) {
@@ -170,7 +170,7 @@ export function useUpdateData(
             queryClient.removeQueries(multiKey);
           }
           
-          console.warn({cmd: "invalidating query onError", key: multiKey});
+          console.log({cmd: "invalidating query onError", key: multiKey});
           // Pobierz wartość ponownie
           queryClient.invalidateQueries(multiKey);    
           
@@ -180,11 +180,11 @@ export function useUpdateData(
           const { multiKey } = context;
           // usuwa cache react query, powoduje natychmiastowe odświeżenie
           if (clearCache) {
-            console.warn({cmd: "removing query", key: multiKey});
+            console.log({cmd: "removing query", key: multiKey});
             queryClient.removeQueries(multiKey);
           }
           
-          console.warn({cmd: "invalidating query onSuccess", key: multiKey});
+          console.log({cmd: "invalidating query onSuccess", key: multiKey});
 
           // Pobieraj zapisaną wartość
           queryClient.invalidateQueries(multiKey);
@@ -194,7 +194,7 @@ export function useUpdateData(
               type: 'success',
               duration: 1200
             } );
-            console.warn({ onSuccess: "onSuccessCallback", context} );
+            console.log({ onSuccess: "onSuccessCallback", context} );
 
             if (context?.onSuccessCallback) {
               context.onSuccessCallback();

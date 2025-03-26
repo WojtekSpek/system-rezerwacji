@@ -24,7 +24,9 @@ export function useUpdateSearch({
         }
     }, [searchedDataQuery?.data,
         searchedDataQuery?.isSuccess,
-        onSaveSearch]
+        meta?.queryId,
+        meta?.[meta?.queryId]
+        ]
     );
 
     const handleOnSearch = (searchCallback) => {
