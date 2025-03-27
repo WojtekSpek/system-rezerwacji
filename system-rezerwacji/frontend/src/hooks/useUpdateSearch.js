@@ -7,6 +7,7 @@ export function useUpdateSearch({
     meta = {},
     getEnabled = undefined,
     onSaveSearch = undefined,
+    modifiedObject = {}, 
     }, queryClient) {
 
     const searchedDataQuery = useQuery({
@@ -16,16 +17,17 @@ export function useUpdateSearch({
         enabled: getEnabled(),
     }, queryClient);
 
-    useEffect(() => {
-        if (onSaveSearch !== undefined 
-            && searchedDataQuery?.data 
-            && searchedDataQuery?.isSuccess) {
-            onSaveSearch(searchedDataQuery?.data, searchedDataQuery?.isSuccess, meta?.queryId);
-        }
-    }, [searchedDataQuery?.data,
+    console.log("USEEFFECT ",  [searchedDataQuery?.data,
         searchedDataQuery?.isSuccess,
-        meta?.queryId,
-        meta?.[meta?.queryId]
+        modifiedObject
+        ]);
+    useEffect(() => {
+        if (!!onSaveSearch) {
+            onSaveSearch(searchedDataQuery?.data, searchedDataQuery?.isSuccess, meta);        
+        }
+    },  [searchedDataQuery?.data,
+        searchedDataQuery?.isSuccess,
+        modifiedObject
         ]
     );
 
@@ -40,6 +42,16 @@ export function useUpdateSearch({
         handleOnSearch: handleOnSearch,
     };
 
-    return searchedData;   
+    const additionalQueryKey = {};
+    for ( const [key, value] of Object.entries(meta?.queryObj)) {
+        if (key === String(meta?.queryId)) {
+            additionalQueryKey[key] = {...value, isLoading: searchedData?.isLoading};
+        }
+        else {
+            additionalQueryKey[key] = {...value};
+        }
+    };  
+
+    return {...searchedData, isLoadingSingleQuery: additionalQueryKey};   
 }
 

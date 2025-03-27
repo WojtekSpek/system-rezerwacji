@@ -83,7 +83,7 @@ export function useUpdateData(
   ) {
    
     const queryClient = useQueryClient();
-    let singleQueryKey = undefined;
+    let additionalQueryKey = undefined;
     console.log(" useUpdateData()", {queryKeys, updateValues, optimisticValueSetter});
     const updateMutation = useMutation({
         mutationFn: updateValues,  
@@ -91,14 +91,14 @@ export function useUpdateData(
         onMutate: async (values) => {
           // Wyświetlenie toastu o rozpoczęciu operacji
           
-          singleQueryKey = values.singleQueryKey;
+          additionalQueryKey = values.additionalQueryKey;
           let tempKey = undefined;
-          if (singleQueryKey !== undefined) {
-            if (Array.isArray(singleQueryKey)) {
-              tempKey = [...queryKeys, ...singleQueryKey];
+          if (additionalQueryKey !== undefined) {
+            if (Array.isArray(additionalQueryKey)) {
+              tempKey = [...queryKeys, ...additionalQueryKey];
             }
             else {
-              tempKey = [...queryKeys, singleQueryKey];
+              tempKey = [...queryKeys, additionalQueryKey];
             }
           }
           else {

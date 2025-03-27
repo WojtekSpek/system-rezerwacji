@@ -23,7 +23,7 @@ function areSameArrays(first, second) {
     return false;
   }
 
-  for (const i  = 0; i < first.length; i++ ) {
+  for (let i  = 0; i < first.length; i++ ) {
     if (first[i]?.id !== second[i]?.id 
       || first[i]?.name !== second[i]?.name) {
         return false;
@@ -38,10 +38,14 @@ function ProjectTrainers() {
   //const [trainersByType, setTrainersByType] = useState({}); // Szkoleniowcy przypisani do typów
   //const [trainersByGroup, setTrainersByGroup] = useState({}); // Szkoleniowcy przypisani do grup
   
-  const [isLoadingTrainersType, setIsLoadingTrainersType] = useState(false);
+/*   const [isLoadingTrainersType, setIsLoadingTrainersType] = useState(false);
   const [isLoadingTrainersGroup, setIsLoadingTrainersGroup] = useState(false);
-
-  const [searchedTrainersGroup, setSearchedTrainersGroup] = useState(null);
+ */
+  
+  const [searchedTrainerGroupId, setSearchedTrainerGroupId] = useState(null); // id poszukiwanego trenera dla grup
+  const [searchedTrainerTypeId, setSearchedTrainerTypeId] = useState(null); // id poszukiwanego trenera dla typów 
+  const [searchedTrainersGroupIds, setSearchedTrainersGroupIds] = useState({}); // id poszukiwanego trenera dla grup
+  const [searchedTrainersTypeIds, setSearchedTrainersTypeIds] = useState({}); // id poszukiwanego trenera dla typów 
   const [groupSearchQueries, setGroupSearchQueries] = useState({}); // Wyszukiwanie dla grup
   const [typeSearchQueries, setTypeSearchQueries] = useState({}); // Wyszukiwanie dla typów
   const [filteredGroupTrainers, setFilteredGroupTrainers] = useState({}); // Wyniki wyszukiwania dla grup
@@ -95,7 +99,7 @@ function ProjectTrainers() {
   // Pobranie grup dla projektu (gdy 'projectGroups' są już dostępne)
   const allTrainersForGroupsQueryResult = useQueries({
     queries: (projectGroups || []).map((group) => ({
-      queryKey: ['trainersByGroupQueries', projectId, group.id],
+      queryKey: ['trainersByGroupQueries', projectId, 'group', group.id],
       queryFn: () => fetchAllTrainersForGroup(projectId, group.id),
       enabled: !!projectGroups, // Wykonuje się tylko, jeśli 'projectGroups' są dostępne
     } )),
@@ -113,12 +117,12 @@ function ProjectTrainers() {
 /// koniec pobierania grup
 
   const updateFilteredGroupTrainers = async (variables) => {
-    console.error("REFREASH searchAvailableTrainersGroupFunc", variables);
+    console.log("REFREASH updateFilteredGroupTrainers", variables);
 
     const {queryId, queryObj} = variables.meta;
 
     // zapobiega zapytaniu z pustą listą
-    if (queryObj === undefined || queryObj?.[queryId] === "") {
+    if (queryObj === undefined || queryId === null || queryObj?.[queryId]?.query === "") {
       console.warn(
         "Puste zapytanie do backendu", variables
       );
@@ -126,8 +130,100 @@ function ProjectTrainers() {
     }
 
     const params = { 
-      query: queryObj[queryId].trim(),
+      query: queryObj?.[queryId]?.query.trim(),
       groupId: queryId
+     };
+  
+    // Dodanie odpowiednich parametrów w zależności od kontekstu
+    console.warn( { cmd: "searchAvailableTrainersGroup", variables } );
+    const response = await axios.get(`${API_BASE_URL}/trainers/trainersType`, { params });
+    
+    return ({ [String(queryId)]: response.data.trainers });
+  };
+
+  const searchedGroupTrainers = useUpdateSearch({
+    queryKey: ['filteredGroupTrainersData', projectId, searchedTrainersGroupIds, groupSearchQueries?.[searchedTrainerGroupId]?.query],
+    queryFn: updateFilteredGroupTrainers,
+    meta: {
+      queryId: searchedTrainerGroupId,
+      queryObj: groupSearchQueries,
+    },
+    getEnabled: () => {
+      console.log("getEnabled(Groups)", {projectGroups, searchedTrainersGroup: searchedTrainersGroupIds});
+      return (!!projectGroups && !!searchedTrainersGroupIds);
+    },
+    onSaveSearch: (filteredData, isSuccessfullUpdate, meta) => {
+      if (filteredData && isSuccessfullUpdate) {
+     
+        console.log("onSaveSearch", {filteredData, isSuccessfullUpdate});
+        console.log({cmd: "filteredData useEffect"});
+        //const {searchId, filtered, context } = data;
+        /* queryClient.setQueryData(["filteredData"], (oldData) => {
+          if (!oldData) return { [String(searchId)]: filtered }; // Jeśli brak danych, utwórz nową strukturę
+            return ({ [String(searchId)]: filtered});
+        });  
+        setIsLoadingTrainersGroup(false);   */
+        const searchedId = meta?.queryId;
+        const filtered = filteredData[meta?.queryId];
+        if (!areSameArrays(filteredGroupTrainers?.[searchedId] || [], filtered || [])) {
+          setFilteredGroupTrainers((prev) => ({ ...prev, [String(searchedId)]: filtered }));
+        }
+      }
+    },
+    modifiedObject: searchedTrainersGroupIds,
+  }, queryClient);
+
+  const { data: filteredGroupTrainersData = {},
+    isLoading: isLoadingSearchAvailableGroupTrainers,
+    isLoadingSingleQuery: isLoadingSingleGroupTrainer, 
+    isError: isErrorSearchAvailableGroupTrainers,
+    error: errorSearchAvailableGroupTrainers,
+    isSuccess: isSuccessUpdateFilteredGroupTrainers,
+  } = searchedGroupTrainers;
+
+  /// Trainer Type Search
+
+  /// Użyj React Query do pobrania typów projektu
+  const fetchProjectTypes = async (projectId) => {   
+    console.warn({cmd: "fetchProjectTypes", projectId});
+      const response = await axios.get(`${API_BASE_URL}/projects/project_training_types/${projectId}`);
+      if (!response.data.success) {
+        throw(new Error("Błąd podczas pobierania typów projektu:"));
+      }
+      
+      return response.data.types;
+  };
+
+  const { data: projectTypes = [], 
+    isLoading: isLoadingType, 
+    isError: isErrorLoadingType,
+    error: errorLodingType
+   } = useQuery({
+    queryKey: ['projectTypes', projectId], 
+    queryFn: () => fetchProjectTypes(projectId),
+    enabled: !!projectId,
+  });
+
+  if (isErrorLoadingType) {
+    console.log("Błąd errorLodingType:", errorLodingType);
+  }
+
+  const updateFilteredTypeTrainers = async (variables) => {
+    console.log("REFREASH updateFilteredTypeTrainers", variables);
+
+    const {queryId, queryObj} = variables.meta;
+
+    // zapobiega zapytaniu z pustą listą
+    if (queryObj === undefined || queryId === null || queryObj?.[queryId]?.query === "") {
+      console.warn(
+        "Puste zapytanie do backendu", variables
+      );
+      return ({});
+    }
+
+    const params = { 
+      query: queryObj?.[queryId]?.query.trim(),
+      typeId: queryId
      };
   
     // Dodanie odpowiednich parametrów w zależności od kontekstu
@@ -137,38 +233,44 @@ function ProjectTrainers() {
     return ({ [String(queryId)]: response.data.trainers });
   };
 
-  const searchedGroupTrainers = useUpdateSearch({
-    queryKey: ['filteredGroupTrainersData', projectId, searchedTrainersGroup, groupSearchQueries?.[searchedTrainersGroup]],
-    queryFn: updateFilteredGroupTrainers,
-    meta: { queryId: searchedTrainersGroup,
-      queryObj: groupSearchQueries
+  const searchedTypeTrainers = useUpdateSearch({
+    queryKey: ['filteredTypeTrainersData', projectId, searchedTrainersTypeIds, typeSearchQueries?.[searchedTrainerTypeId]?.query],
+    queryFn: updateFilteredTypeTrainers,
+    meta: { 
+      queryId: searchedTrainerTypeId,
+      queryObj: typeSearchQueries,
     },
     getEnabled: () => {
-      console.log("getEnabled()", {projectGroups, searchedTrainersGroup});
-      return (!!projectGroups && !!searchedTrainersGroup);
+      console.log("getEnabled(Type)", {projectTypes, searchedTrainersType: searchedTrainersTypeIds});
+      return (!!projectTypes && !!searchedTrainersTypeIds);
     },
-    onSaveSearch: (filteredData, isSuccessfulUpdate, searchedId) => {
-      console.log("onSaveSearch", {filteredData, isSuccessfulUpdate});
-      console.log({cmd: "filteredData useEffect"});
-      //const {searchId, filtered, context } = data;
-      /* queryClient.setQueryData(["filteredData"], (oldData) => {
-        if (!oldData) return { [String(searchId)]: filtered }; // Jeśli brak danych, utwórz nową strukturę
-          return ({ [String(searchId)]: filtered});
-      });  
-      setIsLoadingTrainersGroup(false);   */
-      const filtered = filteredData[searchedId];
-      if (!areSameArrays(filteredGroupTrainers?.[searchedId] || [], filtered || [])) {
-        setFilteredGroupTrainers((prev) => ({ ...prev, [String(searchedId)]: filtered }));
+    onSaveSearch: (filteredData, isSuccessfullUpdate, meta) => {
+      if (filteredData && isSuccessfullUpdate) {
+        console.log("onSaveSearch", {filteredData, isSuccessfullUpdate});
+        console.log({cmd: "filteredData useEffect"});
+        //const {searchId, filtered, context } = data;
+        /* queryClient.setQueryData(["filteredData"], (oldData) => {
+          if (!oldData) return { [String(searchId)]: filtered }; // Jeśli brak danych, utwórz nową strukturę
+            return ({ [String(searchId)]: filtered});
+        });  
+        setIsLoadingTrainersType(false);   */
+        const searchedId = meta?.queryId;
+        const filtered = filteredData[searchedId];
+        if (!areSameArrays(filteredTypeTrainers?.[searchedId] || [], filtered || [])) {
+          setFilteredTypeTrainers((prev) => ({ ...prev, [String(searchedId)]: filtered }));
+        }
       }
     },
+    modifiedObject: searchedTrainersTypeIds,
   }, queryClient);
 
-  const { data: filteredGroupTrainersData = {},
-    isLoading: isLoadingSearchAvailableGroupTrainers, 
-    isError: isErrorSearchAvailableGroupTrainers,
-    error: errorSearchAvailableGroupTrainers,
-    isSuccess: isSuccessUpdateFilteredGroupTrainers,
-  } = searchedGroupTrainers;
+  const { data: filteredTypeTrainersData = {},
+    isLoading: isLoadingSearchAvailableTypeTrainers, 
+    isLoadingSingleQuery: isLoadingSingleTypeTrainer,
+    isError: isErrorSearchAvailableTypeTrainers,
+    error: errorSearchAvailableTypeTrainers,
+    isSuccess: isSuccessUpdateFilteredTypeTrainers,
+  } = searchedTypeTrainers;
 
   /// #1 zmina na useQuery mutation
 
@@ -247,10 +349,26 @@ function ProjectTrainers() {
     return axios.delete(`${API_BASE_URL}/group/projects/${projectId}/group-trainers/${groupId}/${trainerId}`);
   };
 
+  const removeTrainerFromGroupOptimistic = (oldData, values, queryKey) => {
+    console.log("Optimistic removeTrainerFromGroup", {oldData, values});
+    if (values === undefined) {
+      return oldData;
+    }
+    
+    const newTrainersList = oldData?.data?.trainers.filter( item => item.id !== values?.trainerData?.id );
+    const newValue = { idOfGroup: oldData?.idOfGroup
+      , data: {
+        success: oldData?.data?.success, 
+        trainers: newTrainersList
+      }};   
+
+    return newValue;
+  };
+
   const removeTrainerFromGroupMutation = useUpdateData(
     ['trainersByGroupQueries'], // klucz stanu 
     ({trainerId, groupId}) => removeTrainerFromGroup({trainerId, groupId}), // funkcja aktualizująca dane w bazie   
-    undefined, // funkcja ustawiająca wartość 'optymistyczną'
+    removeTrainerFromGroupOptimistic, // funkcja ustawiająca wartość 'optymistyczną'
     { 
       loading: { description: "Proszę czekać, trwa usuwanie szkoleniowca..." },
       success: { description: "Szkoleniowiec został usunięty z grupy!" },
@@ -261,30 +379,7 @@ function ProjectTrainers() {
 
   /// #3 koniec 
 
-  /// Użyj React Query do pobrania typów projektu
-  const fetchProjectTypes = async (projectId) => {   
-    console.warn({cmd: "fetchProjectTypes", projectId});
-      const response = await axios.get(`${API_BASE_URL}/projects/project_training_types/${projectId}`);
-      if (!response.data.success) {
-        throw(new Error("Błąd podczas pobierania typów projektu:"));
-      }
-      
-      return response.data.types;
-  };
-
-  const { data: projectTypes = [], 
-    isLoading: isLoadingType, 
-    isError: isErrorLoadingType,
-    error: errorLodingType
-   } = useQuery({
-    queryKey: ['projectTypes', projectId], 
-    queryFn: () => fetchProjectTypes(projectId),
-    enabled: !!projectId,
-  });
-
-  if (isErrorLoadingType) {
-    console.log("Błąd errorLodingType:", errorLodingType);
-  }
+  
 
   const fetchAllTrainersForType = async (projectId, typeId) => {
     console.warn({cmd: "fetchAllTrainersForType", projectId, typeId});
@@ -299,7 +394,7 @@ function ProjectTrainers() {
    const allTrainersForTypesQueryResult = useQueries({
     queries: (projectTypes || []).map((type) => {
       return {
-        queryKey: ['trainersByTypeQueries', projectId, type.id],
+        queryKey: ['trainersByTypeQueries', projectId, 'type', type.id],
         queryFn: () => fetchAllTrainersForType(projectId, type.id),
         enabled: !!projectTypes, // Wykonuje się tylko, jeśli 'projectTypes' są dostępne
       };
@@ -343,10 +438,25 @@ function ProjectTrainers() {
     return await axios.post(`${API_BASE_URL}/projects/${projectId}/trainers`, { trainerId, typeId });
   };
 
+  const addTrainerToTypeOptimistic = (oldData, values, queryKey) => {
+    console.log("Optimistic addTrainerToType", {oldData, values});
+    if (values === undefined) {
+      return oldData;
+    }
+    
+    const newValue = { idOfType: oldData?.idOfType
+      , data: {
+        success: oldData?.data?.success, 
+        trainers: [...oldData?.data?.trainers, values?.trainerData]
+      }};   
+
+    return newValue;
+  };
+
   const addTrainerToTypeMutation = useUpdateData(
     ['trainersByTypeQueries'], // klucz stanu 
     ({trainerId, typeId}) => addTrainerToType({trainerId, typeId}), // funkcja aktualizująca dane w bazie   
-    undefined, // funkcja ustawiająca wartość 'optymistyczną'
+    addTrainerToTypeOptimistic, // funkcja ustawiająca wartość 'optymistyczną'
     { loading: { description: "Proszę czekać, trwa przypisowanie szkoleniowca..." },
       success: { description: "Szkoleniowiec został przypisany!" },
       error: { description: "Błąd podczas przypisywania szkoleniowca." } // komunikaty statusu 'loading', 'success' i 'error'
@@ -369,14 +479,31 @@ function ProjectTrainers() {
     }
   }; */
 
+
   const removeTrainerFromType = async ({trainerId, typeId}) => {
     return await axios.delete(`${API_BASE_URL}/projects/${projectId}/trainers/${typeId}/${trainerId}`);
+  };
+
+  const removeTrainerFromTypeOptimistic = (oldData, values, queryKey) => {
+    console.log("Optimistic removeTrainerToType", {oldData, values});
+    if (values === undefined) {
+      return oldData;
+    }
+    
+    const newTrainersList = oldData?.data?.trainers.filter( item => item.id !== values?.trainerData?.id );
+    const newValue = { idOfType: oldData?.idOfType
+      , data: {
+        success: oldData?.data?.success, 
+        trainers: newTrainersList
+      }};   
+
+    return newValue;
   };
 
   const removeTrainerFromTypeMutation = useUpdateData(
     ['trainersByTypeQueries'], // klucz stanu 
     ({trainerId, typeId}) => removeTrainerFromType({trainerId, typeId}), // funkcja aktualizująca dane w bazie   
-    undefined, // funkcja ustawiająca wartość 'optymistyczną'
+    removeTrainerFromTypeOptimistic, // funkcja ustawiająca wartość 'optymistyczną'
     { loading: { description: "Proszę czekać, trwa usuwanie szkoleniowca..." },
       success: { description: "Szkoleniowiec został usunięty!" },
       error: { description: "Błąd podczas usuwania szkoleniowca." } // komunikaty statusu 'loading', 'success' i 'error'
@@ -439,10 +566,10 @@ function ProjectTrainers() {
   
   */
   
-  const searchAvailableTrainersTypeFunc = async (variables) => {
+  /* const searchAvailableTrainersTypeFunc = async (variables) => {
     const {searchId:searchId, searchQuery: query, searchContext: context} = variables;
 
-    console.error("REFREASH searchAvailableTrainersTypeFunc", variables);
+    console.log("REFREASH searchAvailableTrainersTypeFunc", variables);
     // zapobiega zapytaniu z pustą listą
     if (query === undefined || query === "") {
       console.warn(
@@ -476,7 +603,7 @@ function ProjectTrainers() {
     return ({searchId, filtered, context});   
     
   }; 
-
+ */
   /* const searchAvailableTrainersGroupFunc = async (variables) => {
     const {searchId:searchId, searchQuery: query, searchContext: context} = variables;
 
@@ -530,7 +657,7 @@ function ProjectTrainers() {
     }
   }; */
   
-  const { data: filteredTypeTrainersData,
+  /* const { data: filteredTypeTrainersData,
     isLoading: isLoadingSearchAvailableTrainers, 
     isError: isErrorSearchAvailableTypeTrainers,
     error: errorSearchAvailableTypeTrainers } = useQuery({
@@ -590,7 +717,7 @@ function ProjectTrainers() {
       setIsLoadingTrainersType(false);
       setFilteredTypeTrainers((prev) => ({ ...prev, [String(searchId)]: filtered }));
       //setShouldRefreshTypes(true);
-    }} );
+    }} ); */
   
   if (isErrorSearchAvailableTypeTrainers) {
     console.log("Błąd podczas wyszukiwania szkoleniowców:",
@@ -692,12 +819,12 @@ function ProjectTrainers() {
 
   const getTrainersByType = (key, index) => {
     const query = allTrainersForTypesQueryResult[index]; 
-    console.log({cmd: "GET TRAINERS TYPE", value: ((query?.data?.data?.success) ? query?.data?.data?.trainers : []), data: query?.data?.data?.trainers});
+    
     return (query?.data?.data?.success) ? query?.data?.data?.trainers : [];
   };
 
   const getTrainersByGroup = (key, index) => {
-    console.warn("getTrainersByGroup()", {key, index, key_idx: key[index], allResullt: allTrainersForGroupsQueryResult, allIndex: allTrainersForGroupsQueryResult[index]});
+    
     const query = allTrainersForGroupsQueryResult[index]; 
 
     return (query?.data?.data?.success) ? query?.data?.data?.trainers : [];
@@ -731,118 +858,117 @@ function ProjectTrainers() {
       <ul className="space-y-4">
         { (isLoadingType) 
         ? getRenderLoadingSpiner()
-          : projectTypes.map((type, tIndex) => (
-            <li key={type.id + "_" + tIndex} className="bg-white p-4 rounded  shadow hover:shadow-md">
-              <h3 className="text-lg font-semibold mb-2">{type.type} {(getIsLoadingType(type, tIndex))
-            ? getRenderLoadingSpiner() : "" } </h3>
+        : projectTypes.map((type, tIndex) => (
+        <li key={type.id + "_" + tIndex} className="bg-white p-4 rounded  shadow hover:shadow-md">
+          <h3 className="text-lg font-semibold mb-2">{type.type} </h3>
+          {/* Lista przypisanych szkoleniowców */}            
+          <ul>
+            { (isLoadingTrainersTypes) 
+            ? getRenderLoadingSpiner()
+            : /* trainersByType[type.id]?.map((trainer) => (
+              <li key={trainer.id +'_' + type.id} className="flex justify-between items-center p-2 border-b">
+                <span>{trainer.name}</span>
+                <button
+                  onClick = {() => {
+                    removeTrainerFromTypeMutation.mutate({
+                      trainerId: trainer.id, 
+                      typeId: type.id,
+                      additionalQueryKey: [projectId, type.id],
+                    },
+                    );
+                  }}
+                  className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600"
+                >
+                  Usuń
+                </button>
+              </li> */
 
-              {/* Lista przypisanych szkoleniowców */}
-              
+              (getIsLoadingType(type, tIndex)) 
+              ? getRenderLoadingSpiner() 
+              : getTrainersByType(type, tIndex)?.map((trainer, index) => (
+              <li key={trainer.id +'_' + type.id + "_" + index} className="flex justify-between items-center p-2 border-b">
+                <span>{trainer.name}</span>
+                <button
+                  onClick = {() => {
+                    removeTrainerFromTypeMutation.mutate({
+                      trainerData: trainer,
+                      trainerId: trainer.id, 
+                      typeId: type.id,
+                      trainerIndex: index,
+                      additionalQueryKey: [projectId, 'type', type.id],
+                    });
+                  }}
+                  className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600"
+                >
+                  Usuń
+                </button>
+              </li>
+              )) || <p>Brak przypisanych szkoleniowców</p> }
+              </ul>
+
+              {/* Sekcja Dodawania szkoleniowców */}
+              <div className="mt-4" >
+                
+                <h4 className="font-semibold mb-2">Dodaj szkoleniowca:</h4>             
+                <InputGroup endElement={ 
+                  isLoadingSingleTypeTrainer?.[type?.id]?.isLoading ? getRenderLoadingSpiner() : null} >
+                  <Input 
+                    type="text"
+                    placeholder="Wyszukaj szkoleniowca dla typu..."
+                    value={typeSearchQueries[type.id]?.query || ""} // Korzystaj z typowego stanu
+                    onChange={(e) => {
+                      const query = e.target.value;
+                      const typeId = type.id;
+                     
+                      if (!searchedTypeTrainers?.handleOnSearch) return;
+                      searchedTypeTrainers.handleOnSearch( () => {
+                        setSearchedTrainerTypeId(typeId);
+                        setSearchedTrainersTypeIds((prev) => ({ ...prev, [type.id]: query }));
+                        setTypeSearchQueries((prev) => ({ ...prev, [type.id]: { query, isLoading:false } })); // Aktualizuj typowy stan
+                      });
+                    }}                      
+                    className="border border-gray-300 p-2 rounded w-full mb-2"
+                  />    
+                </InputGroup>
               <ul>
-                { (isLoadingTrainersTypes) 
-                  ? getRenderLoadingSpiner()
-                  : /* trainersByType[type.id]?.map((trainer) => (
-                    <li key={trainer.id +'_' + type.id} className="flex justify-between items-center p-2 border-b">
-                      <span>{trainer.name}</span>
-                      <button
-                        onClick = {() => {
-                          removeTrainerFromTypeMutation.mutate({
-                            trainerId: trainer.id, 
-                            typeId: type.id,
-                            singleQueryKey: [projectId, type.id],
-                          },
-                          );
-                        }}
-                        className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600"
-                      >
-                        Usuń
-                      </button>
-                    </li> */
+                {filteredTypeTrainers[type.id]?.map((trainer, index) => (
+                <li key={trainer.id +'_' + type.id + "_" + index} className="flex justify-between items-center p-2 border-b">
+                  <span>{trainer.name}</span>
+                  <button
+                    onClick={() => {
+                      /*addTrainerToType(trainer.id, type.id)}*/
+                      addTrainerToTypeMutation.mutate({
+                        trainerData: trainer,
+                        trainerId: trainer.id, 
+                        typeId: type.id, 
+                        trainerIndex: index,
+                        additionalQueryKey: [projectId, 'type', type.id]
+                      });
+                    }}
 
-                    (getIsLoadingType(type, tIndex)) 
-                      ? getRenderLoadingSpiner() 
-                      : getTrainersByType(type, tIndex)?.map((trainer, index) => (
-                      <li key={trainer.id +'_' + type.id + "_" + index} className="flex justify-between items-center p-2 border-b">
-                        <span>{trainer.name}</span>
-                        <button
-                          onClick = {() => {
-                            removeTrainerFromTypeMutation.mutate({
-                              trainerId: trainer.id, 
-                              typeId: type.id,
-                              singleQueryKey: [projectId, type.id],
-                            });
-                          }}
-                          className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600"
-                        >
-                          Usuń
-                        </button>
-                      </li>
-                  )) || <p>Brak przypisanych szkoleniowców</p>
-                }
-                </ul>
-
-                {/* Sekcja Dodawania szkoleniowców */}
-                <div className="mt-4" >
-                  
-                  <h4 className="font-semibold mb-2">Dodaj szkoleniowca:</h4>             
-                  <InputGroup endElement={
-                    (isSearchingTrainersQuery(typeSearchQueries, filteredTypeTrainers, type.id, isLoadingTrainersType))
-                      ? getRenderLoadingSpiner() : null} >
-                    <Input 
-                      type="text"
-                      placeholder="Wyszukaj szkoleniowca dla typu..."
-                      value={typeSearchQueries[type.id] || ""} // Korzystaj z typowego stanu
-                      onChange={(e) => {
-                        const query = e.target.value;
-                        setIsLoadingTrainersType(true);
-                        setTypeSearchQueries((prev) => ({ ...prev, [type.id]: query })); // Aktualizuj typowy stan
-                        updatefilteredTypeTrainers.mutate({ 
-                          searchId: type.id, 
-                          searchQuery: query,
-                          singleQueryKey: [projectId, type.id], 
-                          searchContext: "type" });
-                      }}
-                      className="border border-gray-300 p-2 rounded w-full mb-2"
-                    />    
-                  </InputGroup>
-                  <ul>
-
-                    {filteredTypeTrainers[type.id]?.map((trainer, index) => (
-                      <li key={trainer.id +'_' + type.id + "_" + index} className="flex justify-between items-center p-2 border-b">
-                        <span>{trainer.name}</span>
-                        <button
-                          onClick={() => {
-                            /*addTrainerToType(trainer.id, type.id)}*/
-                            addTrainerToTypeMutation.mutate({
-                              trainerId: trainer.id, 
-                              typeId: type.id, 
-                              singleQueryKey: [projectId, type.id]
-                            });
-                          }}
-
-                          className={`${
-                            (getIsLoadingType(type, tIndex)) 
-                            ? getRenderLoadingSpiner()
-                            : getTrainersByType(type, tIndex)?.some((t) => t.id === trainer.id)
-                              ? "bg-gray-400 cursor-not-allowed"
-                              : "bg-blue-500 hover:bg-blue-600"
-                          } text-white px-3 py-1 rounded`}
-                          disabled={(getIsLoadingType(type, tIndex)) 
-                            ? getTrainersByType(type, tIndex)?.some((t) => t.id === trainer.id)
-                          : ""}
-                        >
-                          {(getIsLoadingType(type, tIndex)) 
-                          ? getRenderLoadingSpiner()
-                          : ((getTrainersByType(type, tIndex)?.some((t) => t.id === trainer.id))
-                            ? "Dodano"
-                            : "Dodaj")
-                          }
-                        </button>
-                      </li>
-                  ))}
-                </ul>
-              </div>
-            </li>
+                    className={`${
+                      (getIsLoadingType(type, tIndex)) 
+                      ? getRenderLoadingSpiner()
+                      : getTrainersByType(type, tIndex)?.some((t) => t.id === trainer.id)
+                        ? "bg-gray-400 cursor-not-allowed"
+                        : "bg-blue-500 hover:bg-blue-600"
+                    } text-white px-3 py-1 rounded`}
+                    disabled={(getIsLoadingType(type, tIndex)) 
+                      ? getTrainersByType(type, tIndex)?.some((t) => t.id === trainer.id)
+                    : ""}
+                  >
+                    {(getIsLoadingType(type, tIndex)) 
+                    ? getRenderLoadingSpiner()
+                    : ((getTrainersByType(type, tIndex)?.some((t) => t.id === trainer.id))
+                      ? "Dodano"
+                      : "Dodaj")
+                    }
+                  </button>
+                </li>
+                ))}
+              </ul>
+            </div>
+          </li>
           ))}
         </ul>
 
@@ -855,45 +981,48 @@ function ProjectTrainers() {
           <li key={group.id + "_" + gIndex} className="bg-slate-100 p-4 rounded shadow hover:shadow-md">
             <h4 className="text-lg font-semibold mb-2">{group.name}</h4>
             <ul>
-              { getIsLoadingGroup(group,gIndex)
-                  ? getRenderLoadingSpiner() 
-                  : (getTrainersByGroup(group, gIndex))?.map((trainer, index) => (
-                <li key={trainer.id + '_' + group.id + "_" + index} className="flex justify-between items-center p-2 border-b">
-                  <span>{trainer.name}</span>
-                  <button
-                    /*onClick={() => removeTrainerFromGroup(trainer.id, group.id)}*/
-                    onClick = {() => {
-                      removeTrainerFromGroupMutation.mutate({                        
-                        trainerId: trainer.id, 
-                        groupId: group.id,
-                        singleQueryKey: [projectId, group.id],
-                    });  
-                  }}
-                    
-                    className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600"
-                  >
-                    Usuń
-                  </button>
-                </li>
-              )) || <p>Brak przypisanych szkoleniowców</p>}
+              { getIsLoadingGroup(group, gIndex)
+              ? getRenderLoadingSpiner() 
+              : (getTrainersByGroup(group, gIndex))?.map((trainer, index) => (
+              <li key={trainer.id + '_' + group.id + "_" + index} className="flex justify-between items-center p-2 border-b">
+                <span>{trainer.name}</span>
+                <button
+                  /*onClick={() => removeTrainerFromGroup(trainer.id, group.id)}*/
+                  onClick = {() => {
+                    removeTrainerFromGroupMutation.mutate({  
+                      trainerData: trainer,                      
+                      trainerId: trainer.id, 
+                      groupId: group.id,
+                      trainerIndex: index,
+                      additionalQueryKey: [projectId, 'group', group.id],
+                  });  
+                }}
+                  
+                  className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600"
+                >
+                  Usuń
+                </button>
+              </li>
+              )) || <p>Brak przypisanych szkoleniowców</p> }
             </ul>
 
             <div className="mt-4"> 
             <InputGroup endElement={
-              isLoadingSearchAvailableGroupTrainers ? getRenderLoadingSpiner() : null
+              isLoadingSingleGroupTrainer?.[group?.id]?.isLoading ? getRenderLoadingSpiner() : null
               }>
               <Input 
                 type="text"
                 placeholder="Wyszukaj szkoleniowca (po imieniu lub umiejętnościach)..."
-                value={groupSearchQueries[group.id] || ""} // Korzystaj z typowego stanu
+                value={groupSearchQueries[group.id]?.query || ""} // Korzystaj z typowego stanu
                 onChange={(e) => {
                   const query = e.target.value;
                   const groupId = group.id;
                   
                   if (!searchedGroupTrainers?.handleOnSearch) return;
                   searchedGroupTrainers.handleOnSearch( () => {
-                    setSearchedTrainersGroup(groupId);
-                    setGroupSearchQueries((prev) => ({ ...prev, [groupId]: query })); // Aktualizuj typowy 
+                    setSearchedTrainerGroupId(groupId);
+                    setSearchedTrainersGroupIds((prev) => ({ ...prev, [groupId]: query}));
+                    setGroupSearchQueries((prev) => ({ ...prev, [groupId]: { query, isLoading: false } })); // Aktualizuj typowy 
                   });
                 }}
                 className="bg-white border border-gray-300 p-2 rounded w-full mb-2"
@@ -914,32 +1043,32 @@ function ProjectTrainers() {
             */}          
             <ul>
               {filteredGroupTrainers[group?.id]?.map((trainer, index) => (
-                <li key={trainer.id + "_" + group.id + "_" + index} className="flex justify-between items-center p-2 border-b">
-                  <span>{trainer.name}</span>
-                  <button
-                    onClick={() => {
-                      addTrainerToGroupMutation.mutate({
-                        trainerData: trainer,
-                        trainerId: trainer.id, 
-                        groupId: group.id,
-                        trainerIndex: index,
-                        singleQueryKey: [projectId, group.id],
-                      });
-                    }}
-                    className={`${
-                      getTrainersByGroup(group, gIndex)?.some((t) => t.id === trainer.id)
-                        ? "bg-gray-400 cursor-not-allowed"
-                        : "bg-blue-500 hover:bg-blue-600"
-                    } text-white px-3 py-1 rounded`}
-                    disabled={(getIsLoadingGroup(group, gIndex)) 
-                      ? getTrainersByGroup(group, gIndex)?.some((t) => t.id === trainer.id)
-                      : false}
-                  >{(getTrainersByGroup(group, gIndex)?.some((t) => t.id === trainer.id))
-                      ? "Dodano"
-                      : "Dodaj"
-                    }
-                  </button>
-                </li>
+              <li key={trainer.id + "_" + group.id + "_" + index} className="flex justify-between items-center p-2 border-b">
+                <span>{trainer.name}</span>
+                <button
+                  onClick={() => {
+                    addTrainerToGroupMutation.mutate({
+                      trainerData: trainer,
+                      trainerId: trainer.id, 
+                      groupId: group.id,
+                      trainerIndex: index,
+                      additionalQueryKey: [projectId, 'group', group.id],
+                    });
+                  }}
+                  className={`${
+                    getTrainersByGroup(group, gIndex)?.some((t) => t.id === trainer.id)
+                      ? "bg-gray-400 cursor-not-allowed"
+                      : "bg-blue-500 hover:bg-blue-600"
+                  } text-white px-3 py-1 rounded`}
+                  disabled={(getIsLoadingGroup(group, gIndex)) 
+                    ? getTrainersByGroup(group, gIndex)?.some((t) => t.id === trainer.id)
+                    : false}
+                >{(getTrainersByGroup(group, gIndex)?.some((t) => t.id === trainer.id))
+                    ? "Dodano"
+                    : "Dodaj"
+                  }
+                </button>
+              </li>
               ))}
             </ul>
           </div>
