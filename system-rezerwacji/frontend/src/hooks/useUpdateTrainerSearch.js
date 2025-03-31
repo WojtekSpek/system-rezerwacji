@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 
-export function useUpdateSearch({
+export function useUpdateTrainerSearch({
     queryKey: pasedQueryKeys,
     queryFn: udateFiltered,
     meta = {},

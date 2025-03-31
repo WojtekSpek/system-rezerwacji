@@ -33,7 +33,7 @@ import { toaster } from "../components/ui/toaster";
   };
 
  *
- * useUpdateData()
+ * useUpdateProjectData()
  * przyjmuje: tablicę z kluczami stanu, 
  * funkcję wysyłającą zapytanie,
  * funkcję ustawiającą wartość optymistyczną
@@ -41,7 +41,7 @@ import { toaster } from "../components/ui/toaster";
  * zwraca: obiekt useMutation z react-query
  *
  
-  const updateMutation = useUpdateData(
+  const updateMutation = useUpdateProjectData(
      ['keyDataName'], // klucz stanu 
      updateFunc, // funkcja aktualizująca dane w bazie   
      optimisticSetterFunc, // funkcja ustawiająca wartość 'optymistyczną'
@@ -74,7 +74,7 @@ export function updateObject(oldObj, newObj) {
 
 const toasterName = "loading-toaster";
 
-export function useUpdateData(
+export function useUpdateProjectData(
     queryKeys, // klucz zapytania, dostępu do obiektu w cache
     updateValues, // funkcja wywołująca zapytanie    
     optimisticValueSetter, // funkcja ustawiająca wartość optymistyczną
@@ -83,22 +83,22 @@ export function useUpdateData(
   ) {
    
     const queryClient = useQueryClient();
-    let additionalQueryKey = undefined;
-    console.log(" useUpdateData()", {queryKeys, updateValues, optimisticValueSetter});
+    let singleQueryKey = undefined;
+    console.log(" useUpdateProjectData()", {queryKeys, updateValues, optimisticValueSetter});
     const updateMutation = useMutation({
         mutationFn: updateValues,  
         // Gdy 'mutate()' jest wywołane:
         onMutate: async (values) => {
           // Wyświetlenie toastu o rozpoczęciu operacji
           
-          additionalQueryKey = values.additionalQueryKey;
+          singleQueryKey = values.singleQueryKey;
           let tempKey = undefined;
-          if (additionalQueryKey !== undefined) {
-            if (Array.isArray(additionalQueryKey)) {
-              tempKey = [...queryKeys, ...additionalQueryKey];
+          if (singleQueryKey !== undefined) {
+            if (Array.isArray(singleQueryKey)) {
+              tempKey = [...queryKeys, ...singleQueryKey];
             }
             else {
-              tempKey = [...queryKeys, additionalQueryKey];
+              tempKey = [...queryKeys, singleQueryKey];
             }
           }
           else {

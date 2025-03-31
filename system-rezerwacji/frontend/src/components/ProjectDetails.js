@@ -6,7 +6,7 @@ import { ProgressCircle } from "@chakra-ui/react";
 
 
 import { Toaster } from "./ui/toaster";
-import { useUpdateData, updateObject } from "../hooks/useUpdateData";
+import { useUpdateProjectData, updateObject } from "../hooks/useUpdateProjectData";
 
 
 
@@ -83,7 +83,7 @@ function ProjectDetails({ onUpdate }) {
     });
   };
 
-  /// #1 optymistyczna zmina wartości w bazie useUpdateData
+  /// #1 optymistyczna zmina wartości w bazie useUpdateProjectData
  
 
   const optimisticGroupHoursSetter = (old, {groupId, hours}) => {
@@ -93,7 +93,7 @@ function ProjectDetails({ onUpdate }) {
       : {...time});
   };
 
-  const updateGroupHoursMutation = useUpdateData(
+  const updateGroupHoursMutation = useUpdateProjectData(
     ['groupHours', id, shouldRefresh], // klucz stanu 
     updateGroupHours,    
     optimisticGroupHoursSetter,
@@ -234,7 +234,7 @@ const updateProjectProperties = async ({project_name, types}) => {
 };
 
 // obsługuje aktualizuje danych w bazie i wyświetla komunikat ostatusie
-const updateProjectMutation = useUpdateData(
+const updateProjectMutation = useUpdateProjectData(
   ['project', id, shouldRefresh], // klucz stanu
   updateProjectProperties,
   optimisticProjectSetter,
@@ -304,7 +304,7 @@ const optimisticHoursSetter = (old, {training_type_id, planned_hours}) => {
   : {...time});
 };
 
-const updateHoursMutation = useUpdateData(
+const updateHoursMutation = useUpdateProjectData(
   ['trainingHours', id, shouldRefresh], // klucz stanu
   updateHours,  
   optimisticHoursSetter,
