@@ -5,6 +5,8 @@ import { useParams, useNavigate } from "react-router-dom";
 //import {Spinner, Stack,ChakraProvider,Box,HStack,Avatar, Checkbox, Card, CardHeader, CardBody, CardFooter, Button,Progress, ProgressRoot,ProgressLabel,useProgressStyles } from "@chakra-ui/react";
 import { ProgressCircle } from "@chakra-ui/react";
 
+import urlProvider from "../urlProvider";
+
 function ProjectParticipants({ setView, setSelectedParticipant }) {
   const [searchQuery, setSearchQuery] = useState("");
   const [filteredParticipants, setFilteredParticipants] = useState([]);
@@ -13,7 +15,7 @@ function ProjectParticipants({ setView, setSelectedParticipant }) {
   const [isDropdownVisible, setIsDropdownVisible] = useState(false);
   const dropdownRef = useRef(null);
   const { id: projectId } = useParams();
-  const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "http://localhost:5000";
+  const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || urlProvider();
   const navigate = useNavigate();
 
  // Obsługa kliknięcia poza komponentem

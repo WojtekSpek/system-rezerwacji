@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import axios from "axios";
+import urlProvider from "../urlProvider";
 
 function ParticipantDetails() {
   const { participantId } = useParams();
@@ -8,7 +9,7 @@ function ParticipantDetails() {
   const [isEditing, setIsEditing] = useState(false);
   const [updatedParticipant, setUpdatedParticipant] = useState({});
   const [errors, setErrors] = useState({});
-  const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "http://localhost:5000";
+  const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || urlProvider();
   const nationalities = ["Polska", "Ukraińska"]; // Lista dostępnych narodowości
 
 

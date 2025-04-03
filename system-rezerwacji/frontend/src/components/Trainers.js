@@ -5,6 +5,8 @@ import GenericList from "./GenericList";
 import { useQuery } from "@tanstack/react-query";
 import { ProgressCircle } from "@chakra-ui/react";
 
+import urlProvider from "../urlProvider";
+
 function Trainers() {
   // @1 const [trainers, setTrainers] = useState([]); // Lista szkoleniowców
   const [trainerName, setTrainerName] = useState(""); // Imię i nazwisko szkoleniowca
@@ -12,7 +14,7 @@ function Trainers() {
   const [selectedTypes, setSelectedTypes] = useState([]); // Typy szkoleń dla danego szkoleniowca
   const [successMessage, setSuccessMessage] = useState(""); // Komunikat o sukcesie
   const [showAddForm, setShowAddForm] = useState(false);
-  const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "http://localhost:5000";
+  const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || urlProvider();
 
   const navigate = useNavigate(); // Hook do nawigacji
 

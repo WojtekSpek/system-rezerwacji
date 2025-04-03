@@ -3,6 +3,7 @@ import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { ProgressCircle } from "@chakra-ui/react";
+import urlProvider from "../urlProvider";
 
 function Projects({ setView, setSelectedProject }) {
   
@@ -12,7 +13,7 @@ function Projects({ setView, setSelectedProject }) {
   
    const [showAddForm, setShowAddForm] = useState(false);
    const [isLoading, setIsLoading] = useState(true); // Dodaj isLoading do stanu
-  const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "http://localhost:5000";
+  const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || urlProvider();
   // const API_BASE_URL = "https://system-rezerwacji-1.onrender.com";
   useEffect(() => {
     setIsLoading(true);

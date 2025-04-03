@@ -1,2 +1,4 @@
-const API_URL = "http://localhost:5000";
+import urlProvider from "./urlProvider";
+
+const API_URL = urlProvider();
 export default API_URL;

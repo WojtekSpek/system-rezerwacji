@@ -24,10 +24,10 @@ import AdminSkillSettings from "./components/SkillSettings";
 
 import { Provider } from "./components/ui/provider";
 import { defaultSystem } from "@chakra-ui/react";
+import urlProvider from "./urlProvider";
 
 
-
-const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "http://localhost:5000";
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || urlProvider();
 
 axios.defaults.withCredentials = true; // Włącz przesyłanie ciasteczek
 axios.defaults.baseURL = `${API_BASE_URL}`; // Adres backendu

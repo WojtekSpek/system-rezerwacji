@@ -9,6 +9,8 @@ import { Toaster } from "./ui/toaster";
 import { useUpdateTrainerSearch } from "../hooks/useUpdateTrainerSearch";
 import { useUpdateTrainersList } from "../hooks/useUpdateTrainersList";
 
+import urlProvider from "../urlProvider";
+
 function areSameArrays(first, second) {
   if (first === undefined || second === undefined) {
     return false;
@@ -55,7 +57,7 @@ function ProjectTrainers() {
   const [filteredTypeTrainers, setFilteredTypeTrainers] = useState({});   // Wyniki wyszukiwania dla typów
   const {id} = useParams(); // Pobiera ID projektu z URL
   const projectId = id; // Pobiera ID projektu z URL
-  const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "http://localhost:5000";
+  const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || urlProvider();
   
   // Użyty do unieważnienia zapytań zastosowanych przez 'useQueries'
   const queryClient = useQueryClient();
@@ -185,12 +187,7 @@ function ProjectTrainers() {
      
         console.log("onSaveSearch", {filteredData, isSuccessfullUpdate});
         console.log({cmd: "filteredData useEffect"});
-        //const {searchId, filtered, context } = data;
-        /* queryClient.setQueryData(["filteredData"], (oldData) => {
-          if (!oldData) return { [String(searchId)]: filtered }; // Jeśli brak danych, utwórz nową strukturę
-            return ({ [String(searchId)]: filtered});
-        });  
-        setIsLoadingTrainersGroup(false);   */
+        
         const searchedId = meta?.queryId;
         const filtered = filteredData[meta?.queryId];
         if (!areSameArrays(filteredGroupTrainers?.[searchedId] || [], filtered || [])) {
@@ -545,7 +542,6 @@ function ProjectTrainers() {
 
   /// #4 koniec
 
-  /// #5 test na ładowanie
   const isSearchingTrainersQuery = (searched, found, key, isLoadingSearch) => {    
     const isSearching = Object.keys(searched).includes(key.toString());
     const isFound = found !== undefined;
@@ -553,202 +549,7 @@ function ProjectTrainers() {
     return isSearching && isFound && isLoadingSearch;
   };
 
-  /* 
-  /// #6 zmienione na.., poniżej nie zakomantowane
-  const searchAvailableTrainers = async (id, query, context) => {
-    try {
-      const params = { query: query.trim() };
-  
-      // Dodanie odpowiednich parametrów w zależności od kontekstu
-      if (context === "group") {
-        params.groupId = id;
-      } else if (context === "type") {
-        params.typeId = id;
-      }
-      
-      console.warn({ cmd: "searchAvailableTrainers",id, query, context});
-      // Wysłanie zapytania
-      const response = await axios.get(`${API_BASE_URL}/trainers/trainersType`, { params });
-      console.log('response.data',response.data)
-      if (response.data.success) {
-        const filtered = response.data.trainers; // Bez dodatkowego filtrowania
-        console.log("Przefiltrowani trenerzy:", filtered);
-        // Obsługa wyników w zależności od kontekstu
-        if (context === "group") {
-          setFilteredGroupTrainers((prev) => ({ ...prev, [id]: filtered }));
-          console.log("Stan filteredGroupTrainers:", filteredGroupTrainers);
-        } else if (context === "type") {
-          //setFilteredTypeTrainers((prev) => ({ ...prev, [id]: filtered }));
-          console.warn("just stop");
-        }
-      } else {
-        console.warn(
-          "Wynik zapytania do backendu wskazuje niepowodzenie:",
-          response.data
-        );
-      }
-    } catch (error) {
-      console.error(
-        "Błąd podczas wyszukiwania szkoleniowców:",
-        error.response?.data || error.message
-      );
-    }
-  };
-  
-  */
-  
-  /* const searchAvailableTrainersTypeFunc = async (variables) => {
-    const {searchId:searchId, searchQuery: query, searchContext: context} = variables;
 
-    console.log("REFREASH searchAvailableTrainersTypeFunc", variables);
-    // zapobiega zapytaniu z pustą listą
-    if (query === undefined || query === "") {
-      console.warn(
-        "Puste zapytanie do backendu", variables
-      );
-      return ({searchId, filtered: [], context});
-    }
-
-    const params = { query: query.trim() };
-  
-    // Dodanie odpowiednich parametrów w zależności od kontekstu
-    if (context === "group") {
-      console.warn("@ searchAvailableTrainersTypeFunc() ", variables);
-      params.groupId = searchId;
-    }
-
-    console.warn( { cmd: "searchAvailableTrainersTypeFunc", variables } );
-    const response = await axios.get(`${API_BASE_URL}/trainers/trainersType`, { params });
-
-    if (!response.data.success) {      
-      console.warn(
-        "Wynik zapytania do backendu wskazuje niepowodzenie:",
-        response.data
-      );
-
-      throw(new Error("Błąd podczas wyszukiwania szkoleniowców"));        
-    }
-
-    const filtered = response.data.trainers;
-
-    return ({searchId, filtered, context});   
-    
-  }; 
- */
-  /* const searchAvailableTrainersGroupFunc = async (variables) => {
-    const {searchId:searchId, searchQuery: query, searchContext: context} = variables;
-
-    console.error("REFREASH searchAvailableTrainersGroupFunc", variables);
-    // zapobiega zapytaniu z pustą listą
-    if (query === undefined || query === "") {
-      console.warn(
-        "Puste zapytanie do backendu", variables
-      );
-      return ({searchId, filtered: [], context});
-    }
-
-    const params = { query: query.trim() };
-  
-    // Dodanie odpowiednich parametrów w zależności od kontekstu
-    if (context === "group") {
-      console.warn("@ searchAvailableTrainersGroupFunc() ", variables);
-      params.groupId = searchId;
-    }
-
-    console.warn( { cmd: "searchAvailableTrainersGroupFunc", variables } );
-    const response = await axios.get(`${API_BASE_URL}/trainers/trainersType`, { params });
-
-    if (!response.data.success) {      
-      console.warn(
-        "Wynik zapytania do backendu o szkoleniowców grup wskazuje niepowodzenie:",
-        response.data
-      );
-
-      throw(new Error("Błąd podczas wyszukiwania szkoleniowców grup"));        
-    }
-
-    const filtered = response.data.trainers;
-
-    return ({searchId, filtered, context});   
-    
-  };  */
-  
-  /// #6 koniec
-  /* 
-  do wywalenia? const onTrainersSearchSuccess = (data) => {
-    const {filtered, context} = data;
-    console.log("Przefiltrowani trenerzy:", filtered);
-    // Obsługa wyników w zależności od kontekstu
-    if (context === "group") {
-      setFilteredGroupTrainers((prev) => ({ ...prev, [id]: filtered }));
-      console.log("Stan filteredGroupTrainers:", filteredGroupTrainers);
-    } else if (context === "type") {
-      //setFilteredTypeTrainers((prev) => ({ ...prev, [id]: filtered }));
-      queryClient.setQueryData('filteredTypeTrainers', (prev) => ({ ...prev, [id]: filtered }) );
-    }
-  }; */
-  
-  /* const { data: filteredTypeTrainersData,
-    isLoading: isLoadingSearchAvailableTrainers, 
-    isError: isErrorSearchAvailableTypeTrainers,
-    error: errorSearchAvailableTypeTrainers } = useQuery({
-      queryKey: ['filteredTypeTrainersData'],
-      queryFn: (variables) => searchAvailableTrainersTypeFunc(variables),
-      enabled: !!projectTypes,
-  });
-  
-  const updatefilteredTypeTrainers = useMutation( {
-    mutationFn: (variables) => searchAvailableTrainersTypeFunc(variables),
-    onMutate: (variables) => async (variables) => {
-      const {searchId: searchId, searchQuery: query, searchContext: context} = variables;
-      
-      console.error("REFREASH updatefilteredTypeTrainers", variables);
-      // zapobiega zapytaniu z pustą listą
-      if (query === undefined || query === "") {
-        console.warn(
-          "Wynik zapytania do backendu wskazuje niepowodzenie:",
-          query
-        );
-        return {};
-      }
-
-      const params = { query: query.trim() };
-    
-      // Dodanie odpowiednich parametrów w zależności od kontekstu
-      if (context === "type") {
-        params.typeId = searchId;
-      }
-
-      console.warn({cmd: "updatefilteredTypeTrainers", variables});
-      const response = await axios.get(`${API_BASE_URL}/trainers/trainersType`, { params });
-      if (!response.data.success) {      
-        console.warn(
-          "Wynik zapytania do backendu wskazuje niepowodzenie:",
-          response.data
-        );
-
-        throw(new Error("Błąd podczas wyszukiwania szkoleniowców"));        
-      }
-
-      const filtered = response.data.trainers;
-
-      return ({searchId, filtered, context});   
-    
-    },
-  
-    onSuccess: (data) => {
-      console.log({cmd: "updatefilteredTypeTrainers filteredTypeTrainersData onSuccess", data});
-      const {searchId, filtered, context } = data;
-      queryClient.setQueryData(['filteredTypeTrainersData'], (oldData) => {
-        if (!oldData) return { [String(searchId)]: filtered }; // Jeśli brak danych, utwórz nową strukturę
-
-        return ({...oldData, [String(searchId)]: filtered});
-      });
-
-      setIsLoadingTrainersType(false);
-      setFilteredTypeTrainers((prev) => ({ ...prev, [String(searchId)]: filtered }));
-      //setShouldRefreshTypes(true);
-    }} ); */
   
   if (isErrorSearchAvailableTypeTrainers) {
     console.log("Błąd podczas wyszukiwania szkoleniowców:",
@@ -757,96 +558,6 @@ function ProjectTrainers() {
   }
 
   
-
-  /* const { data: filteredGroupTrainersData = {},
-    isLoading: isLoadingSearchAvailableGroupTrainers, 
-    isError: isErrorSearchAvailableGroupTrainers,
-    error: errorSearchAvailableGroupTrainers,
-    isSuccess: isSuccessUpdateFilteredGroupTrainers,
-   } = useQuery({
-      queryKey: ['filteredGroupTrainersData', projectId, searchedTrainersGroup],
-      queryFn: updateFilteredGroupTrainers,
-      meta: { groupId: searchedTrainersGroup,
-        groupQuery: groupSearchQueries[searchedTrainersGroup]},
-      enabled: !!projectGroups && !!searchedTrainersGroup,
-  }); */
-
-
-/*   const updatefilteredGroupTrainers = useMutation( {
-    retry: false,
-    mutationFn: (variables) => searchAvailableTrainersGroupFunc(variables),
-    onMutate: (variables) => async (variables) => {
-      const {searchId: searchId, searchQuery: query, searchContext: context} = variables;
-      
-      console.error("REFREASH updatefilteredGroupTrainers", variables);
-      // zapobiega zapytaniu z pustą listą
-      if (query === undefined || query === "") {
-        console.warn(
-          "Wynik zapytania do backendu wskazuje niepowodzenie:",
-          query
-        );
-        return {};
-      }
-
-      const params = { query: query.trim() };
-    
-      // Dodanie odpowiednich parametrów w zależności od kontekstu
-      if (context === "group") {
-        params.groupId = searchId;
-      }
-/// $ HEAR LIES SOURCE OF MISSCHIEF 
-      console.warn({cmd: "updatefilteredGroupTrainers", variables});
-      const response = await axios.get(`${API_BASE_URL}/trainers/trainersType`, { params });
-      if (!response.data.success) {      
-        console.warn(
-          "Wynik zapytania do backendu wskazuje niepowodzenie:",
-          response.data
-        );
-
-        throw(new Error("Błąd podczas wyszukiwania szkoleniowców"));        
-      }
-
-      const filtered = response.data.trainers;
-
-      return ({searchId, filtered, context});   
-    
-    },
-  
-    onSuccess: (data) => {
-      console.log({cmd: "updatefilteredGroupTrainers filteredGroupTrainersData onSuccess", data});
-      const {searchId, filtered, context } = data;
-      queryClient.setQueryData(["filteredGroupTrainersData"], (oldData) => {
-        if (!oldData) return { [String(searchId)]: filtered }; // Jeśli brak danych, utwórz nową strukturę
-      
-        return ({ [String(searchId)]: filtered});
-      });
-
-      setIsLoadingTrainersGroup(false);
-      setFilteredGroupTrainers((prev) => ({ ...prev, [String(searchId)]: filtered }));
-      //setShouldRefreshGroups(true);
-    }} ); */
-
-  /* const updateSearchedGroupTrainers = useEffect(() => {
-    if (filteredGroupTrainersData && isSuccessUpdateFilteredGroupTrainers) {
-      console.log({cmd: "filteredGroupTrainersData useEffect"});
-
-
-      //const {searchId, filtered, context } = data;
-      
-      //queryClient.setQueryData(["filteredGroupTrainersData"], (oldData) => {
-      //  if (!oldData) return { [String(searchId)]: filtered }; // Jeśli brak danych, utwórz nową strukturę
-      
-      //  return ({ [String(searchId)]: filtered});
-      //});
-
-      setIsLoadingTrainersGroup(false);
-      const filtered = filteredGroupTrainersData[searchedTrainersGroup];
-      setFilteredGroupTrainers((prev) => ({ ...prev, [String(searchedTrainersGroup)]: filtered })); 
-    }
-  }, [filteredGroupTrainersData, isSuccessUpdateFilteredGroupTrainers, searchedTrainersGroup]); 
-  */
-
-  /// #5 koniec 
 
   const getTrainersByType = (key, index) => {
     const query = allTrainersForTypesQueryResult[index]; 

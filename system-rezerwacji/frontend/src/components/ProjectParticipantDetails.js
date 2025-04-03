@@ -17,6 +17,8 @@ import { LuFolder, LuSquareCheck, LuUser, LuCalendar } from "react-icons/lu"
 import { useQuery, useQueryClient } from "@tanstack/react-query"; // query do pobierania z bazy
 import { ProgressCircle } from "@chakra-ui/react"; // kółko ładowania zawartości
 
+import urlProvider from "../urlProvider";
+
 moment.locale("pl"); // Ustaw język polski
 
 const localizer = momentLocalizer(moment);
@@ -119,7 +121,7 @@ function ProjectParticipantDetails({onBack}) {
     end: "",
     trainerId: "",
   });
-  const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "http://localhost:5000";
+  const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || urlProvider();
   const currentType = projectTypesAll.find((type) => type.name === activeTab);
   const eventStyleGetter = createEventStyleGetter(currentType); // Tworzymy funkcję getEventStyle z `currentType`
   const typeId = currentType?.id;
