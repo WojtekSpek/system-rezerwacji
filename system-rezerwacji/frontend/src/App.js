@@ -21,7 +21,13 @@ import Adminsetting from "./components/Settings";
 import AdminAddUser from "./components/AddUser";
 import AdminTrainingTypes from "./components/TrainingTypes";
 import AdminSkillSettings from "./components/SkillSettings";
-const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "http://localhost:5000";
+
+import { Provider } from "./components/ui/provider";
+import { defaultSystem } from "@chakra-ui/react";
+import urlProvider from "./urlProvider";
+
+
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || urlProvider();
 
 axios.defaults.withCredentials = true; // Włącz przesyłanie ciasteczek
 axios.defaults.baseURL = `${API_BASE_URL}`; // Adres backendu
@@ -110,90 +116,93 @@ const handleLogin = async (username, role) => {
 
   return (
     <div className="App">
-      <Router>
-        {!isLoggedIn ? (
-          <Login onLogin={handleLogin} />
-        ) : (
-          <>
-            <TopBar
-              user={user}
-              isAdmin={isAdmin}
-              onLogout={handleLogout}
-              selectedProject={selectedProject} // Dodano
-            />
-            <div className="main-layout flex">
-              {/* Panel boczny */}
-              <LeftPanel
-                selectedProject={selectedProject}
-                setSelectedProject={setSelectedProject}
-                selectedTab={selectedTab}
-                setSelectedTab={setSelectedTab}
+      <Provider>
+        <Router>
+          {!isLoggedIn ? (
+            <Login onLogin={handleLogin} />
+          ) : (
+            <>
+              
+              <TopBar
+                user={user}
+                isAdmin={isAdmin}
+                onLogout={handleLogout}
+                selectedProject={selectedProject} // Dodano
               />
+              <div className="main-layout flex">
+                {/* Panel boczny */}
+                <LeftPanel
+                  selectedProject={selectedProject}
+                  setSelectedProject={setSelectedProject}
+                  selectedTab={selectedTab}
+                  setSelectedTab={setSelectedTab}
+                />
 
-              {/* Główna zawartość */}
-              <div className="flex-1 p-4">
-                <Routes>
-                  {/* Widok domyślny */}
+                {/* Główna zawartość */}
+                <div className="flex-1 p-4">
+                  <Routes>
+                    {/* Widok domyślny */}
+                    <Route
+                      path="/"
+                      element={<div>Witaj, {user?.name || "Gościu"}!</div>}
+                    />
+                    
+                    {/* Lista projektów */}
+                    <Route
+                      path="/projects"
+                      element={
+                        <Projects
+                          setSelectedProject={setSelectedProject}
+                        />
+                      }
+                    />
+                    <Route
+                      path="/projects/:id/participants"
+                      element={
+                        <ProjectParticipants
+                          setSelectedParticipant={setSelectedParticipant}
+                        />
+                      }
+                    />
+                    <Route
+                      path="/projects/:id/participants/:participantId/details"
+                      element={<ProjectParticipantDetails />}
+                    />
                   <Route
-                    path="/"
-                    element={<div>Witaj, {user?.name || "Gościu"}!</div>}
-                  />
-                  
-                  {/* Lista projektów */}
-                  <Route
-                    path="/projects"
-                    element={
-                      <Projects
-                        setSelectedProject={setSelectedProject}
-                      />
-                    }
-                  />
-                  <Route
-                    path="/projects/:id/participants"
-                    element={
-                      <ProjectParticipants
-                        setSelectedParticipant={setSelectedParticipant}
-                      />
-                    }
-                  />
-                  <Route
-                    path="/projects/:id/participants/:participantId/details"
-                    element={<ProjectParticipantDetails />}
-                  />
-                <Route
-                    path="/participants/:participantId/details"
-                    element={<ParticipantDetails />}
-                  />
-                  
-                  <Route
-                    path="/trainer/:trainersId"
-                    element={<TrainerDetails />}
-                  />
-                  {/* Szczegóły projektu */}
-                  <Route path="/projects/:id">
-                    <Route path="details" element={<ProjectDetails />} />
-                    <Route path="participants" element={<ProjectParticipants />} />
-                    <Route path="trainers" element={<ProjectTrainers />} />
-                    <Route path="group" element={<ProjectGroup />} />
-                    <Route path="notes" element={<ProjectNotes/>} />
-                    <Route path="Group/:id_gr" element={<ProjectGroupTrainingDetails />} />
-                  </Route>
+                      path="/participants/:participantId/details"
+                      element={<ParticipantDetails />}
+                    />
+                    
+                    <Route
+                      path="/trainer/:trainersId"
+                      element={<TrainerDetails />}
+                    />
+                    {/* Szczegóły projektu */}
+                    <Route path="/projects/:id">
+                      <Route path="details" element={<ProjectDetails />} />
+                      <Route path="participants" element={<ProjectParticipants />} />
+                      <Route path="trainers" element={<ProjectTrainers />} />
+                      <Route path="group" element={<ProjectGroup />} />
+                      <Route path="notes" element={<ProjectNotes/>} />
+                      <Route path="Group/:id_gr" element={<ProjectGroupTrainingDetails />} />
+                    </Route>
 
 
-                  {/* Pozostałe sekcje */}
-                  <Route path="/participants" element={<Participants />} />
-                  <Route path="/trainers" element={<Trainers />} />
-                  <Route path="/trainingTypes" element={<TrainingTypes />} />
-                  <Route path="/settings" element={<Adminsetting/>} />
-                  <Route path="/AddUser" element={<AdminAddUser/>} />
-                  <Route path="/TrainingTypes" element={<AdminTrainingTypes/>} />
-                  <Route path="/SkillSettings" element={<AdminSkillSettings/>} />
-                </Routes>
+                    {/* Pozostałe sekcje */}
+                    <Route path="/participants" element={<Participants />} />
+                    <Route path="/trainers" element={<Trainers />} />
+                    <Route path="/trainingTypes" element={<TrainingTypes />} />
+                    <Route path="/settings" element={<Adminsetting/>} />
+                    <Route path="/AddUser" element={<AdminAddUser/>} />
+                    <Route path="/TrainingTypes" element={<AdminTrainingTypes/>} />
+                    <Route path="/SkillSettings" element={<AdminSkillSettings/>} />
+                  </Routes>
+                </div>
               </div>
-            </div>
-          </>
-        )}
-      </Router>
+            </>
+          )}
+        </Router>
+      </Provider>
     </div>
   );
 }

@@ -6,6 +6,8 @@ import { Calendar as BigCalendar, momentLocalizer } from "react-big-calendar";
 import moment from "moment";
 import ReactModal from "react-modal";
 
+import urlProvider from "../urlProvider";
+
 const localizer = momentLocalizer(moment);
 ReactModal.setAppElement("#root"); // Ustawienie głównego elementu aplikacji
 moment.locale("pl"); // Ustaw język polski
@@ -28,8 +30,7 @@ function TrainerDetails() {
   const [trainerSkills, setTrainerSkills] = useState([]); // Umiejętności przypisane do trenera
   const [skillSearchQuery, setSkillSearchQuery] = useState("");
   const [filteredSkills, setFilteredSkills] = useState([]);
-  const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "http://localhost:5000";
-
+  const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || urlProvider();
   const [editedTrainer, setEditedTrainer] = useState({
     ...trainer,
     skills: trainer?.skills || [], // Ustaw domyślnie pustą tablicę

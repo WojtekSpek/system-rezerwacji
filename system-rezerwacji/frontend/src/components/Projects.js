@@ -1,17 +1,19 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { ProgressCircle } from "@chakra-ui/react";
+import urlProvider from "../urlProvider";
 
 function Projects({ setView, setSelectedProject }) {
-  const [projects, setProjects] = useState([]); // Lista projektów
+  
   const [newProjectName, setNewProjectName] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   const [selectedTrainingTypes, setSelectedTrainingTypes] = useState([]); // Nowy stan dla zaznaczonych typów
-  const [trainingTypes, setTrainingTypes] = useState([]); // Lista typów szkoleń
-  const [user, setUser] = useState(null); // Przechowuj dane użytkownika
+  
    const [showAddForm, setShowAddForm] = useState(false);
    const [isLoading, setIsLoading] = useState(true); // Dodaj isLoading do stanu
-  const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "http://localhost:5000";
+  const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || urlProvider();
   // const API_BASE_URL = "https://system-rezerwacji-1.onrender.com";
   useEffect(() => {
     setIsLoading(true);
@@ -40,17 +42,28 @@ function Projects({ setView, setSelectedProject }) {
   };
 
 
-  const fetchProjects = async () => {
-      try {
-        const response = await axios.get(`${API_BASE_URL}/projects`);
-        
-        if (response.data.success) {
-          setProjects(response.data.projects);
-        }
-      } catch (error) {
-        console.error("Błąd podczas pobierania projektów:", error);
-      }
-  };
+  // Pobiera lista projektów
+const fetchProjects = async () => {   
+  const response = await axios.get(`${API_BASE_URL}/projects`);
+  if (!response.data.success) {
+    throw(new Error("Błąd podczas pobierania projektów:"));
+  }
+  
+  return response.data.projects;
+};
+
+const { data: projects = [], 
+  isLoading: isLoadingProjects, 
+  isError: isErrorLoadingProjects,
+  error: errorLoadingProjects } = useQuery({
+  queryKey: ["projects"], 
+  queryFn: () => fetchProjects(),
+});
+
+if (isErrorLoadingProjects) {
+  console.log("Błąd podczas pobierania projektów:", errorLoadingProjects);
+}
+
 
   const addProject = async () => {
       if (!newProjectName) {
@@ -94,18 +107,31 @@ function Projects({ setView, setSelectedProject }) {
       alert("Błąd podczas usuwania projektu.");
     }
   };
-    const fetchTrainingTypes = async () => {
-      try {
-        const response = await axios.get(`${API_BASE_URL}/trainers/Types`, {
-          withCredentials: true,
-        });
-        if (response.data.success) {
-          setTrainingTypes(response.data.data);
-        }
-      } catch (error) {
-        console.error("Błąd podczas pobierania typów szkoleń:", error);
+
+ 
+  // Pobiera listę typów szkoleń
+    const fetchTrainingTypes = async () => {   
+      const response = await axios.get(`${API_BASE_URL}/trainers/Types`, {
+        withCredentials: true,
+      });
+      if (!response.data.success) {
+        throw(new Error("Błąd podczas pobierania typów szkoleń"));
       }
+      
+      return response.data.data;
     };
+    
+    const { data: trainingTypes = [],
+        isLoading: isLoadingTrainingTypes,
+        isError: isErrorLoadingTrainingTypes,
+        error: errorLoadingTrainingTypes } = useQuery({
+      queryKey: ["trainingTypes"], 
+      queryFn: () => fetchTrainingTypes(),
+    });
+        
+    if (isErrorLoadingTrainingTypes) {
+      console.log("Błąd podczas pobierania typów szkoleń:", errorLoadingTrainingTypes)
+    }
 
     const handleTrainingTypeChange = (typeId) => {
       setSelectedTrainingTypes((prevSelected) =>
@@ -114,20 +140,45 @@ function Projects({ setView, setSelectedProject }) {
           : [...prevSelected, typeId] // Dodaj typ, jeśli nie był zaznaczony
       );
     };
-    const fetchUser = async () => {
-      try {
-        const response = await axios.get( `${API_BASE_URL}/users/session`, {
-          withCredentials: true,
-        });
-        if (response.data.success) {
-          setUser(response.data.user);
-          console.log("Otrzymane dane użytkownika:", response.data.user); // Ustaw dane użytkownika
-        }
-      } catch (error) {
-        console.error("Błąd podczas pobierania sesji:", error);
-      }
-    };
+
+   // Przechowuj dane użytkownika
+const fetchUser = async () => {   
+  const response = await axios.get(`${API_BASE_URL}/users/session`, {
+    withCredentials: true,
+  });
+  if (!response.data.success) {
+    throw(new Error("Błąd podczas pobierania sesji"));
+  }
+  
+  console.log("Otrzymane dane użytkownika:", response.data.user); // Ustaw dane użytkownika
+  return response.data.user;
+};
+
+const { data: user = null,
+    isLoading: isLoadingUser,
+    isError: isErrorLoadingUser,
+    error: errorLoadingUser } = useQuery({
+  queryKey: ["user"], 
+  queryFn: () => fetchUser(),
+});
     
+if (isErrorLoadingUser) {
+  console.log("Błąd podczas pobierania sesji:", errorLoadingUser)
+}
+
+    if ( isLoadingUser 
+      || isLoadingTrainingTypes 
+      || isLoadingProjects ) { 
+      return (<div className="flex items-center justify-center h-screen">
+          <ProgressCircle.Root value={null} size="sm">
+            <ProgressCircle.Circle>
+              <ProgressCircle.Track />
+              <ProgressCircle.Range />
+            </ProgressCircle.Circle>
+          </ProgressCircle.Root>
+        </div>);
+    }
+
     return (
       <div className="p-4 w-full">
         {isLoading ? (

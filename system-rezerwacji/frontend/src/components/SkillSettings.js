@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
+import urlProvider from "../urlProvider";
 
 function SkillSettings() {
   const [skills, setSkills] = useState([]);
@@ -7,7 +8,7 @@ function SkillSettings() {
   const [editingSkill, setEditingSkill] = useState(null);
   const [editingName, setEditingName] = useState("");
 
-  const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "http://localhost:5000";
+  const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || urlProvider();
 
   useEffect(() => {
     fetchSkills();

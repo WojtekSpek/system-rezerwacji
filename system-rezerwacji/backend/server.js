@@ -14,7 +14,15 @@ const calendarRoutes = require("./routes/calendar");
 const commentaryRoutes = require("./routes/Commentary");
 const groupRoutes = require("./routes/group");
 const skillsRoutes = require("./routes/skills");
-const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "http://localhost:3000";
+
+const urlProvider = require("./urlProvider");
+
+let serverType = 'lan'; // 'lan' lub 'local', produkcja gdy ustawiona 'process.env.REACT_APP_API_BASE_URL'
+if (process.env.REACT_APP_API_BASE_URL) {
+  serverType = 'production';
+}
+
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || urlProvider.get_url_for('server', serverType);
 
 const app = express();
 const PORT = process.env.PORT || 5000; // Lokalnie 5000, na Render użyje zmiennej środowiskowej PORT
@@ -24,8 +32,12 @@ const db = require("./config/database"); // upewnij się, że masz ten plik
 
 // Konfiguracja CORS
 app.use(cors({
-  origin: ["https://system-rezerwacji-1.onrender.com","https://system-rezerwacji.onrender.com","http://localhost:3000","https://panel.irid.org.pl"], // Zmienna URL twojego frontendu
+  origin: ["https://system-rezerwacji-1.onrender.com", 
+    "https://system-rezerwacji.onrender.com", 
+    ...urlProvider.get_cors_origin_urls(serverType),
+    "https://panel.irid.org.pl"], // Zmienna URL twojego frontendu
   credentials: true,
+  preflightContinue: true,
 })); 
 
 const path = require("path");

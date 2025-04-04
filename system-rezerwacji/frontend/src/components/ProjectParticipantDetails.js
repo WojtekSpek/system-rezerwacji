@@ -10,25 +10,102 @@ import TotalHours from "./ProjectParticipantDetails/TotalHours"; // Import kompo
 import { useParams } from "react-router-dom";
 import Commentary from "./Commentary";
 import {createEventStyleGetter } from "./function/getEventStyle.js";
-import { Tabs } from "@chakra-ui/react"
+
+// Chakra UI, Tabs, ikony, ProgressCircle itd.
+import { Tabs, Box } from "@chakra-ui/react";
+import { LuFolder, LuSquareCheck, LuUser, LuCalendar } from "react-icons/lu"
+import { useQuery, useQueryClient } from "@tanstack/react-query"; // query do pobierania z bazy
+import { ProgressCircle } from "@chakra-ui/react"; // kółko ładowania zawartości
+
+import urlProvider from "../urlProvider";
 
 moment.locale("pl"); // Ustaw język polski
 
 const localizer = momentLocalizer(moment);
 
+/// # jeśli to czytasz, to spróbuj poprawić czytelność tego kodu w komponencie
+const DynamicTabContent = ({tabValues}) => {
+  const {projectTypesAll, participantId, projectId, activeTab,
+    events, trainers, selectedTrainer, handleEditEvent, setEvents, 
+    projectTypes, newEvent, setNewEvent, setSelectedTrainer, 
+    calendarView, handleCalendarViewChange, showEditModal, selectedEvent,
+    setSelectedEvent, setShowEditModal} = tabValues;
+    const currentType = projectTypesAll.find((type) => {
+      console.log({type, activeTab});
+      return type.name === activeTab;});
+    const typeId = currentType?.id;
 
+    useEffect(() => {
+      console.warn("REFRESHING DynamicTabContent ");
+
+    }, []);
+
+  
+  return (
+    <div>
+      <h2 className="text-2xl font-bold mb-4">Kalendarz - {activeTab}</h2>
+      {/* Dodawanie wydarzenia */}
+      <div className="mb-4">
+        <TotalHours participantId={participantId} projectId={projectId} type={activeTab} typeId={typeId} initialPlannedHours={0}/>
+      </div>
+      <div>
+        <Calendar1
+          key={`${activeTab}-${events.length}`} // Klucz bazujący na activeTab i liczbie wydarzeń
+          projectId={projectId}
+          participantId={participantId}
+          trainerId={selectedTrainer?.id}
+          activeTab={activeTab}
+          events={events}
+          trainers={trainers}
+          onEditEvent={handleEditEvent} // Dodaj obsługę edycji
+          setEvents={setEvents} // Dodano setEvents
+          currentType={currentType}
+          projectTypes={projectTypes}
+          projectTypesAll={projectTypesAll} // Przekazanie projectTypes // Przekazanie projectTypes
+          newEvent={newEvent}
+          setNewEvent={setNewEvent}
+          selectedTrainer={selectedTrainer} // Przekazanie selectedTrainer
+          setSelectedTrainer={setSelectedTrainer} // Przekazanie setSelectedTrainer
+          //eventPropGetter={eventStyleGetter} // Przypisanie stylu do wydarzenia
+          view={calendarView} // Przekazanie bieżącego widoku
+          onViewChange={handleCalendarViewChange} // Przekazanie funkcji zmiany widoku
+          
+        />
+        {showEditModal && selectedEvent && (
+          <EditEventModal
+            show={showEditModal}
+            event={selectedEvent}
+            setEventData={(updatedEvent) => {
+              setSelectedEvent((prevEvent) => ({ ...prevEvent, ...updatedEvent }));
+            }}
+            trainers={trainers} // Jeśli korzystasz z listy trenerów
+            onSave={(updatedEvent) => {
+              setEvents((prevEvents) =>
+                prevEvents.map((evt) =>
+                  evt.id === updatedEvent.id ? { ...evt, ...updatedEvent } : evt
+                )
+              );
+              setShowEditModal(false);
+            }}
+            onClose={() => setShowEditModal(false)}
+          />
+        )}
+      </div>
+    </div>
+  );
+};
 
 
 function ProjectParticipantDetails({onBack}) {
-  const [participant, setParticipant] = useState(null); // Dane uczestnika w ramach projektu
+  /// @2 const [participant, setParticipant] = useState(null); // Dane uczestnika w ramach projektu
   const [activeTab, setActiveTab] = useState("Dane osobowe"); // Domyślna zakładka
  
-  const [uploadedFiles, setUploadedFiles] = useState([]); // Lista plików
+  /// @4 const [uploadedFiles, setUploadedFiles] = useState([]); // Lista plików
   const [file, setFile] = useState(null); // Wybrany plik do dodania
   const [selectedAdvisor, setSelectedAdvisor] = useState(null);
-  const [trainers, setTrainers] = useState([]); // Trenerzy przypisani do projektu
+  /// @1 const [trainers, setTrainers] = useState([]); // Trenerzy przypisani do projektu
   const [selectedTrainer, setSelectedTrainer] = useState(null); // Wybrany trener
-  const [events, setEvents] = useState([]); // Wydarzenia w kalendarzu
+  /// @3 const [events, setEvents] = useState([]); // Wydarzenia w kalendarzu
   const [newEvent, setNewEvent] = useState({ start: "", end: "", title: "" }); // Nowe wydarzenie
   const [projectTypes, setProjectTypes] = useState([]); // Typy przypisane do uczestnika w projekcie
   const [projectTypesAll, setProjectTypesAll] = useState([]); // Typy przypisane do uczestnika w projekcie
@@ -44,7 +121,7 @@ function ProjectParticipantDetails({onBack}) {
     end: "",
     trainerId: "",
   });
-  const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "http://localhost:5000";
+  const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || urlProvider();
   const currentType = projectTypesAll.find((type) => type.name === activeTab);
   const eventStyleGetter = createEventStyleGetter(currentType); // Tworzymy funkcję getEventStyle z `currentType`
   const typeId = currentType?.id;
@@ -80,6 +157,62 @@ function ProjectParticipantDetails({onBack}) {
     setShowEditModal(true); // Pokaż modal edycji
   };
 
+  /// @3 Zmiana na react query do pobierania danych
+   /*  const fetchEvents = async () => {
+      try {
+        const response = await axios.get(`calendar/events/${projectId}/${participantId}`);
+        if (response.data.success) {
+         // console.log('response.data.events',response.data.events.start)
+          setEvents(
+            response.data.events.map((event) => ({
+              ...event,
+              start: event.start, // Dodaj "Z", aby wymusić UTC
+              end: event.end,
+              type: (event.type), // Przypisz typ na podstawie logiki
+            }))
+          );
+        console.log('events',events)  
+
+        }
+      } catch (error) {
+        console.error("Błąd podczas pobierania wydarzeń:", error);
+      }
+    }; */
+
+    const fetchEvents = async () => {
+      const response = await axios.get(`calendar/events/${projectId}/${participantId}`);
+        if (!response.data.success) {
+          throw(new Error("Błąd podczas pobierania wydarzeń."));        
+        
+        }
+        console.log('events',events)  
+        console.log("Udane pobieranie wydarzeń.");
+        
+        return response.data.events.map((event) => ({
+          ...event,
+          start: event.start, // Dodaj "Z", aby wymusić UTC
+          end: event.end,
+          type: (event.type), // Przypisz typ na podstawie logiki
+      }));
+    }; 
+  
+    // Zapytanie pobierające wydarzenia
+    const { data: events,
+      isLoading: isLoadingEvents, 
+      isError: isErrorEvents,
+      error: errorEvents,
+      refetch: refetchEvents
+      } = useQuery({
+      queryKey: ['events', participantId, projectId],
+      queryFn: () => fetchEvents(),     
+    });
+  
+  if (isErrorEvents) {
+    console.log("Błąd podczas pobierania wydarzeń:", errorEvents);
+  }
+
+  /// @3 koniec
+
   useEffect(() => {
     if (events) {
       events.forEach((event) => {
@@ -91,8 +224,10 @@ function ProjectParticipantDetails({onBack}) {
   }, [events]);
   console.log('event',events)
 
+  /// @1 zmiana na react query do pobierania danych
 
-  useEffect(() => {
+  /* useEffect(() => {
+    
     const fetchTrainers = async () => {
       try {
         const response = await axios.get(`/projects/${projectId}/trainers/${typeId}`);
@@ -106,13 +241,39 @@ function ProjectParticipantDetails({onBack}) {
     };
     
     fetchTrainers();
-  }, [projectId, activeTab]);
+  }, [projectId, activeTab]); */
 
-  
-  console.log("Obecne typeId:", activeTab);
-  useEffect(() => {
-    
+  // Pobiera czas zajęć grupowych
+  const fetchTrainers = async () => {
+    const response = await axios.get(`/projects/${projectId}/trainers/${typeId}`);
+      if (!response.data.success) {
+        throw(new Error("Błąd podczas pobierania trenerów projektu."));        
+      }
+      
+      console.log("Udane pobieranie trenerów projektu.");
 
+      return response.data.trainers;
+  }; 
+
+  // Zapytanie pobierające trenerów
+  const { data: trainers,
+    isLoading: isLoadingTrainers, 
+    isError: isErrorTrainers,
+    error: errorTrainers,
+    refetch: refetchTrainers
+    } = useQuery({
+    queryKey: ['trainers', projectId, typeId, activeTab],
+    queryFn: () => fetchTrainers(),
+    enabled: !!typeId,
+  });
+
+
+  /// koniec @1 
+
+  console.log("Obecne activeTab:", activeTab);
+  console.log("Obecne typeId:", typeId);
+  /// @2 zamiana na reactQuery do pobierania danych z bazy 
+  /* useEffect(() => {
     //fetchParticipantDetails();
     fetchFiles();
     fetchParticipantDetails();
@@ -132,7 +293,46 @@ function ProjectParticipantDetails({onBack}) {
       } catch (error) {
         console.error("Błąd podczas pobierania danych uczestnika projektu:", error);
       }
-    };
+    }; */
+
+    const fetchParticipantDetails = async () => {
+      const response = await axios.get(`/projects/${projectId}/participants/${participantId}`);
+        if (!response.data.success) {
+          throw(new Error("Błąd podczas pobierania danych uczestnika projektu."));        
+        }
+                
+        console.log("Udane pobieranie danych uczestnika projektu.");
+        
+        return response.data.participant;
+    }; 
+  
+    // Zapytanie pobierające trenerów
+    const { data: participant = {},
+      isLoading: isLoadingParticipant, 
+      isError: isErrorParticipant,
+      error: errorParticipant,
+      isSuccess: isParticipantLoadSuccess,
+      refetch: refetchParticipant,
+      } = useQuery({
+      queryKey: ['participant', participantId, projectId],
+      queryFn: () => fetchParticipantDetails(),
+    });
+
+    useEffect(() => {      
+      if(isParticipantLoadSuccess && participant) {
+        const tabsExtra = participant.types.map((type, index) => {
+          return { ...type, id: index }
+        });
+        setProjectTypesAll(participant.types); // Zakładki dynamiczne z `types`
+        setProjectTypes(participant.types.map((type) => type.name));
+      }
+    }, [isParticipantLoadSuccess, participant]);
+    
+    if (isErrorParticipant) {
+      console.log("Błąd podczas pobierania danych uczestnika projektu:", errorParticipant);
+    }
+    
+    /// @2 koniec
 
     /* const getTypeIdByName = (typeName) => {
       const type = projectTypesAll.find((t) => t.name === typeName);
@@ -144,30 +344,6 @@ function ProjectParticipantDetails({onBack}) {
     console.log("Type ID dla aktywnego typu:", currentType);
 
   
-
-    const fetchEvents = async () => {
-      try {
-        const response = await axios.get(`calendar/events/${projectId}/${participantId}`);
-        if (response.data.success) {
-         // console.log('response.data.events',response.data.events.start)
-          setEvents(
-            response.data.events.map((event) => ({
-              ...event,
-              start: event.start, // Dodaj "Z", aby wymusić UTC
-              end: event.end,
-              type: (event.type), // Przypisz typ na podstawie logiki
-            }))
-          );
-        console.log('events',events)  
-
-        }
-      } catch (error) {
-        console.error("Błąd podczas pobierania wydarzeń:", error);
-      }
-    };
-
-  
-
   // Sumowanie godzin na trenera
   const calculateHoursPerTrainer = () => {
     const hours = {};
@@ -181,8 +357,9 @@ function ProjectParticipantDetails({onBack}) {
     return hours;
   };
   
+  /// @4 zmiana na react query do pobierania listy plików z bazy
  // Pobierz pliki uczestnika
- const fetchFiles = async () => {
+ /* const fetchFiles = async () => {
     try {
       const response = await axios.get(`/files/participant/${projectId}/${participantId}`);
       if (response.data.success) {
@@ -191,7 +368,38 @@ function ProjectParticipantDetails({onBack}) {
     } catch (error) {
       console.error("Błąd podczas pobierania plików uczestnika:", error);
     }
-  };
+  }; */
+
+  const fetchFiles = async () => {
+    const response = await axios.get(`/files/participant/${projectId}/${participantId}`);
+      if (!response.data.success) {
+        throw(new Error("Błąd podczas pobierania plików uczestnika."));        
+      }
+
+      console.log("Udane pobieranie listy plików użytkownika.");
+
+      return response.data.files;
+  }; 
+
+  // Zapytanie pobierające wydarzenia
+  const { data: uploadedFiles = [],
+    isLoading: isLoadingUploadedFiles, 
+    isError: isErrorUploadedFiles,
+    error: errorUploadedFiles,
+    refetch: refetchFiles
+    } = useQuery({
+    queryKey: ['uploadedFiles', participantId, projectId],
+    queryFn: () => fetchFiles(),
+    retry: false, // tymczasowo ustawionena na false
+    // to jest nie pobieranie ponownie gdy wystąpi błąd 
+
+  });
+
+  if (isErrorUploadedFiles) {
+    console.log("Błąd podczas pobierania plików uczestnika:", errorUploadedFiles);
+  }
+
+  /// @4 koniec
 
   // Dodaj plik
   const handleFileUpload = async () => {
@@ -247,8 +455,15 @@ function ProjectParticipantDetails({onBack}) {
     }
   }; */
 
+  /// @3 definicja setEvents
   
- 
+  const queryClient = useQueryClient();
+  function setEvents(eventsData) {  
+    queryClient.setQueryData(['events'], eventsData | []);         
+  } 
+
+  /// @3 koniec
+  
   const handleSelectSlot = (slotInfo) => {
     const title = window.prompt("Podaj tytuł wydarzenia:");
     if (title) {
@@ -263,8 +478,250 @@ function ProjectParticipantDetails({onBack}) {
     }
   };
 
+  /// kółko ładowania danych
+  if (isLoadingParticipant) {  
+    return (<div className="flex items-center justify-center h-screen">
+        <ProgressCircle.Root value={null} size="sm">
+          <ProgressCircle.Circle>
+            <ProgressCircle.Track />
+            <ProgressCircle.Range />
+          </ProgressCircle.Circle>
+        </ProgressCircle.Root>
+      </div>);
+  }
+
+  /// @5 Renderowanie zakładek w Chakra UI
+
+const renderDynamicTabsContent = (tabsProps) => {
+  const {projectTypesAll} = tabsProps;
+
+  return (projectTypesAll.map((tab) => (
+    <Tabs.Content key={tab.id + 3} value={tab.name}>
+      <DynamicTabContent tabValues={{...tabsProps}} />
+    </Tabs.Content>)));  
+};
+
+const renderDynamicTabsTrigger = (tabsData) => {
+  
+  return tabsData.map((tab) => (
+    <Tabs.Trigger key={tab.id + 3} value={tab.name} whiteSpace="nowrap" >
+      <LuCalendar boxSize="16px"/>
+      {tab.name}
+    </Tabs.Trigger>
+  ));
+};
+
+const renderParticipantTabContent = () => {
+  return (<div>
+      <h3 className="text-lg font-semibold mb-4">Dane osobowe:</h3>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <strong>Imię:</strong> {participant?.firstName || "Brak danych"}
+        </div>
+        <div>
+          <strong>Nazwisko:</strong> {participant?.lastName || "Brak danych"}
+        </div>
+        <div>
+          <strong>PESEL:</strong> {participant?.pesel || "Brak danych"}
+        </div>
+        <div>
+          <strong>Płeć:</strong> {participant?.gender || "Brak danych"}
+        </div>
+        <div>
+          <strong>Województwo:</strong> {participant?.voivodeship || "Brak danych"}
+        </div>
+        <div>
+          <strong>Miasto:</strong> {participant?.city || "Brak danych"}
+        </div>
+        <div>
+          <strong>Kod pocztowy:</strong> {participant?.postalCode || "Brak danych"}
+        </div>
+        <div>
+          <strong>Ulica:</strong> {participant?.street || "Brak danych"}
+        </div>
+        <div>
+          <strong>Numer domu:</strong> {participant?.houseNumber || "Brak danych"}
+        </div>
+        <div>
+          <strong>Numer mieszkania:</strong> {participant?.apartmentNumber || "Brak danych"}
+        </div>
+        <div>
+          <strong>Numer telefonu:</strong> {participant?.phoneNumber || "Brak danych"}
+        </div>
+        <div>
+          <strong>Email:</strong> {participant?.email || "Brak danych"}
+        </div>
+        <div>
+          <strong>Stopień niepełnosprawności:</strong> {participant?.disabilityLevel || "Brak danych"}
+        </div>
+        </div>
+      </div>);
+    };
+
+const renderFilesTabContnet = () => {
+  return (<div>
+      <h3 className="text-lg font-semibold mb-4">Pliki uczestnika:</h3>
+      {/* Lista plików */}
+      <ul className="list-disc list-inside mb-4">
+        {uploadedFiles?.length > 0 ? (
+            uploadedFiles.map((file, index) => (
+            <li key={index} className="flex justify-between items-center">
+                {/* Klikalny link do otwierania pliku */}
+                <a
+                href={`${API_BASE_URL}/files/participant_read/${projectId}/${participantId}/${file}`} // Ścieżka do pliku
+                target="_blank" // Otwiera plik w nowej karcie
+                rel="noopener noreferrer" // Bezpieczeństwo dla linków zewnętrznych
+                className="text-blue-500 hover:underline"
+                >
+                {file}
+                </a>
+                <button
+                onClick={() => handleFileDelete(file)}
+                className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600"
+                >
+                Usuń
+                </button>
+            </li>
+            ))
+        ) : (
+            <p>Brak plików</p>
+        )}
+        </ul>
+      {/* Dodawanie pliku */}
+    <input
+      type="file"
+      accept=".pdf,.doc,.docx,.xls"
+      onChange={(e) => setFile(e.target.files[0])}
+      className="mb-2"
+    />
+    <button
+      onClick={handleFileUpload}
+      className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+    >
+      Dodaj plik
+    </button>
+  </div>);
+};
+
+const renderActivityTabContent = () => { 
+  return (
+    <div>
+      {/* <h2 className="text-2xl font-bold mb-4">Szczegóły projektu</h2> */}
+      {/* Inne szczegóły projektu */}
+      <Commentary entityId={projectId} entityType="participant" />
+    </div>);
+};  
+  
+const renderTabContentChakraUI = () => {
+  return (<div className="p-4">
+    {/* Górny pasek z imieniem i nazwiskiem oraz przyciskiem powrotu */}
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-2xl font-bold">
+        {participant?.firstName} {participant?.lastName}
+        </h2>
+        <button
+        onClick={onBack}
+        className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-400"
+        >
+        Wróć
+        </button>
+      </div>
+      {/* Zakładki */}
+      <div className="flex justify-between items-center mb-2">
+        {/* Zakładki stałe */}
+        <Tabs.Root lazyMount unmountOnExit defaultValue="Dane osobowe" value={activeTab}
+          onValueChange={(activeTabValue) => setActiveTab(activeTabValue.value)} >
+          <Tabs.List gap={5} borderBottomWidth={3}>
+            <Tabs.Trigger value="Dane osobowe" key={0} whiteSpace="nowrap" >
+              <LuUser boxSize="16px" />
+              Dane osobowe
+            </Tabs.Trigger>
+            <Tabs.Trigger value="Pliki" key={1} whiteSpace="nowrap" >
+              <LuFolder boxSize="16px" />
+              Pliki
+            </Tabs.Trigger>
+            <Tabs.Trigger value="Aktywność" key={2} whiteSpace="nowrap" >
+              <LuSquareCheck boxSize="16px" />
+              Aktywność
+            </Tabs.Trigger>
+            {/* Zakładki dynamiczne */}
+            {renderDynamicTabsTrigger(projectTypesAll)}
+          </Tabs.List>
+          <Tabs.Content value="Dane osobowe" key={0}>{renderParticipantTabContent()}</Tabs.Content>
+          <Tabs.Content value="Pliki" key={1}>{renderFilesTabContnet()}</Tabs.Content>
+          <Tabs.Content value="Aktywność" key={2}>{renderActivityTabContent()}</Tabs.Content>
+          {/* Treści zakładek dynamicznych */}
+          {renderDynamicTabsContent({projectTypesAll, participantId, projectId, activeTab,  
+      events, trainers, selectedTrainer, handleEditEvent, setEvents, setActiveTab,
+      projectTypes, newEvent, setNewEvent, setSelectedTrainer, 
+      calendarView, handleCalendarViewChange, showEditModal, selectedEvent,
+      setSelectedEvent, setShowEditModal})}
+          </Tabs.Root>
+      </div>
+    </div>);
+  };
+
+  return renderTabContentChakraUI();
+  /// koniec @5 
+  
+  /// !@6 początek martwego kodu, nie wykonuje się, zostawiony do porównania, po tym można usunąć
+  
+  return (
+    <div className="p-4">
+      {/* Górny pasek z imieniem i nazwiskiem oraz przyciskiem powrotu */}
+            <div className="flex justify-between items-center mb-4">
+                <h2 className="text-2xl font-bold">
+                {participant?.firstName} {participant?.lastName}
+                </h2>
+                <button
+                onClick={onBack}
+                className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-400"
+                >
+                Wróć
+                </button>
+            </div>
+      {/* Zakładki */}
+      <div className="flex gap-4 border-b mb-4">
+        {/* Zakładki stałe */}
+        <button
+          onClick={() => setActiveTab("Dane osobowe")}
+          className={`pb-2 ${activeTab === "Dane osobowe" ? "border-b-2 border-blue-500" : ""}`}
+        >
+          Dane osobowe
+        </button>
+        <button
+          onClick={() => setActiveTab("Pliki")}
+          className={`pb-2 ${activeTab === "Pliki" ? "border-b-2 border-blue-500" : ""}`}
+        >
+          Pliki
+        </button>
+        <button
+          onClick={() => setActiveTab("Aktywność")}
+          className={`pb-2 ${activeTab === "Aktywność" ? "border-b-2 border-blue-500" : ""}`}
+        >
+          Aktywności
+        </button>
+        {/* Zakładki dynamiczne */}
+        {projectTypes.map((type) => (
+          <button
+            key={type}
+            onClick={() => setActiveTab(type)}
+            className={`pb-2 ${activeTab === type ? "border-b-2 border-blue-500" : ""}`}
+          >
+            {type}
+          </button>
+        ))}
+      </div>
+      {/* Zawartość aktywnej zakładki */}
+      {participant ? renderTabContent() : <p>Ładowanie danych...</p>}
+      
+    </div>
+  );
+
+  
 
 
+  
   // Obsługa renderowania zawartości zakładek
   const renderTabContent = () => {
     
@@ -332,7 +789,7 @@ function ProjectParticipantDetails({onBack}) {
               <h3 className="text-lg font-semibold mb-4">Pliki uczestnika:</h3>
               {/* Lista plików */}
               <ul className="list-disc list-inside mb-4">
-                {uploadedFiles.length > 0 ? (
+                {uploadedFiles?.length > 0 ? (
                     uploadedFiles.map((file, index) => (
                     <li key={index} className="flex justify-between items-center">
                         {/* Klikalny link do otwierania pliku */}
@@ -492,6 +949,8 @@ function ProjectParticipantDetails({onBack}) {
       
     </div>
   );
+
+  /// !@6 koniec martwego kodu, nie wykonuje się, zostawiony do porównania, po tym można usunąć
 }
 
 export default ProjectParticipantDetails;

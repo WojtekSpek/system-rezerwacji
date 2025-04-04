@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
+import urlProvider from "../urlProvider";
 
 function AddUser() {
   const [username, setUsername] = useState("");
@@ -9,8 +10,7 @@ function AddUser() {
   const [users, setUsers] = useState([]);
   const [successMessage, setSuccessMessage] = useState("");
   const [editUser, setEditUser] = useState(null);
-  const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "http://localhost:5000";
-
+  const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || urlProvider();
 console.log(users)
   // Pobierz użytkowników z backendu
   useEffect(() => {
