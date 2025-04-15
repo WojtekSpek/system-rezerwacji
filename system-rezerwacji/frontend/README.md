@@ -11,9 +11,9 @@ In the project directory, you can run:
 Runs the app in the development mode.\
 Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
 
-Note!
-Note! When logging in via LAN from another machine, use the server's IP address in the browser;
-otherwise, CORS prevents access to the service by restricting session creation.
+**Note: When logging in via LAN from another machine, 
+use the server's IP address in the browser; otherwise, 
+CORS prevents access to the service by restricting session creation.**
 
 The page will reload when you make changes.\
 You may also see any lint errors in the console.
