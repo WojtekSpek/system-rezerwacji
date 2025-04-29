@@ -3,9 +3,13 @@ import { useParams } from "react-router-dom";
 import axios from "axios";
 import urlProvider from "../urlProvider";
 
+import { ProgressCircle } from "@chakra-ui/react";
+import { useQuery } from "@tanstack/react-query";
+
+
 function ParticipantDetails() {
   const { participantId } = useParams();
-  const [participant, setParticipant] = useState(null);
+  //@1 const [participant, setParticipant] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
   const [updatedParticipant, setUpdatedParticipant] = useState({});
   const [errors, setErrors] = useState({});
@@ -34,11 +38,11 @@ function ParticipantDetails() {
     "Zachodniopomorskie",
   ];
 
-  useEffect(() => {
-    fetchParticipantDetails();
-  }, [participantId]);
+ /*@1 useEffect(() => {
+    //fetchParticipantDetails();
+  }, [participantId]); */
 
-  const fetchParticipantDetails = async () => {
+ /* @1 const fetchParticipantDetails = async () => {
     try {
       const response = await axios.get(`${API_BASE_URL}/participants/${participantId}/Details`);
       if (response.data.success) {
@@ -48,7 +52,31 @@ function ParticipantDetails() {
     } catch (error) {
       console.error("Błąd podczas pobierania szczegółów uczestnika:", error);
     }
+  }; */
+
+  
+  const fetchParticipantDetails = async () => {
+    const response = await axios.get(`${API_BASE_URL}/participants/${participantId}/Details`);
+    if (!response.data.success) {
+      throw (new Error("Błąd podczas pobierania szczegółów uczestnika."));
+    }
+    
+    return response.data.participant;
   };
+  
+  const { data: participant = {},
+  isLoading: isLoadingParticipant,
+  isError: isErrorParticipant,
+  error: errorParticipant } = useQuery({
+    queryKey: ["participant", participantId],
+    queryFn: () => fetchParticipantDetails(),
+  })
+  
+  useEffect(() => {
+    if (participant) {
+      setUpdatedParticipant({...participant});   
+    }
+  }, [participant]);
 
   const validateForm = () => {
     const newErrors = {};
@@ -94,7 +122,7 @@ function ParticipantDetails() {
   return (
     <div className="p-4">
       <h2 className="text-2xl font-bold mb-4">Szczegóły uczestnika</h2>
-      {participant ? (
+      { (participant && !isLoadingParticipant) ? (
         !isEditing ? (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
@@ -210,7 +238,14 @@ function ParticipantDetails() {
           </div>
         )
       ) : (
-        <p>Ładowanie danych uczestnika...</p>
+        (<div className="flex items-center justify-center h-screen">
+          <ProgressCircle.Root value={null} size="sm">
+            <ProgressCircle.Circle>
+              <ProgressCircle.Track />
+              <ProgressCircle.Range />
+            </ProgressCircle.Circle>
+          </ProgressCircle.Root>
+        </div>)       
       )}
     </div>
   );

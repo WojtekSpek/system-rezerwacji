@@ -97,9 +97,10 @@ function Participants({ onViewChange }) {
 
   const [errors, setErrors] = useState({}); // Przechowywanie błędów
 
+ /*@! 1 niepotrzebne skoro używamy useQuery i nie modyfikujemy innego stanu
   useEffect(() => {
     fetchParticipants();
-  }, []);
+  }, []); */
 
   /// @1 zmina na useQuery 
   /*  const fetchParticipants = async () => {
@@ -290,14 +291,18 @@ function Participants({ onViewChange }) {
 
   /// @1 dodanie ProgressCircle (Spinnera) ładowania
   if (isLoadingParticipants) {
-    return  (<div className="flex items-center justify-center h-screen">
-      <ProgressCircle.Root value={null} size="sm">
-        <ProgressCircle.Circle>
-          <ProgressCircle.Track />
-          <ProgressCircle.Range />
-        </ProgressCircle.Circle>
-      </ProgressCircle.Root>
-    </div>);
+    return (<>
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-2xl font-bold">Lista uczestników</h2>
+      </div>
+      <div className="flex items-center justify-center h-screen">
+          <ProgressCircle.Root value={null} size="sm">
+            <ProgressCircle.Circle>
+              <ProgressCircle.Track />
+              <ProgressCircle.Range />
+            </ProgressCircle.Circle>
+          </ProgressCircle.Root>
+      </div></>);
   }
 
 console.log(errors);
