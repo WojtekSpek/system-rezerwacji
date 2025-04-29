@@ -4,8 +4,8 @@ function get_url_for(port_type, target_type) {
     }
 
     let port; 
-    const ip_address = '192.168.1.111';
-
+    const ip_address = process.env.REACT_APP_HOST_LAN_IP || 'localhost';
+   
     if (port_type === 'server') {
         port = 3000; 
     }
@@ -30,10 +30,8 @@ function get_cors_origin_urls(server_type) {
             get_url_for('app', 'lan'), 
             get_url_for('server', 'local'), 
             get_url_for('app', 'local')];
-            console.warn("@ get_cors_origin_urls(" + String(server_type));
     }
     else { // jeżeli serwer jest użyty lokalnie na komputerze lub serwerze produkcyjnym    
-        console.warn("@ get_cors_origin_urls(" + String(server_type));
         return [get_url_for('server', 'local')];
     }
 }

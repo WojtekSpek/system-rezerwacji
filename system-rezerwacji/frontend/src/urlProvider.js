@@ -5,15 +5,13 @@ function get_app_url(type='lan') {
     }
 
     const port = 5000;
-    const ip_address = '192.168.1.111';
-
+    const ip_address = process.env.REACT_APP_HOST_LAN_IP || 'localhost';
+    
     let address = "";
     if (type === 'lan') { // dla komputera dostępnego w sieci LAN 
-        address = "http://" + ip_address + ":" + String(port);
-        console.warn("@ GETTING LAN IP: " + ip_address);
+        address = "http://" + ip_address + ":" + String(port);       
     } // dla komputera lokalnie
-    else if (type === 'local') { 
-        console.warn("@ GETTING LOCAL IP: localhost");
+    else if (type === 'local') {        
         address = "http://localhost:" + String(port);
     }
 
