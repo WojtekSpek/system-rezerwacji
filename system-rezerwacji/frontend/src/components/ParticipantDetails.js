@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useParams } from "react-router-dom";
 import axios from "axios";
 import urlProvider from "../urlProvider";
@@ -6,6 +6,8 @@ import urlProvider from "../urlProvider";
 import { ProgressCircle } from "@chakra-ui/react";
 import { useQuery } from "@tanstack/react-query";
 
+import { Toaster } from "./ui/toaster";
+import { useUpdateData } from "../hooks/useUpdateData";
 
 function ParticipantDetails() {
   const { participantId } = useParams();
@@ -16,7 +18,7 @@ function ParticipantDetails() {
   const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || urlProvider();
   const nationalities = ["Polska", "Ukraińska"]; // Lista dostępnych narodowości
 
-
+  
 
   const genders = ["Mężczyzna", "Kobieta"];
   const voivodeships = [
@@ -104,7 +106,7 @@ function ParticipantDetails() {
     setErrors((prevErrors) => ({ ...prevErrors, [name]: "" }));
   };
 
-  const saveChanges = async () => {
+  /* const saveChanges = async () => {
     if (!validateForm()) return;
 
     try {
@@ -117,10 +119,53 @@ function ParticipantDetails() {
     } catch (error) {
       console.error("Błąd podczas zapisywania zmian:", error);
     }
+  }; */
+
+  let toasterState = useRef('');
+
+  const updateParticipantDetail = async ({participantId}) => {
+    if (!validateForm()) return;
+    
+    const response = await axios.put(`${API_BASE_URL}/participants/editParticipant/${participantId}`, updatedParticipant);
+
+    console.log("mutation finished");
+    if (!response.data.success) {
+      console.log("mutation error");
+      return response;
+    }
+    
+    console.log("mutation successful", {updatedParticipant});
+    
+    return response;
   };
+  
+  const updateParticipantDetailOptimistic = (oldData, values, queryKey) => {
+    console.log("Optimistic updateParticipantDetail", {oldData, values});
+    if (values === undefined) {
+      console.warn("updateParticipantDetailOptimistic values are: undefined");
+      return oldData;
+    }
+    
+    console.log("@ updateParticipantDetailOptimistic", { VALUE: values });
+      
+    return {...values?.updatedParticipant};
+  };
+
+  const modifyParticipantDetailMutation = useUpdateData(
+    ['participantDetailQuery', participantId], // klucz stanu 
+    ({participantId}) => updateParticipantDetail({participantId}), // funkcja aktualizująca dane w bazie   
+    undefined,//updateParticipantDetailOptimistic, // funkcja ustawiająca wartość 'optymistyczną'
+    {
+      loading: { description: "Proszę czekać, trwa zapisywanie danych..." },
+      success: { description: "Dane uczestnika zostały zaktualizowane!" },
+      error: { description: "Błąd podczas zapisywania zmian." } // komunikaty statusu 'loading', 'success' i 'error'
+    },
+    toasterState,
+  );
 
   return (
     <div className="p-4">
+    <Toaster />
       <h2 className="text-2xl font-bold mb-4">Szczegóły uczestnika</h2>
       { (participant && !isLoadingParticipant) ? (
         !isEditing ? (
@@ -229,7 +274,16 @@ function ParticipantDetails() {
                 Anuluj
               </button>
               <button
-                onClick={saveChanges}
+                //onClick={saveChanges}
+                onClick={() => {
+                  modifyParticipantDetailMutation.mutate({  
+                    participant: participant,
+                    updatedParticipant: updatedParticipant,
+                    participantId: participantId,
+                    toasterSuffix: ['participant', participantId]
+                });
+                setIsEditing(false);
+                }}
                 className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
               >
                 Zapisz
