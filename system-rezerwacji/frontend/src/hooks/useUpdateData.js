@@ -46,9 +46,10 @@ import { toaster } from "../components/ui/toaster";
      ['keyDataName'], // klucz stanu 
      updateFunc, // funkcja aktualizująca dane w bazie   
      optimisticSetterFunc, // funkcja ustawiająca wartość 'optymistyczną'
-     { loading: { description: "Proszę czekać, trwa zapisywanie..." },
-       success: { description: "Wartości zostały zaktualizowane." },
-       error: { description: "Błędna aktualizacja wartości." } // komunikaty statusu 'loading', 'success' i 'error'
+     { // domyślne komunikaty statusu 'loading', 'success' i 'error'
+        loading: { description: "Proszę czekać, trwa zapisywanie..." },
+        success: { description: "Wartości zostały zaktualizowane." },
+        error: { description: "Błędna aktualizacja wartości." } 
      },
    );
   
@@ -87,21 +88,27 @@ export function useUpdateData(
       return queryClient.invalidateQueries({queryKey});
     };
 
-    const updateToaster = (action, toasterSuffix) => {
+    const updateToaster = (action, toasterSuffix, communicateDescription = undefined) => {
       const toasterFullName = toasterName + toasterSuffix;
-      console.log('UPDATING TOASTER NAME: ', toasterFullName);
-
-      if (action === 'success' && toasterState === 'success') {
+            
+      if (action === 'success' || toasterState === 'success') {
+        const description = communicateDescription 
+          ? communicateDescription 
+          : comunicates.success.description;
+        
         toaster.update(toasterFullName,
-          { title: "Sukces!", description: comunicates.success.description,
+          { title: "Sukces!", description: description,
             type: 'success',
             duration: 1200
           }
         );
       }
       else if (action == 'error' || toasterState === 'error' ) {
+        const description = communicateDescription 
+          ? communicateDescription 
+          : comunicates.error.description;
         toaster.update(toasterFullName,
-          { title: 'Błąd!', description:  comunicates.error.description,
+          { title: 'Błąd!', description:  description,
             type: 'error',
             action : { label: "Zamknij",
               onClick: () => (toaster.remove()),
@@ -113,7 +120,7 @@ export function useUpdateData(
 
     const queryClient = useQueryClient();
     let additionalQueryKey = undefined;
-    console.log(" useUpdateData()", {queryKeys, updateValues, optimisticValueSetter});
+    
     const updateMutation = useMutation({
         mutationFn: updateValues, 
         // Gdy 'mutate()' jest wywołane:
@@ -135,11 +142,8 @@ export function useUpdateData(
           }
           const multiKey = tempKey;
           
-          console.log("Additional KEY: ", {additionalQueryKey, queryKeys});
-
           if (optimisticValueSetter) {
-            console.log({cmd: "cancelQueries on mutate", key: multiKey});
-
+            
             // Anuluj ponowne pobieranie
             // (żeby nie nadpisało optymistycznego pobrania)
             await queryClient.cancelQueries({ queryKey: multiKey });
@@ -154,18 +158,22 @@ export function useUpdateData(
             console.log("PREVIOUSVALUE: ", {previousValue, multiKey});
           // Optymistycznie ustaw wartość  
           if (optimisticValueSetter !== undefined) {        
-            console.log({cmd: "setQueryData on mutate", key: multiKey});
             queryClient.setQueryData(multiKey, (old) => {
               const updatedValues = optimisticValueSetter(old, values, multiKey);
               return updatedValues ?? old; // Zawsze zwracaj tablicę, nigdy `undefined`
             });
           }
 
-          const toasterSuffix = values?.toasterSuffix.join("-");
-          console.log("MUTATING SUFFIX:", toasterSuffix);
-          const toasterFullName = toasterName + toasterSuffix;
-          console.log('MUTATINGTING TOASTER NAME: ', toasterFullName);
+          let toasterNameTemp = '';
+          if (values.hasOwnProperty('toasterSuffix') 
+            && Array.isArray(values?.toasterSuffix)) {
+            toasterNameTemp = values?.toasterSuffix.join("-");
+          }
 
+          const toasterSuffix = toasterNameTemp;
+          
+          const toasterFullName = toasterName + toasterSuffix;
+          
           toaster.promise(
             new Promise(( ) => { }),
             { loading : 
@@ -189,8 +197,6 @@ export function useUpdateData(
           if (optimisticValueSetter) {
             // cofnij zapis 'optymistyczny' i załaduj poprzednią wartość
             queryClient.setQueryData(multiKey, () => previousValue);          
-            console.log("REVERSE Optimistic valuesetter", {previousValue});
-            console.log({ onError: "onErrorCallback", context} );
           }
           
           if (context?.onErrorCallback ) {
@@ -198,14 +204,10 @@ export function useUpdateData(
           }
 
           const toasterSuffix = [...values?.toasterSuffix];
-          console.log("MUTATING SUFFIX:", toasterSuffix);
           const toasterFullName = toasterName + toasterSuffix.join('-');
-          console.log('ON ERROR TOASTER NAME: ', toasterFullName); 
           
-
-          updateToaster(toasterState, toasterSuffix.join('-'));
-
-          console.log({cmd: "invalidating query onError", key: multiKey});
+          updateToaster(toasterState, toasterSuffix.join('-'), error.message);
+          
           // Pobierz wartość ponownie
           invalidateResponse(multiKey);
 
@@ -215,23 +217,17 @@ export function useUpdateData(
           const { multiKey } = context;
           toasterState = 'success';
           const toasterSuffix = [...variables?.toasterSuffix];
-          console.log("MUTATING SSUFFIX:", toasterSuffix);
-          const toasterFullName = toasterName + toasterSuffix.join('-');
-          console.log('ON SUCCESS TOASTER NAME: ', toasterFullName);
           
           updateToaster(toasterState, toasterSuffix.join('-'));
-          
-          console.log({cmd: "invalidating query onSuccess", key: multiKey});
+
           // Pobieraj zapisaną wartość
           invalidateResponse(multiKey);
           
-          console.log({ onSuccess: "onSuccessCallback", context} );
-
           if (context?.onSuccessCallback) {
             context.onSuccessCallback();
           }
         },
     });
 
-    return {...updateMutation, updateToaster};
+    return {...updateMutation};
 }

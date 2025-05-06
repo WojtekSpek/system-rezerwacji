@@ -1,10 +1,12 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import GenericList from "./GenericList";
 import { useQuery } from "@tanstack/react-query";
 import { ProgressCircle } from "@chakra-ui/react";
+import { Toaster } from "./ui/toaster";
 import urlProvider from "../urlProvider";
+import { useUpdateData } from "../hooks/useUpdateData";
 
 function Participants({ onViewChange }) {
   
@@ -53,6 +55,7 @@ function Participants({ onViewChange }) {
         setSelectedParticipants([]); // Wyczyść zaznaczenie po akcji
       }
     } catch (error) {
+      
       console.error("Błąd podczas dodawania uczestników do projektu:", error);
     }
   };
@@ -132,6 +135,7 @@ function Participants({ onViewChange }) {
   
   const { data: participants = [],
     isLoading: isLoadingParticipants, 
+    isFetching: isFetchingParticipants,
     isError: isErrorLoadingParticipants,
     error: errorLoadingParticipants } = useQuery({
     queryKey: ["participants"],
@@ -205,7 +209,7 @@ function Participants({ onViewChange }) {
     setErrors((prevErrors) => ({ ...prevErrors, [name]: "" })); // Usuwa błąd przy zmianie pola
   };
 
-  const handleAddParticipant = async () => {
+  /* const handleAddParticipant = async () => {
     if (!validateForm()) return;
 
     try {
@@ -260,7 +264,99 @@ function Participants({ onViewChange }) {
           console.error("Błąd podczas dodawania uczestnika:", error);
         }
       }
+    }; */
+    
+    let toasterState = useRef('');
+    
+    const addParticipant = async (values) => {
+      if (!validateForm()) {
+        throw new Error("Brak wymaganych parametrów!");
+      }      
+        
+      try {
+        const response = await axios.post( `${API_BASE_URL}/participants/addParticipant`, newParticipant,
+          { withCredentials: true }
+        );
+        setShowAddForm(false);
+       
+        setNewParticipant({
+          firstName: "",
+          lastName: "",
+          pesel: "",
+          gender: "",
+          voivodeship: "",
+          city: "",
+          postalCode: "",
+          street: "",
+          houseNumber: "",
+          apartmentNumber: "",
+          phoneNumber: "",
+          email: null,
+          disabilityLevel: "",
+        });
+        
+        console.log("handleAddParticipant mutation finished: ", {response});
+        return response.data;
+      } 
+      catch (error) {
+        
+        console.log("Cały obiekt błędu:", error); // Debugowanie całego błędu
+        console.log("Odpowiedź z serwera:", error.response); // Debugowanie odpowiedzi serwera
+        
+        if (error.response && error.response.status === 400) {
+          const serverMessage = error.response.data.message;
+          console.log("Komunikat błędu z backendu:", serverMessage); // Debugowanie komunikatu
+          
+          if (serverMessage.includes("pesel")) {
+            setErrors((prevErrors) => ({
+              ...prevErrors,
+              pesel: "Uczestnik z tym numerem PESEL już istnieje.",
+            }));
+            throw new Error("Uczestnik z tym numerem PESEL\n już istnieje.");
+          } else if (serverMessage.includes("email")) {
+            
+            setErrors((prevErrors) => ({
+              ...prevErrors,
+              email: "Uczestnik z tym adresem email już istnieje.",
+            }));
+            throw new Error("Uczestnik z tym adresem email\n już istnieje.");
+          } else {
+            throw new Error(serverMessage);           
+          }
+        } else {
+          console.error("Błąd podczas dodawania uczestnika:", error);
+          throw new Error("Błąd podczas dodawania uczestnika!");
+        }
+        
+      }
+     
+    };
+    
+    const addParticipantOptimistic = (oldData, values, queryKey) => {
+    console.log("Optimistic updateParticipantDetail", {oldData, values, newParticipant});
+    if (values === undefined) {
+      console.warn("updateParticipantDetailOptimistic values are: undefined");
+      return oldData;
+    }
+    
+    console.log("@ updateParticipantDetailOptimistic", { VALUE: values });
+      
+    return [...oldData, {...newParticipant}];
   };
+
+  const addParticipantMutation = useUpdateData(
+    ["participants"], // klucz stanu 
+    async ({newParticipant}) => await addParticipant({newParticipant}), // funkcja aktualizująca dane w bazie   
+    addParticipantOptimistic, // funkcja ustawiająca wartość 'optymistyczną'
+    { // domyślne komunikaty statusu 'loading', 'success' i 'error'
+      loading: { description: "Proszę czekać, trwa zapisywanie danych..." },
+      success: { description: "Dane uczestnika zostały zaktualizowane!" },
+      error: { description: "Błąd podczas zapisywania zmian." } 
+    },
+    toasterState,
+  );
+
+  
   const searchFunction = (participant, query) => {
     query = query.toLowerCase();
     return (
@@ -290,9 +386,9 @@ function Participants({ onViewChange }) {
   ); */
 
   /// @1 dodanie ProgressCircle (Spinnera) ładowania
-  if (isLoadingParticipants) {
+  if (isLoadingParticipants || isFetchingParticipants) {
     return (<>
-      <div className="flex justify-between items-center mb-4">
+    <div className="flex justify-between items-center mb-4">
         <h2 className="text-2xl font-bold">Lista uczestników</h2>
       </div>
       <div className="flex items-center justify-center h-screen">
@@ -305,13 +401,14 @@ function Participants({ onViewChange }) {
       </div></>);
   }
 
-console.log(errors);
+  //console.log(errors);
+
   return (
     <div className="p-4 w-full">
+      <Toaster />
       {!showAddForm ? (
         // Widok listy uczestników
-        <>
-          
+        <>          
           <div className="flex justify-between items-center mb-4">
               <h2 className="text-2xl font-bold">Lista uczestników</h2>
               <div>
@@ -584,10 +681,15 @@ console.log(errors);
                     Anuluj
                 </button>
                 <button
-                    onClick={handleAddParticipant}
-                    className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
+                    onClick={() => { addParticipantMutation.mutate({  
+                      newParticipant: newParticipant,
+                      toasterSuffix: ['add', 'participant'],                                                             
+                    });
+                  }}
+
+                  className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
                 >
-                    Zapisz
+                  Zapisz
                 </button>
                 </div>
           

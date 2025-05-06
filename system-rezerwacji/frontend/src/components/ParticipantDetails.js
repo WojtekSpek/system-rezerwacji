@@ -124,19 +124,26 @@ function ParticipantDetails() {
   let toasterState = useRef('');
 
   const updateParticipantDetail = async ({participantId}) => {
-    if (!validateForm()) return;
-    
-    const response = await axios.put(`${API_BASE_URL}/participants/editParticipant/${participantId}`, updatedParticipant);
-
-    console.log("mutation finished");
-    if (!response.data.success) {
-      console.log("mutation error");
-      return response;
+    if (!validateForm()) {
+      throw new Error("Brak wymaganych parametrów!");
     }
     
-    console.log("mutation successful", {updatedParticipant});
+    try {
+      const response = await axios.put(`${API_BASE_URL}/participants/editParticipant/${participantId}`, updatedParticipant);
+      if (response.data.success) {
+        setIsEditing(false);
+      }
+      else {        
+        throw new Error("Błąd podczas zapisywania zmian: " + String(response.data));
+      }
+
+      return response.data;
+    }
+    catch (error) {
+      console.error("Błąd podczas zapisywania zmian:", error);
+      throw new Error("Błąd podczas zapisywania zmian!");
+    }  
     
-    return response;
   };
   
   const updateParticipantDetailOptimistic = (oldData, values, queryKey) => {
@@ -146,19 +153,17 @@ function ParticipantDetails() {
       return oldData;
     }
     
-    console.log("@ updateParticipantDetailOptimistic", { VALUE: values });
-      
     return {...values?.updatedParticipant};
   };
 
   const modifyParticipantDetailMutation = useUpdateData(
     ['participantDetailQuery', participantId], // klucz stanu 
     ({participantId}) => updateParticipantDetail({participantId}), // funkcja aktualizująca dane w bazie   
-    undefined,//updateParticipantDetailOptimistic, // funkcja ustawiająca wartość 'optymistyczną'
-    {
+    updateParticipantDetailOptimistic, // funkcja ustawiająca wartość 'optymistyczną'
+    { // domyślne komunikaty statusu 'loading', 'success' i 'error'
       loading: { description: "Proszę czekać, trwa zapisywanie danych..." },
       success: { description: "Dane uczestnika zostały zaktualizowane!" },
-      error: { description: "Błąd podczas zapisywania zmian." } // komunikaty statusu 'loading', 'success' i 'error'
+      error: { description: "Błąd podczas zapisywania zmian." } 
     },
     toasterState,
   );
@@ -281,7 +286,7 @@ function ParticipantDetails() {
                     updatedParticipant: updatedParticipant,
                     participantId: participantId,
                     toasterSuffix: ['participant', participantId]
-                });
+                  });
                 setIsEditing(false);
                 }}
                 className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"

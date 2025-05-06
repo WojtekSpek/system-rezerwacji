@@ -42,9 +42,9 @@ export const toaster = createToaster({
 export const Toaster = () => {
   return (
     <Portal>
-      <ChakraToaster toaster={toaster} insetInline={{ mdDown: '4' }}>
+      <ChakraToaster toaster={toaster} insetInline={{ mdDown: '4' }} whiteSpace='pre-line'>
         {(toast) => (
-          <Toast.Root width={{ md: 'sm' }}>
+          <Toast.Root width={{ md: 'sm' }} >
             {toast.type === 'loading' ? (
               <ProgressCircle.Root value={null} size="sm" color='blue.solid'>
                 <ProgressCircle.Circle>
