@@ -8,6 +8,7 @@ function GenericList({
   defaultSortField = "id",
   pageSize = 10,
   onSelectionChange,
+  focusOnId = undefined,
 }) {
   const [currentPage, setCurrentPage] = useState(1);
   const [sortConfig, setSortConfig] = useState({
@@ -18,10 +19,24 @@ function GenericList({
   const [selectedItems, setSelectedItems] = useState([]);
 
   useEffect(() => {
+    console.log("@ GenericList: ", {focusOnId});
+    if (!items || items.length === 0) return;
+
+    if (focusOnId) {
+      if (focusOnId !== -1) {
+        const page = Math.floor(focusOnId / pageSize) + 1;
+        setCurrentPage(page);
+        return;
+      }
+    }
+
+    setCurrentPage(1);
+
     if (onSelectionChange) {
       onSelectionChange(selectedItems);
     }
-  }, [selectedItems, onSelectionChange]);
+
+  }, [selectedItems, onSelectionChange, items?.length, focusOnId]);
 
   const sortedItems = useMemo(() => {
     if (!sortConfig.key) return items;

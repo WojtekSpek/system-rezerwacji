@@ -15,6 +15,9 @@ function Participants({ onViewChange }) {
   const [showAddForm, setShowAddForm] = useState(false);
   const nationalities = ["Polska", "Ukraińska"]; // Lista dostępnych narodowości
   const [selectedParticipants, setSelectedParticipants] = useState([]);
+
+  const [focusOnId, setFocusOnId] = useState(null); // pokazuje stronę zawierającą uczestnika o konkretnym id
+  
   const selectedCount = selectedParticipants.length;
 
 
@@ -73,6 +76,7 @@ function Participants({ onViewChange }) {
     );
   };
   const handleViewDetails = (id) => {
+    setFocusOnId(participants.findIndex(item => item.id === id));
     navigate(`/participants/${id}/Details`);
   };
    
@@ -296,6 +300,8 @@ function Participants({ onViewChange }) {
         });
         
         console.log("handleAddParticipant mutation finished: ", {response});
+
+        setFocusOnId(participants?.length - 1);
         return response.data;
       } 
       catch (error) {
@@ -332,15 +338,14 @@ function Participants({ onViewChange }) {
      
     };
     
-    const addParticipantOptimistic = (oldData, values, queryKey) => {
+  const addParticipantOptimistic = (oldData, values, queryKey) => {
     console.log("Optimistic updateParticipantDetail", {oldData, values, newParticipant});
     if (values === undefined) {
       console.warn("updateParticipantDetailOptimistic values are: undefined");
       return oldData;
     }
-    
-    console.log("@ updateParticipantDetailOptimistic", { VALUE: values });
-      
+   
+    setFocusOnId(oldData.length);
     return [...oldData, {...newParticipant}];
   };
 
@@ -433,8 +438,9 @@ function Participants({ onViewChange }) {
             </div>
 
           <GenericList
-              items={participants}
-              onSelectionChange={handleSelectionChange}
+              items={participants} 
+              onSelectionChange={handleSelectionChange} 
+              focusOnId={focusOnId} 
               columns={[
                 
                 { key: "firstName", label: "Imię" },
