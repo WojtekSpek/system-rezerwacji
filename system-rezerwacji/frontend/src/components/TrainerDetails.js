@@ -8,6 +8,12 @@ import ReactModal from "react-modal";
 
 import urlProvider from "../urlProvider";
 
+import { ProgressCircle } from "@chakra-ui/react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+
+import { Toaster } from "./ui/toaster";
+import { useUpdateData } from "../hooks/useUpdateData";
+
 const localizer = momentLocalizer(moment);
 ReactModal.setAppElement("#root"); // Ustawienie głównego elementu aplikacji
 moment.locale("pl"); // Ustaw język polski
@@ -17,7 +23,7 @@ function TrainerDetails() {
   const id = trainersId;
   const [uploadedFiles, setUploadedFiles] = useState([]); // Lista plików
   const [file, setFile] = useState(null); // Wybrany plik do dodania
-  const [trainer, setTrainer] = useState(null);
+  // @1 const [trainer, setTrainer] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
   //const [editedTrainer, setEditedTrainer] = useState({});
   const [availableTypes, setAvailableTypes] = useState([]);
@@ -25,16 +31,22 @@ function TrainerDetails() {
   const [events, setEvents] = useState([]); // Wydarzenia dla kalendarza
   const [selectedEvent, setSelectedEvent] = useState(null); // Wybrane wydarzenie
   const [isModalOpen, setIsModalOpen] = useState(false); // Widoczność modalu
-  const [participant, setParticipant] = useState(null);
+  // @1 const [participant, setParticipant] = useState(null);
   const [skills, setSkills] = useState([]); // Wszystkie dostępne umiejętności
   const [trainerSkills, setTrainerSkills] = useState([]); // Umiejętności przypisane do trenera
   const [skillSearchQuery, setSkillSearchQuery] = useState("");
   const [filteredSkills, setFilteredSkills] = useState([]);
   const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || urlProvider();
-  const [editedTrainer, setEditedTrainer] = useState({
+  /* const [editedTrainer, setEditedTrainer] = useState({
     ...trainer,
     skills: trainer?.skills || [], // Ustaw domyślnie pustą tablicę
+  }); */
+  const [editedTrainer, setEditedTrainer] = useState({
+    trainer: {},
+    skills: [], // Ustaw domyślnie pustą tablicę
   });
+  const queryClient = useQueryClient();
+
   const fetchTrainerSkills = async () => {
     try {
       const response = await axios.get(`${API_BASE_URL}/skills/${id}/skills`);
@@ -141,7 +153,8 @@ function TrainerDetails() {
       console.error("Error fetching events:", error);
     }
   };
-  const fetchParticipant = async (participantId) => {
+
+  /* const fetchParticipant = async (participantId) => {
     console.log('tratata')
     try {
       const response = await axios.get(
@@ -153,7 +166,32 @@ function TrainerDetails() {
     } catch (error) {
       console.error("Błąd podczas pobierania szczegółów uczestnika:", error);
     }
+  }; */
+
+
+  const fetchParticipant = async (participantId) => {
+    if (participantId === undefined) return;
+
+    const response = await axios.get(
+      `${API_BASE_URL}/participants/${participantId}`
+    ); // API endpoint zwracający szczegóły uczestnika
+
+    if (!response.data.success) {
+      console.error("Błąd podczas pobierania szczegółów uczestnika:", response.data);
+      throw (new Error("Błąd podczas pobierania szczegółów uczestnika."));
+    }
+    
+    return response.data.participant;   
+  
   };
+  
+  const { data: participant = {},
+  isLoading: isLoadingParticipant,
+  isError: isErrorParticipant,
+  error: errorParticipant } = useQuery({
+    queryKey: ["participant"],
+    queryFn: () => fetchParticipant(),
+  })
 
   const fetchFiles = async () => {
     try {
@@ -202,7 +240,7 @@ function TrainerDetails() {
   };
   
 
-  const fetchTrainerDetails = async () => {
+  /* const fetchTrainerDetails = async () => {
     try {
       const response = await axios.get(`${API_BASE_URL}/trainers/${id}`, {
         withCredentials: true,
@@ -213,7 +251,35 @@ function TrainerDetails() {
     } catch (error) {
       console.error("Error fetching trainer details:", error);
     }
+  }; */
+
+  const fetchTrainerDetails = async () => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/trainers/${id}`, {
+        withCredentials: true,
+      });
+
+      if (!response.data.success) {
+        console.error("Błąd podczas pobierania szczegółów uczestnika:", response.data.error.messages);
+        throw (new Error("Błąd podczas pobierania szczegółów uczestnika."));
+      }
+      
+      return response.data.trainer;
+
+    } catch (error) {
+      console.error("Error fetching trainer details:", error);
+      throw (new Error("Błąd podczas pobierania szczegółów uczestnika."));
+    }    
+  
   };
+  
+  const { data: trainer = {},
+  isLoading: isLoadingTrainer,
+  isError: isErrorTrainer,
+  error: errorTrainer } = useQuery({
+    queryKey: ["trainer", id],
+    queryFn: () => fetchTrainerDetails(),
+  })
 
   const fetchAvailableTypes = async () => {
     try {
@@ -362,17 +428,19 @@ function TrainerDetails() {
                   isOpen={isModalOpen}
                   onRequestClose={() => {
                     setIsModalOpen(false);
-                    setParticipant(null); // Wyczyść dane uczestnika po zamknięciu
+                    //setParticipant(null); // Wyczyść dane uczestnika po zamknięciu
+                    queryClient.setQueryData(['participant', null]);
                   }}
                   className="relative bg-white p-6 rounded shadow-lg max-w-lg mx-auto mt-20 z-50"
                   overlayClassName="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-40"
-                >
+                  >
                   {selectedEvent && (
                     <div>
                       <button
                         onClick={() => {
                           setIsModalOpen(false);
-                          setParticipant(null); // Wyczyść dane uczestnika po zamknięciu
+                          //setParticipant(null); // Wyczyść dane uczestnika po zamknięciu
+                          queryClient.setQueryData(['participant', null]);
                         }}
                         className="absolute top-2 right-2 text-gray-500 hover:text-gray-700"
                       >
@@ -418,8 +486,15 @@ function TrainerDetails() {
         }
   };
 
-  if (!trainer) {
-    return <div>Loading...</div>;
+  if (isLoadingTrainer) {
+    return (<div className="flex items-center justify-center h-screen">
+        <ProgressCircle.Root value={null} size="sm">
+          <ProgressCircle.Circle>
+            <ProgressCircle.Track />
+            <ProgressCircle.Range />
+          </ProgressCircle.Circle>
+        </ProgressCircle.Root>
+      </div>);
   }
 
   return (

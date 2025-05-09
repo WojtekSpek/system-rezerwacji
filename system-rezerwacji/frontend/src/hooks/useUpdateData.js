@@ -155,7 +155,7 @@ export function useUpdateData(
             : undefined;
           
 
-            console.log("PREVIOUSVALUE: ", {previousValue, multiKey});
+            console.log("PREVIOUS VALUE: ", {previousValue, multiKey});
           // Optymistycznie ustaw wartość  
           if (optimisticValueSetter !== undefined) {        
             queryClient.setQueryData(multiKey, (old) => {
