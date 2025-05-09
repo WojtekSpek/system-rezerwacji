@@ -664,7 +664,7 @@ const renderTabContentChakraUI = () => {
   return renderTabContentChakraUI();
   /// koniec @5 
   
-  /// !@6 początek martwego kodu, nie wykonuje się, zostawiony do porównania, po tym można usunąć
+  /// !@6 początek martwego kodu, nie wykonuje się, zostawiony do porównania, po tem można usunąć
   
   return (
     <div className="p-4">
