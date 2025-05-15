@@ -82,6 +82,7 @@ export function useUpdateData(
     optimisticValueSetter, // funkcja ustawiająca wartość optymistyczną
     comunicates, // komunikaty 'loading', 'success' i 'error'
     toasterState,
+    callbacks,
   ) {
     
     const invalidateResponse = async (queryKey) => {
@@ -185,11 +186,14 @@ export function useUpdateData(
           } });
           
           // Zwraca zapisaną wartość optymistyczną
-          return {previousValue, multiKey};
+          return {previousValue,
+            multiKey, 
+            onSuccessCallback: callbacks?.onSuccessCallback, 
+            onErrorCallback: callbacks?.onErrorCallback};
         },
         // Jeżeli mutacja zawiedzie
-        // Uzyj konteksu z zapisaną poprednio wartością
-        // Nie udało się pobrać godzin dla zajęć grupowych
+        // Uzyj konteksu z zapisaną poprzednio wartością
+        // Nie udało się pobrać danych
         onError: (error, values, context) => {
           const {previousValue, multiKey} = context;
           toasterState = 'error';

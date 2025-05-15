@@ -9,13 +9,15 @@ import ReactModal from "react-modal";
 import urlProvider from "../urlProvider";
 
 // Chakra UI, Tabs, ikony, ProgressCircle itd.
-import { Tabs, Box } from "@chakra-ui/react";
-import { LuFolder, LuUser, LuCalendar } from "react-icons/lu"
-import { ProgressCircle } from "@chakra-ui/react";
+import { Button, Tabs, Text, ProgressCircle, FileUpload, Flex } from "@chakra-ui/react";
+import { LuFolder, LuUser, LuCalendar, LuUpload } from "react-icons/lu"
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { Toaster } from "./ui/toaster";
 import { useUpdateData } from "../hooks/useUpdateData";
+
+
+import { Input } from "@chakra-ui/react";
 
 const localizer = momentLocalizer(moment);
 ReactModal.setAppElement("#root"); // Ustawienie głównego elementu aplikacji
@@ -26,7 +28,7 @@ function TrainerDetails() {
   const id = trainersId;
   //@2 const [uploadedFiles, setUploadedFiles] = useState([]); // Lista plików
   const [file, setFile] = useState(null); // Wybrany plik do dodania
-  // @1 const [trainer, setTrainer] = useState(null);
+  //@1 const [trainer, setTrainer] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
   //const [editedTrainer, setEditedTrainer] = useState({});
   //@2 const [availableTypes, setAvailableTypes] = useState([]);
@@ -34,11 +36,11 @@ function TrainerDetails() {
   //@2 const [events, setEvents] = useState([]); // Wydarzenia dla kalendarza
   const [selectedEvent, setSelectedEvent] = useState(null); // Wybrane wydarzenie
   const [isModalOpen, setIsModalOpen] = useState(false); // Widoczność modalu
-  // @1 const [participant, setParticipant] = useState(null);
+  //@1 const [participant, setParticipant] = useState(null);
   //@2 nie używane const [skills, setSkills] = useState([]); // Wszystkie dostępne umiejętności
   //@2 const [trainerSkills, setTrainerSkills] = useState([]); // Umiejętności przypisane do trenera
   const [skillSearchQuery, setSkillSearchQuery] = useState("");
-  // @2 const [filteredSkills, setFilteredSkills] = useState([]);
+  //@2 const [filteredSkills, setFilteredSkills] = useState([]);
   const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || urlProvider();
   /* const [editedTrainer, setEditedTrainer] = useState({
     ...trainer,
@@ -48,8 +50,11 @@ function TrainerDetails() {
     trainer: {},
     skills: [], // Ustaw domyślnie pustą tablicę
   });
-  const queryClient = useQueryClient();
 
+  const queryClient = useQueryClient();
+  let toasterState = useRef('');
+  const fileUploadInputRef = useRef(null);
+  const [fileUploadKey, setFileUploadKey] = useState(Date.now());
   /* @2
    const fetchTrainerSkills = async () => {
     try {
@@ -100,7 +105,7 @@ function TrainerDetails() {
   const handleSkillSearch = async (query) => {
     if (!query) {
       queryClient.setQueryData("filteredSkills", []);
-      return;
+      return [];
     }
 
     const response = await axios.get(`${API_BASE_URL}/skills/search`, { params: { query } });
@@ -209,7 +214,7 @@ function TrainerDetails() {
         withCredentials: true,
       });
 
-      console.log('tu_fetchEvents',`${API_BASE_URL}/trainers/calendar/${id}/events`)
+      console.log('tu_fetchEvents',`${API_BASE_URL}/trainers/calendar/${id}/events`);
       if (response.data.success) {
         return (
           response.data.events.map((event) => ({
@@ -251,7 +256,7 @@ function TrainerDetails() {
 
 
   const fetchParticipant = async (participantId) => {
-    if (participantId === undefined) return;
+    if (participantId === undefined) return {};
 
     const response = await axios.get(
       `${API_BASE_URL}/participants/${participantId}`
@@ -303,6 +308,7 @@ function TrainerDetails() {
     queryFn: () => fetchFiles(),
   })
   
+  /*@1
   const handleFileUpload = async () => {
     if (!file) {
       alert("Wybierz plik do przesłania!");
@@ -323,9 +329,70 @@ function TrainerDetails() {
     } catch (error) {
       console.error("Error uploading file:", error);
     }
-  };
+  }; */
   
-  const handleFileDelete = async (fileName) => {
+  const uploadFile = async ({file}) => {  
+      try {
+        if (file === null) {
+          throw (new Error("brak pliku"));
+        }
+
+        const formData = new FormData();
+        formData.append("file", file);
+        
+        const response = await axios.post(`/files/trainer/${trainersId}`, formData, {
+          headers: { "Content-Type": "multipart/form-data" },
+        });
+        
+        if (!response.data.success) {
+          throw (new Error("Błąd podczas wysyłania pliku: ", response.error));
+        }
+        
+        return response;
+      } 
+      catch (error) {
+        console.error("Błąd podczas wysyłania pliku:", error);
+        throw (new Error("Błąd wysyłania: " + error.message));
+      }
+  
+    };
+  
+    const uploadFileOptimistic = (oldData, values, queryKey) => {
+      const fileName = values?.file?.name;
+      console.log("Optimistic removeFileOptimistic", {oldData, values, fileName});
+      if (values === undefined || values?.files === undefined) {
+        console.log("removeFileOptimistic values are: undefined");
+        return oldData;
+      }
+      
+      if (fileName === undefined) {
+        return [...oldData];  
+      }
+
+      const newFilesList = [...oldData, fileName];
+      return newFilesList;
+    };
+  
+    const uploadFileMutation = useUpdateData(
+      ["uploadedFiles"], // klucz stanu 
+      async ({file}) => await uploadFile({file}), // funkcja aktualizująca dane w bazie   
+      uploadFileOptimistic, // funkcja ustawiająca wartość 'optymistyczną'
+      { // domyślne komunikaty statusu 'loading', 'success' i 'error'
+        loading: { description: "Proszę czekać, trwa dodawanie pliku..." },
+        success: { description: "Plik zostały dodany!" },
+        error: { description: "Błąd podczas dodawania pliku." }       
+      },
+      toasterState,
+      { 
+        onSuccessCallback: () => { // wykonuje się po udanej wysyłce pliku 
+          fileUploadInputRef.current.value = ''; // czyści listę plików po zapisie          
+          setFile(null); // // plik do zapisu
+          setFileUploadKey(Date.now()); // klucz, którego zmiana powoduje odświerzenie FileUpoload
+         },
+      }
+    );
+
+  /* @1 const handleFileDelete = async (fileName) => {
     if (!window.confirm("Czy na pewno chcesz usunąć ten plik?")) return;
     try {
       const response = await axios.delete(`/files/trainer/${trainersId}/${fileName}`);
@@ -336,8 +403,48 @@ function TrainerDetails() {
     } catch (error) {
       console.error("Error deleting file:", error);
     }
-  };
+  }; */
+  const removeFile = async ({fileId}) => {  
+      try {
+        const fileName = uploadedFiles[fileId];  
+        const response = await axios.delete(`${API_BASE_URL}/files/trainer/${trainersId}/${fileName}`);
+        
+        if (!response.data.success) {
+          throw (new Error("Błąd podczas usuwania szkoleniowca: ", response.error));
+        }
   
+        return response;
+      } 
+      catch (error) {
+        console.error("Błąd podczas usuwania pliku:", error);
+        throw (new Error("Błąd podczas usuwania pliku:", error.message));
+      }
+  
+    };
+  
+    const removeFileOptimistic = (oldData, values, queryKey) => {
+      const fileName = uploadedFiles[values?.fileId];
+      console.log("Optimistic removeFileOptimistic", {oldData, values, fileName});
+      if (values === undefined) {
+        console.warn("removeFileOptimistic values are: undefined");
+        return oldData;
+      }
+     
+      const newFilesList = [...oldData.slice(0, values?.fileId), ...oldData.slice(values?.fileId + 1)];
+      return newFilesList;
+    };
+  
+    const removeFileMutation = useUpdateData(
+      ["uploadedFiles"], // klucz stanu 
+      async ({fileId}) => await removeFile({fileId}), // funkcja aktualizująca dane w bazie   
+      removeFileOptimistic, // funkcja ustawiająca wartość 'optymistyczną'
+      { // domyślne komunikaty statusu 'loading', 'success' i 'error'
+        loading: { description: "Proszę czekać, trwa usuwanie pliku..." },
+        success: { description: "Plik zostały usunięty!" },
+        error: { description: "Błąd podczas usuwania pliku." } 
+      },
+      toasterState,
+    );
 
   /* const fetchTrainerDetails = async () => {
     try {
@@ -494,8 +601,12 @@ function TrainerDetails() {
                   {file}
                 </a>
                 <button
-                  onClick={() => handleFileDelete(file)}
-                  className="bg-red-500 text-white px-3 py-1 my-0.5 rounded hover:bg-red-600"
+                  onClick={() => { removeFileMutation.mutate({
+                                        toasterSuffix: ['remove', 'file'], 
+                                        fileId: index,
+                                      });
+                                    }}
+                  className="bg-red-500 text-white px-3 py-1 my-1 rounded hover:bg-red-600"
                 >
                   Usuń
                 </button>
@@ -506,18 +617,50 @@ function TrainerDetails() {
           )}
         </ul>
         {/* Dodawanie pliku */}
-        <input
-          type="file"
-          accept=".pdf,.doc,.docx,.xls"
-          onChange={(e) => setFile(e.target.files[0])}
-          className="mb-2"
-        />
-        <button
-          onClick={handleFileUpload}
-          className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
-        >
-          Dodaj plik
-        </button>
+         <Flex align="center" spaceX="4">
+          <FileUpload.Root key={fileUploadKey} 
+            accept={[".pdf, .doc, .docx, .xls"]}
+            onFileAccept={(acceptedFile) => {
+              setFile(acceptedFile.files[0]); 
+            } }
+          >
+            <FileUpload.HiddenInput ref={fileUploadInputRef} />
+              <Flex align="center" className="shrink-0 grow-0 flex-nowrap mr-0 items-center">
+                <FileUpload.Trigger variant="outline" 
+                  className="flex shrink-0 grow-0 flex-nowrap items-center bg-green-500 text-white px-4 py-2 h-10 rounded hover:bg-green-600" >
+                    <LuUpload />
+                    <Text className="ml-2 " >Wybierz plik</Text>                  
+                </FileUpload.Trigger>
+                <FileUpload.ItemGroup >
+                  {file ? 
+                    <FileUpload.Item key={file?.name + '_' + file?.lastModified} file={file} 
+                      className="bg-yellow-500 text-white px-4 py-2 mx-2 h-10 rounded hover:bg-white-600" 
+                    >
+                      <FileUpload.ItemPreview />
+                      <FileUpload.ItemName />
+                      <FileUpload.ItemDeleteTrigger />
+                    </FileUpload.Item>
+                    : 
+                    <Button className="px-4 py-2 mx-2 h-10">
+                      nie wybrano pliku
+                    </Button>
+                  }
+                </FileUpload.ItemGroup>
+              </Flex>
+            </FileUpload.Root>          
+            <Button
+              onClick={() => {
+                //handleFileUpload();
+                  uploadFileMutation.mutate({
+                    toasterSuffix: ['upload', 'file'], 
+                    file: file, 
+                  });
+              }}
+              className="items-center bg-blue-500 text-white px-4 h-10 rounded hover:bg-blue-600"
+              >
+              Dodaj plik
+            </Button>
+          </Flex>        
       </div>
     );
   };
@@ -602,19 +745,20 @@ function TrainerDetails() {
 
   const renderTabContentChakraUI = () => {
     return (<div className="flex justify-between items-center mb-2">
+      <Toaster />
       <Tabs.Root lazyMount unmountOnExit defaultValue="Dane osobowe" value={activeTab}
         onValueChange={(activeTabValue) => setActiveTab(activeTabValue.value)} >
         <Tabs.List gap={5} borderBottomWidth={3}>
           <Tabs.Trigger value="Dane osobowe" key={0} whiteSpace="nowrap" >
-            <LuUser boxSize="16px" />
+            <LuUser />
             Dane osobowe
           </Tabs.Trigger>
           <Tabs.Trigger value="Pliki" key={1} whiteSpace="nowrap" >
-            <LuFolder boxSize="16px" />
+            <LuFolder />
             Pliki
           </Tabs.Trigger>
           <Tabs.Trigger value="Kalendarz" key={2} whiteSpace="nowrap" >
-            <LuCalendar boxSize="16px"/>
+            <LuCalendar />
             Kalendarz
           </Tabs.Trigger>
         </Tabs.List>
@@ -627,24 +771,20 @@ function TrainerDetails() {
 
   if (isLoadingTrainer) {
     return (<div className="flex items-center justify-center h-screen">
-        <ProgressCircle.Root value={null} size="sm">
-          <ProgressCircle.Circle>
-            <ProgressCircle.Track />
-            <ProgressCircle.Range />
-          </ProgressCircle.Circle>
-        </ProgressCircle.Root>
-      </div>);
+      <ProgressCircle.Root value={null} size="sm">
+        <ProgressCircle.Circle>
+          <ProgressCircle.Track />
+          <ProgressCircle.Range />
+        </ProgressCircle.Circle>
+      </ProgressCircle.Root>
+    </div>);
   }
 
   return (
     <div className="p-4 w-full">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold mb-4">{trainer.name}</h2>
-        
       </div>
-
-      
-
       {isEditing ? (
           <div>
             <div className="mb-4">
@@ -841,7 +981,10 @@ function TrainerDetails() {
                         {file}
                       </a>
                       <button
-                        onClick={() => handleFileDelete(file)}
+                        onClick={() => {
+                          //handleFileDelete(file);
+                          console.log("FileDelete: ", file)
+                        }}
                         className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600"
                       >
                         Usuń
@@ -860,7 +1003,10 @@ function TrainerDetails() {
                 className="mb-2"
               />
               <button
-                onClick={handleFileUpload}
+                onClick={() => {
+                  //handleFileUpload();
+                  console.log("handleFileUpload()");
+                }}
                 className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
               >
                 Dodaj plik
