@@ -1,9 +1,13 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { ProgressCircle } from "@chakra-ui/react";
+import { ProgressCircle, Button, Dialog, Toast } from "@chakra-ui/react";
+import { Toaster } from "./ui/toaster";
+import { useUpdateData } from "../hooks/useUpdateData";
+
 import urlProvider from "../urlProvider";
+
 
 function Projects({ setView, setSelectedProject }) {
   
@@ -12,16 +16,16 @@ function Projects({ setView, setSelectedProject }) {
   const [selectedTrainingTypes, setSelectedTrainingTypes] = useState([]); // Nowy stan dla zaznaczonych typów
   
    const [showAddForm, setShowAddForm] = useState(false);
-   const [isLoading, setIsLoading] = useState(true); // Dodaj isLoading do stanu
+   //@1 const [isLoading, setIsLoading] = useState(true); // Dodaj isLoading do stanu
   const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || urlProvider();
   // const API_BASE_URL = "https://system-rezerwacji-1.onrender.com";
-  useEffect(() => {
+ /*  @1, @2 useEffect(() => {
     setIsLoading(true);
     fetchProjects();
     fetchUser();
     fetchTrainingTypes();
     setIsLoading(false)
-  }, []);
+  }, []); */
 
   const Skeleton = () => (
     <div>
@@ -65,7 +69,8 @@ if (isErrorLoadingProjects) {
 }
 
 
-  const addProject = async () => {
+  /*
+   @1 const addProject = async () => {
       if (!newProjectName) {
         alert("Podaj nazwę projektu!");
         return;
@@ -88,7 +93,64 @@ if (isErrorLoadingProjects) {
         console.error("Błąd podczas dodawania projektu:", error);
       }
   };
-  const handleDeleteProject = async (id) => {
+   */
+
+  let toasterState = useRef('');
+        
+  const addProject = async () => {
+    if (!newProjectName) {
+      throw new Error("Podaj nazwę projektu!");
+    }      
+      
+    try {
+      const response = await axios.post(`${API_BASE_URL}/projects/addProject`, {
+        name: newProjectName,
+        trainingTypes: selectedTrainingTypes, // Przekazanie zaznaczonych typów szkoleń
+        createdBy: user?.username,
+      });
+
+      if (response.data.success) {
+        setSuccessMessage("Projekt został dodany!");
+        setNewProjectName("");
+        setSelectedTrainingTypes([]); // Zresetuj zaznaczone typy
+      }
+    } 
+    catch (error) {
+      console.error("Błąd podczas dodawania projektu:", error);
+      throw new Error("Błąd podczas dodawania projektu:", error.response.data);
+    }
+    
+  };
+    
+  const addProjectOptimistic = (oldData, values, queryKey) => {
+    const newProject = {
+      name: values?.name, 
+      trainingTypes: [...values?.trainingTypes],
+      createdBy: user?.username,
+    };
+    console.log("Optimistic addProjectOptimistic", {oldData, values, newProject});
+    if (values === undefined) {
+      console.warn("addProjectOptimistic values are: undefined");
+      return oldData;
+    }
+    
+    return [...oldData, {...newProject}];
+  };
+
+  const addProjectMutation = useUpdateData(
+    ["projects"], // klucz stanu 
+    async ({name, trainingTypes}) => await addProject({name, trainingTypes}), // funkcja aktualizująca dane w bazie   
+    addProjectOptimistic, // funkcja ustawiająca wartość 'optymistyczną'
+    { // domyślne komunikaty statusu 'loading', 'success' i 'error'
+      loading: { description: "Proszę czekać, trwa zapisywanie Projektu..." },
+      success: { description: "Dane Projektu zostały zaktualizowane!" },
+      error: { description: "Błąd podczas zapisywania danych projektu." } 
+    },
+    toasterState,
+  );
+ // KONIEC @1
+ /* @2
+ const handleDeleteProject = async (id) => {
     if (!window.confirm("Czy na pewno chcesz usunąć ten projekt?")) return;
 
     try {
@@ -106,9 +168,53 @@ if (isErrorLoadingProjects) {
       console.error("Błąd podczas usuwania projektu:", error);
       alert("Błąd podczas usuwania projektu.");
     }
+  }; */
+
+  const removeProject = async ({projectId}) => {  
+    try {
+      const response = await axios.delete(`${API_BASE_URL}/projects/${projectId}`, {
+        withCredentials: true,
+      });
+      
+      if (!response.data.success) {
+        throw (new Error("Błąd podczas usuwania projektu: ", response.error));
+      }
+
+      return response;
+    } 
+    catch (error) {
+      console.error("Błąd podczas usuwania projektu:", error);
+      throw (new Error("Błąd podczas usuwania projektu:", error.message));
+    }
+
   };
 
- 
+  const removeProjectOptimistic = (oldData, values, queryKey) => {
+    const projectId = values?.projectId;
+    console.log("Optimistic removeProjectOptimistic", {oldData, values, projectId});
+    if (values === undefined) {
+      console.warn("removeProjectOptimistic values are: undefined");
+      return oldData;
+    }
+  
+    const newProjektList = oldData?.filter( item => item.id !== projectId );
+    
+    return newProjektList;
+  };
+
+  const removeProjektMutation = useUpdateData(
+    ["projects"], // klucz stanu 
+    async (projectId) => await removeProject(projectId), // funkcja aktualizująca dane w bazie   
+    removeProjectOptimistic, // funkcja ustawiająca wartość 'optymistyczną'
+    { // domyślne komunikaty statusu 'loading', 'success' i 'error'
+      loading: { description: "Proszę czekać, trwa usuwanie prjektu..." },
+      success: { description: "Projekt zostały usunięty!" },
+      error: { description: "Błąd podczas usuwania projektu." } 
+    },
+    toasterState,
+  );
+
+  // koniec @2
   // Pobiera listę typów szkoleń
     const fetchTrainingTypes = async () => {   
       const response = await axios.get(`${API_BASE_URL}/trainers/Types`, {
@@ -181,7 +287,8 @@ if (isErrorLoadingUser) {
 
     return (
       <div className="p-4 w-full">
-        {isLoading ? (
+        <Toaster />
+        {isLoadingProjects ? (
           <Skeleton />
         ) : !showAddForm ? (
           <>
@@ -221,12 +328,49 @@ if (isErrorLoadingUser) {
                     >
                       Szczegóły
                     </button>
-                    <button
-                      onClick={() => handleDeleteProject(project)}
+                    {/* <button
+                      
                       className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600"
                     >
                       Usuń
-                    </button>
+                    </button> */
+                    <Dialog.Root role="alertdialog" size="sm">
+                    <Dialog.Trigger asChild>
+                      <Button className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600">
+                        Usuń
+                      </Button>
+                    </Dialog.Trigger>
+                    <Dialog.Backdrop />
+                      <Dialog.Positioner>
+                        <Dialog.Content>
+                          <Dialog.Header>
+                            <Dialog.Title size="sm">Usuwanie Projektu</Dialog.Title>
+                          </Dialog.Header>
+                          <Dialog.Body size="sm">
+                            <p>
+                            Czy na pewno chcesz usunąć projekt: {project.name}?
+                            </p>
+                          </Dialog.Body>
+                          <Dialog.Footer>
+                            <Dialog.ActionTrigger asChild>
+                              <Button className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+                              > Anuluj</Button>
+                            </Dialog.ActionTrigger>
+                            <Dialog.ActionTrigger asChild >
+                              <Button className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600"
+                                onClick={() => {                                  
+                                  removeProjektMutation.mutate({
+                                    toasterSuffix: ['remove', 'project'], 
+                                    projectId: project.id,
+                                  });
+                                }}
+                                > Usuń</Button>
+                            </Dialog.ActionTrigger>    
+                          </Dialog.Footer>
+                        </Dialog.Content>
+                      </Dialog.Positioner>
+                    </Dialog.Root>
+                    }
                   </div>
                 </li>
               ))}
@@ -266,12 +410,24 @@ if (isErrorLoadingUser) {
               >
                 Anuluj
               </button>
-              <button
+              {/* <button
                 onClick={addProject}
                 className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
               >
                 Zapisz
-              </button>
+              </button> */
+              <button
+                onClick={() => { 
+                  addProjectMutation.mutate({
+                    toasterSuffix: ['add', 'project'],
+                    trainingTypes: selectedTrainingTypes,
+                    name: newProjectName,                    
+                  });
+                  }}
+                className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
+              >
+                Zapisz
+            </button>}
             </div>
           </div>
         )}
