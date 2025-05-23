@@ -1,10 +1,5 @@
 {
   "schemaVersion": 2,
-  "dockerfileLines": [
-                        "FROM node:12-alpine",
-                        "RUN mkdir -p /usr/src/app",
-                        "COPY ./frontend /usr/src/app",
-                        "RUN npm install && npm cache clean --force",
-                        "CMD [ \"npm\", \"start\" ]"
-                    ]
+  "dockerfilePath": "./Dockerfile",
+  "containerHttpPort": "80"
 }
