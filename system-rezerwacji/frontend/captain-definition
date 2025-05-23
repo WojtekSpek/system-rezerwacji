@@ -1,4 +1,5 @@
 {
   "schemaVersion": 2,
-  "templateId": "node/8.7.0"
- }
+  "dockerfilePath": "./Dockerfile",
+  "containerHttpPort": "80"
+}
