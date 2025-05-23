@@ -32,10 +32,8 @@ const db = require("./config/database"); // upewnij się, że masz ten plik
 
 // Konfiguracja CORS
 app.use(cors({
-  origin: ["https://system-rezerwacji-1.onrender.com", 
-    "https://system-rezerwacji.onrender.com", 
-    ...urlProvider.get_cors_origin_urls(serverType),
-    "https://panel.irid.org.pl"], // Zmienna URL twojego frontendu
+  origin: [...urlProvider.get_cors_origin_urls(serverType),
+    process.env.REACT_APP_API_BASE_URL], // Zmienna URL twojego frontendu
   credentials: true,
   preflightContinue: true,
 })); 
