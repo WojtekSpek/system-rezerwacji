@@ -79,12 +79,16 @@ app.use("/group", groupRoutes);
 app.use("/skills", skillsRoutes);
 
 // Serve static files from the React app
+/*@! tylko gdy używasz develop local build 
 app.use(express.static(path.join(__dirname, "../frontend/build")));
+*/
 
 // Catch-all to send all other requests to React's index.html
+/*
+//@! tylko gdy używasz develop local build
 app.get("*", (req, res) => {
   res.sendFile(path.join(__dirname, "../frontend/build", "index.html"));
-});
+}); */
 
 // Uruchomienie serwera
 
