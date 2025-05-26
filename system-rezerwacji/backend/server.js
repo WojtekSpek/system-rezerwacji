@@ -15,14 +15,9 @@ const commentaryRoutes = require("./routes/Commentary");
 const groupRoutes = require("./routes/group");
 const skillsRoutes = require("./routes/skills");
 
-const urlProvider = require("./urlProvider");
-
-let serverType = 'lan'; // 'lan' lub 'local', produkcja gdy ustawiona 'process.env.REACT_APP_API_BASE_URL'
-if (process.env.REACT_APP_API_BASE_URL) {
-  serverType = 'production';
-}
-
-const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || urlProvider.get_url_for('server', serverType);
+const API_BASE_URL = process.env.NODE_ENV == 'production' 
+  ? process.env.REACT_APP_API_BASE_URL
+  : process.env.REACT_APP_HOST_LAN_URL + ':' + process.env.CLIENT_PORT;
 
 const app = express();
 const PORT = process.env.PORT || 5000; // Lokalnie 5000, na Render użyje zmiennej środowiskowej PORT
@@ -30,10 +25,11 @@ const PORT = process.env.PORT || 5000; // Lokalnie 5000, na Render użyje zmienn
 // Konfiguracja bazy danych
 const db = require("./config/database"); // upewnij się, że masz ten plik
 
+console.warn("CONNECTIONS : ", API_BASE_URL);
+
 // Konfiguracja CORS
 app.use(cors({
-  origin: [...urlProvider.get_cors_origin_urls(serverType),
-    process.env.REACT_APP_API_BASE_URL], // Zmienna URL twojego frontendu
+  origin: [API_BASE_URL], // Zmienna URL twojego frontendu
   credentials: true,
   preflightContinue: true,
 })); 
