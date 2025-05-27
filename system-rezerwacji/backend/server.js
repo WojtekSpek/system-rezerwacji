@@ -50,7 +50,7 @@ app.use(session({
   resave: false,
   saveUninitialized: false,
   cookie: {
-    secure: false,//eśli używasz HTTPS
+    secure: true,//eśli używasz HTTPS
     httpOnly: false,
     sameSite: "none",
     domain: ".myappspot.eu",
