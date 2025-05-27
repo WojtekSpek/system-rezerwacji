@@ -52,7 +52,7 @@ app.use(session({
   cookie: {
     secure: true,//eśli używasz HTTPS
     httpOnly: true,
-    sameSite: "none",
+    sameSite: "Lax",
     //domain: ".myappspot.eu",
   },
 }));
