@@ -1,6 +1,5 @@
 function get_app_url(type='lan') {
-    return 'https://plan.myappspot.eu';
-
+    return "https://plan.myappspot.eu:5000";
     // jeżeli serwer internetowy
     if (type === 'production') {
         return undefined;
