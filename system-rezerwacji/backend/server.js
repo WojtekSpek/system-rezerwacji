@@ -49,7 +49,7 @@ app.use(session({
   saveUninitialized: false,
   cookie: {
     secure: true,//eśli używasz HTTPS
-    httpOnly: true,
+    httpOnly: false,
     sameSite: "Lax",
     domain: ".myappspot.eu", // Ustaw domenę nadrzędną
   },
