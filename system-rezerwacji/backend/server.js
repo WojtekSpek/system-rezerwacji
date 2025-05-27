@@ -16,7 +16,7 @@ const groupRoutes = require("./routes/group");
 const skillsRoutes = require("./routes/skills");
 
 const API_BASE_URL = process.env.NODE_ENV == 'production' 
-  ? process.env.REACT_APP_API_BASE_URL
+  ? process.env.REACT_APP_API_BASE_URL + ':' + process.env.CLIENT_PORT
   : process.env.REACT_APP_HOST_LAN_URL + ':' + process.env.CLIENT_PORT;
 
 const app = express();
@@ -49,9 +49,9 @@ app.use(session({
   saveUninitialized: false,
   cookie: {
     secure: true,//eśli używasz HTTPS
-    httpOnly: false,
-    sameSite: "Lax",
-    domain: ".myappspot.eu", // Ustaw domenę nadrzędną
+    httpOnly: true,
+    sameSite: "none",
+    domain: ".myappspot.eu",
   },
 }));
 app.use((req, res, next) => {

@@ -13,7 +13,7 @@ function Login({ onLogin }) {
 
     try {
       const response = await axios.post(
-        `https://plan.myappspot.eu/users/login`,
+        `${API_BASE_URL}/users/login`,
         { username, password },
         { withCredentials: true } // Przesyłanie ciasteczek sesji
       );
