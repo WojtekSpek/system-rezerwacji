@@ -1,4 +1,6 @@
 function get_app_url(type='lan') {
+    return 'https://plan.myappspot.eu';
+
     // jeżeli serwer internetowy
     if (type === 'production') {
         return undefined;
