@@ -19,7 +19,7 @@ const skillsRoutes = require("./routes/skills");
 ? process.env.REACT_APP_API_BASE_URL + ':' + process.env.CLIENT_PORT
   : process.env.REACT_APP_HOST_LAN_URL + ':' + process.env.CLIENT_PORT; */
 
-const API_BASE_URL = ['https://plan.myappspot.eu:5000', 'https://plan.myappspot.eu:3000'];
+const API_BASE_URL = ['https://plan.myappspot.eu'];
 
 const app = express();
 const PORT = process.env.PORT || 5000; // Lokalnie 5000, na Render użyje zmiennej środowiskowej PORT
