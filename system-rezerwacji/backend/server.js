@@ -48,10 +48,10 @@ app.use(session({
   resave: false,
   saveUninitialized: false,
   cookie: {
-    secure: false,//eśli używasz HTTPS
+    secure: true,//eśli używasz HTTPS
     httpOnly: true,
     sameSite: "Lax",
-    //domain: ".onrender.com", // Ustaw domenę nadrzędną
+    domain: ".myappspot.eu", // Ustaw domenę nadrzędną
   },
 }));
 app.use((req, res, next) => {
