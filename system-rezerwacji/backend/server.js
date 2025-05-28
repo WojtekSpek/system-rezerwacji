@@ -15,9 +15,9 @@ const commentaryRoutes = require("./routes/Commentary");
 const groupRoutes = require("./routes/group");
 const skillsRoutes = require("./routes/skills");
 
-const API_BASE_URL = process.env.NODE_ENV == 'production' 
+/* const API_BASE_URL = process.env.NODE_ENV == 'production' 
 ? process.env.REACT_APP_API_BASE_URL
-  : process.env.REACT_APP_HOST_LAN_URL + ':' + process.env.CLIENT_PORT;
+  : process.env.REACT_APP_HOST_LAN_URL + ':' + process.env.CLIENT_PORT; */
 
 const app = express();
 const PORT = process.env.PORT || 5000; // Lokalnie 5000, na Render użyje zmiennej środowiskowej PORT
@@ -25,6 +25,7 @@ const PORT = process.env.PORT || 5000; // Lokalnie 5000, na Render użyje zmienn
 // Konfiguracja bazy danych
 const db = require("./config/database"); // upewnij się, że masz ten plik
 
+const API_BASE_URL = ["https://plan.myappspot.eu", "https://plan-api.myappspot.eu"];
 
 // Konfiguracja CORS
 app.use(cors({
@@ -107,7 +108,9 @@ app.get("*", (req, res) => {
 // Uruchomienie serwera
 
 
-
+app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+});
 
 app.get('/users/session',(req, res) => {
     console.log('Session na backendzie:', req.session); // Sprawdź sesję przy każdym żądaniu
@@ -116,8 +119,4 @@ app.get('/users/session',(req, res) => {
         return res.status(401).send('User not authenticated');
     }
     res.status(200).send(req.session.user);
-});
-
-app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
 });
