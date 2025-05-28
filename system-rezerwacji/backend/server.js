@@ -19,7 +19,7 @@ const skillsRoutes = require("./routes/skills");
 ? process.env.REACT_APP_API_BASE_URL + ':' + process.env.CLIENT_PORT
   : process.env.REACT_APP_HOST_LAN_URL + ':' + process.env.CLIENT_PORT; */
 
-const API_BASE_URL = ['https://plan.myappspot.eu:3000'];
+const API_BASE_URL = ['https://plan.myappspot.eu'];
 const app = express();
 const PORT = process.env.PORT || 5000; // Lokalnie 5000, na Render użyje zmiennej środowiskowej PORT
 
@@ -47,10 +47,10 @@ app.use(express.json());
 app.use(session({
   secret: "e1b8b0eae26b2f72a024db11c8f238e849a9c3d4a2f98d239c3f07cda7b8f1e2",
   resave: false,
-  saveUninitialized: false,
+  saveUninitialized: true,
   cookie: {
     secure: true,//eśli używasz HTTPS
-    httpOnly: true,
+    httpOnly: false,
     sameSite: "none",
     domain: ".myappspot.eu",
   },
@@ -95,4 +95,13 @@ app.get("*", (req, res) => {
 
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
+});
+
+app.get('/session',(req, res) => {
+    console.log('Session na backendzie:', req.session); // Sprawdź sesję przy każdym żądaniu
+
+    if (!req.session.user) {
+        return res.status(401).send('User not authenticated');
+    }
+    res.status(200).send(req.session.user);
 });
