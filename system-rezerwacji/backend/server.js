@@ -52,7 +52,7 @@ app.use(session({
     secure: true,//eśli używasz HTTPS
     httpOnly: true,
     sameSite: "none",
-    domain: ".myappspot.eu",
+    domain: "plan.myappspot.eu",
   },
 }));
 app.use((req, res, next) => {

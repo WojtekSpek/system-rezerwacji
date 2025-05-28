@@ -36,7 +36,7 @@ function ProjectParticipants({ setView, setSelectedParticipant }) {
   /// zastąpienie popbierania 'axios' użyciem 'useQuery'
 
   const fetchParticipantsWithHours = async (projectId) => {
-    const response = await axios.get(`/projects/${projectId}/participants-with-hours`);
+    const response = await axios.get(`${API_BASE_URL}/projects/${projectId}/participants-with-hours`);
     if (!response.data.success) {
       //setProjectParticipants(response.data.participants);
       console.log("response.data.participants", response.data.participants);
@@ -69,7 +69,7 @@ function ProjectParticipants({ setView, setSelectedParticipant }) {
 
   // Pobieranie uczestników projektu
   const fetchProjectParticipants = async (projectId) => {
-    const response = await axios.get(`/projects/${projectId}/participants`);
+    const response = await axios.get(`${API_BASE_URL}/projects/${projectId}/participants`);
     if (!response.data.success) {
       throw new Error("Błąd podczas pobierania uczestników projektu");
     }
@@ -104,7 +104,7 @@ function ProjectParticipants({ setView, setSelectedParticipant }) {
   // Wyszukiwanie uczestników
   const searchParticipants = async (query) => {
     try {
-      const response = await axios.get(`/participants/search`, { params: { query } });
+      const response = await axios.get(`${API_BASE_URL}/participants/search`, { params: { query } });
       console.log("Otrzymane wyniki wyszukiwania:", response.data.participants);
       if (response.data.success) {
         setFilteredParticipants(response.data.participants);
@@ -118,7 +118,7 @@ function ProjectParticipants({ setView, setSelectedParticipant }) {
   // Dodawanie uczestnika do projektu
   const addParticipantToProject = async (participantId) => {
     try {
-      const response = await axios.post(`/projects/${projectId}/participants`, { participantId });
+      const response = await axios.post(`${API_BASE_URL}/projects/${projectId}/participants`, { participantId });
       if (response.data.success) {
         fetchProjectParticipants();
         setSearchQuery("");
@@ -133,7 +133,7 @@ function ProjectParticipants({ setView, setSelectedParticipant }) {
   // Usuwanie uczestnika z projektu
   const removeParticipantFromProject = async (participantId) => {
     try {
-      const response = await axios.delete(`/projects/${projectId}/participants/${participantId}`);
+      const response = await axios.delete(`${API_BASE_URL}/projects/${projectId}/participants/${participantId}`);
       if (response.data.success) {
         fetchProjectParticipants();
       }
@@ -156,7 +156,7 @@ function ProjectParticipants({ setView, setSelectedParticipant }) {
 
   const handleViewDetails = (participantId) => {
     setSelectedParticipant(participantId);
-    navigate(`/projects/${projectId}/participants/${participantId}/details`);
+    navigate(`${API_BASE_URL}/projects/${projectId}/participants/${participantId}/details`);
   };
   console.log('projectParticipants',projectParticipants)
   return (
