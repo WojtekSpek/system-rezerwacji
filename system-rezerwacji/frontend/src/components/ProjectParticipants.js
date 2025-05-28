@@ -37,7 +37,7 @@ function ProjectParticipants({ setView, setSelectedParticipant }) {
 
   const fetchParticipantsWithHours = async (projectId) => {
     const response = await axios.get(`${API_BASE_URL}/projects/${projectId}/participants-with-hours`,
-      
+      { withCredentials: true } // Przesyłanie ciasteczek sesji
 
     );
     if (!response.data.success) {
@@ -72,7 +72,9 @@ function ProjectParticipants({ setView, setSelectedParticipant }) {
 
   // Pobieranie uczestników projektu
   const fetchProjectParticipants = async (projectId) => {
-    const response = await axios.get(`${API_BASE_URL}/projects/${projectId}/participants`);
+    const response = await axios.get(`${API_BASE_URL}/projects/${projectId}/participants`,
+      { withCredentials: true } // Przesyłanie ciasteczek sesji
+    );
     if (!response.data.success) {
       throw new Error("Błąd podczas pobierania uczestników projektu");
     }
@@ -107,7 +109,9 @@ function ProjectParticipants({ setView, setSelectedParticipant }) {
   // Wyszukiwanie uczestników
   const searchParticipants = async (query) => {
     try {
-      const response = await axios.get(`${API_BASE_URL}/participants/search`, { params: { query } });
+      const response = await axios.get(`${API_BASE_URL}/participants/search`, { params: { query } },
+        { withCredentials: true } // Przesyłanie ciasteczek sesji
+      );
       console.log("Otrzymane wyniki wyszukiwania:", response.data.participants);
       if (response.data.success) {
         setFilteredParticipants(response.data.participants);
