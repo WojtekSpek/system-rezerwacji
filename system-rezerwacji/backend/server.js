@@ -45,12 +45,12 @@ app.use(express.json());
 if (process.env.NODE_ENV == 'production') {
   app.use(session({
     secret: process.env.SECRET_SESSION_KEY,
-    resave: true,
+    resave: false,
     saveUninitialized: true,
     cookie: {
       secure: true,//jeśli używasz HTTPS
       httpOnly: true,
-      sameSite: "none", // jeżeli == "None" to secure też = true
+      sameSite: "None", // jeżeli == "None" to secure też = true
       domain: ".myappspot.eu",
       maxAge: 60 * 60 * 1000,
     },
