@@ -118,7 +118,13 @@ function ProjectParticipants({ setView, setSelectedParticipant }) {
   // Dodawanie uczestnika do projektu
   const addParticipantToProject = async (participantId) => {
     try {
-      const response = await axios.post(`${API_BASE_URL}/projects/${projectId}/participants`, { participantId });
+      const response = await axios.post(`${API_BASE_URL}/projects/${projectId}/participants`, { participantId }, 
+        { headers: {
+            'Content-Type': 'application/json'
+          }
+        },
+        { withCredentials: true } // Przesyłanie ciasteczek sesji
+      );
       if (response.data.success) {
         fetchProjectParticipants();
         setSearchQuery("");
@@ -133,7 +139,13 @@ function ProjectParticipants({ setView, setSelectedParticipant }) {
   // Usuwanie uczestnika z projektu
   const removeParticipantFromProject = async (participantId) => {
     try {
-      const response = await axios.delete(`${API_BASE_URL}/projects/${projectId}/participants/${participantId}`);
+      const response = await axios.delete(`${API_BASE_URL}/projects/${projectId}/participants/${participantId}`,
+        { headers: {
+            'Content-Type': 'application/json'
+          }
+        },
+        { withCredentials: true } // Przesyłanie ciasteczek sesji
+      );
       if (response.data.success) {
         fetchProjectParticipants();
       }
