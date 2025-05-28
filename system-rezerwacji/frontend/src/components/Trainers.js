@@ -190,7 +190,13 @@ function Trainers() {
 
   const removeTrainer = async ({trainerId}) => {  
     try {
-      const response = await axios.delete(`${API_BASE_URL}/trainers/deleteTrainer/${trainerId}`);
+      const response = await axios.delete(`${API_BASE_URL}/trainers/deleteTrainer/${trainerId}`,
+        { headers: {
+            'Content-Type': 'application/json'
+          }
+        },
+        { withCredentials: true } // Przesyłanie ciasteczek sesji
+      );
       
       if (!response.data.success) {
         throw (new Error("Błąd podczas usuwania szkoleniowca: ", response.error));

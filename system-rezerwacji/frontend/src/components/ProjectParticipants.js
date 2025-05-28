@@ -36,7 +36,10 @@ function ProjectParticipants({ setView, setSelectedParticipant }) {
   /// zastąpienie popbierania 'axios' użyciem 'useQuery'
 
   const fetchParticipantsWithHours = async (projectId) => {
-    const response = await axios.get(`${API_BASE_URL}/projects/${projectId}/participants-with-hours`);
+    const response = await axios.get(`${API_BASE_URL}/projects/${projectId}/participants-with-hours`,
+      
+
+    );
     if (!response.data.success) {
       //setProjectParticipants(response.data.participants);
       console.log("response.data.participants", response.data.participants);
