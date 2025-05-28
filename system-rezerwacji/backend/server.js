@@ -38,7 +38,7 @@ const path = require("path");
 
 
 // Middleware
-app.use(bodyParser.json());
+// zbene ze względu na express.json(); app.use(bodyParser.json());
 app.use(express.json());
 
 // Konfiguracja sesji
@@ -119,3 +119,6 @@ app.get('https://plan-api.myappspot.eu/users/session',(req, res) => {
     }
     res.status(200).send(req.session.user);
 });
+
+const router = express.Router();
+app.use('/', router);
