@@ -127,7 +127,13 @@ function Trainers() {
       const response = await axios.post(`${API_BASE_URL}/trainers/addTrainer`, {
         name: trainerName,
         types: selectedTypes,
-      });
+      },
+      { headers: {
+            'Content-Type': 'application/json'
+          }
+        },
+        { withCredentials: true } // Przesyłanie ciasteczek sesji
+      );
 
       if (response.data.success) {
         setSuccessMessage("Szkoleniowiec został pomyślnie dodany!");

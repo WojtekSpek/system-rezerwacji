@@ -17,7 +17,7 @@ const skillsRoutes = require("./routes/skills");
 
 const API_BASE_URL = process.env.NODE_ENV == 'production' 
 ? process.env.REACT_APP_API_BASE_URL
-  : process.env.REACT_APP_HOST_LAN_URL;
+  : process.env.REACT_APP_HOST_LAN_URL + ':' + process.env.CLIENT_PORT;
 
 const app = express();
 const PORT = process.env.PORT || 5000; // Lokalnie 5000, na Render użyje zmiennej środowiskowej PORT
@@ -25,7 +25,6 @@ const PORT = process.env.PORT || 5000; // Lokalnie 5000, na Render użyje zmienn
 // Konfiguracja bazy danych
 const db = require("./config/database"); // upewnij się, że masz ten plik
 
-console.warn("CONNECTIONS : ", API_BASE_URL);
 
 // Konfiguracja CORS
 app.use(cors({
@@ -43,17 +42,31 @@ app.use(bodyParser.json());
 app.use(express.json());
 
 // Konfiguracja sesji
-app.use(session({
-  secret: process.env.SECRET_SESSION_KEY,
-  resave: false,
-  saveUninitialized: true,
-  cookie: {
-    secure: true,//eśli używasz HTTPS
-    httpOnly: true,
-    sameSite: "none",
-    domain: ".myappspot.eu",
-  },
-}));
+if (process.env.NODE_ENV == 'production') {
+  app.use(session({
+    secret: process.env.SECRET_SESSION_KEY,
+    resave: false,
+    saveUninitialized: true,
+    cookie: {
+      secure: true,//jeśli używasz HTTPS
+      httpOnly: true,
+      sameSite: "none", // jeżeli == "None" to secure też = true
+      domain: ".myappspot.eu",
+    },
+  }));
+}
+else {
+  app.use(session({
+    secret: process.env.SECRET_SESSION_KEY,
+    resave: false,
+    saveUninitialized: true,
+    cookie: {
+      secure: false,//jeśli używasz HTTPS
+      httpOnly: true,
+      sameSite: "Lax",      
+    },
+  }));
+}
 app.use((req, res, next) => {
   console.log("Ciasteczko w żądaniu:", req.headers.cookie);
   console.log("Sesja użytkownika:", req.session);
