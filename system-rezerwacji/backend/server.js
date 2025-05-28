@@ -50,7 +50,7 @@ app.use(session({
   saveUninitialized: true,
   cookie: {
     secure: true,//eśli używasz HTTPS
-    httpOnly: false,
+    httpOnly: true,
     sameSite: "none",
     domain: ".myappspot.eu",
   },
@@ -92,6 +92,7 @@ app.get("*", (req, res) => {
 }); */
 
 // Uruchomienie serwera
+
 
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
