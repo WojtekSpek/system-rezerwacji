@@ -110,7 +110,7 @@ app.get("*", (req, res) => {
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
 });
-
+console.log('po uruchomieniu serwera');
 app.get('https://plan-api.myappspot.eu/users/session',(req, res) => {
     console.log('Session na backendzie:', req.session); // Sprawdź sesję przy każdym żądaniu
 
