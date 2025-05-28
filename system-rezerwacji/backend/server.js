@@ -111,7 +111,7 @@ app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
 });
 
-app.get('/session',(req, res) => {
+app.get('/users/session',(req, res) => {
     console.log('Session na backendzie:', req.session); // Sprawdź sesję przy każdym żądaniu
 
     if (!req.session.user) {
