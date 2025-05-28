@@ -15,6 +15,10 @@ function Login({ onLogin }) {
       const response = await axios.post(
         `${API_BASE_URL}/users/login`,
         { username, password },
+        { headers: {
+            'Content-Type': 'application/json'
+          }
+        },
         { withCredentials: true } // Przesyłanie ciasteczek sesji
       );
       console.log ('sdsds',response )
