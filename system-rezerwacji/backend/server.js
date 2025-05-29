@@ -52,7 +52,7 @@ if (process.env.NODE_ENV == 'production') {
       secure: true,//jeśli używasz HTTPS
       httpOnly: true,
       sameSite: "strict", // jeżeli == "None" to secure też = true
-      domain: "plan-api.myappspot.eu",
+      domain: "plan.myappspot.eu",
       maxAge: 60 * 60 * 1000,
       path: '/',
     },
