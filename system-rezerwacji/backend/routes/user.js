@@ -51,6 +51,7 @@ router.post("/logout", (req, res) => {
   }); 
 router.get("/session", (req, res) => {
   console.log("Sprawdzanie sesji:", req.session);
+  console.log("REQUEST FROM:", req.rawHeaders);
     if (req.session && req.session.user) {
       res.json({ success: true, user: req.session.user });
     } else {

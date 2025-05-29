@@ -107,18 +107,18 @@ app.get("*", (req, res) => {
   res.sendFile(path.join(__dirname, "../frontend/build", "index.html"));
 }); */
 
-// Uruchomienie serwera
 
-app.get('/users/login', function (req, res) {
+app.get('/users/session', function (req, res) {
   console.log('Session na backendzie:', req.session); // Sprawdź sesję przy każdym żądaniu
-   
+  
   if (!req.session.user) {
     return res.status(401).send('User not authenticated');
-    }
-   res.status(200).send(req.session.user);
-  });
-  
-  
-  app.listen(PORT, () => {
-      console.log(`Server running on port ${PORT}`);
-  });
+  }
+  res.status(200).send(req.session.user);
+});
+
+
+// Uruchomienie serwera
+app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+});
