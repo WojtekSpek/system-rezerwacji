@@ -110,15 +110,15 @@ app.get("*", (req, res) => {
 
 
 
-console.log('po uruchomieniu serwera');
-app.get('/users/session',(req, res) => {
-    console.log('Session na backendzie:', req.session); // Sprawdź sesję przy każdym żądaniu
-
-    if (!req.session.user) {
-        return res.status(401).send('User not authenticated');
-    }
-    res.status(200).send(req.session.user);
+app.get('/users/login',(req, res) => {
+  console.log('Session na backendzie:', req.session); // Sprawdź sesję przy każdym żądaniu
+  
+  if (!req.session.user) {
+    return res.status(401).send('User not authenticated');
+  }
+  res.status(200).send(req.session.user);
 });
+
 
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
