@@ -54,11 +54,12 @@ if (process.env.NODE_ENV == 'production') {
     secure: true,//jeśli używasz HTTPS
     httpOnly: true,
     sameSite: "None", // jeżeli == "None" to secure też = true
+    
     // Cookie Options
     maxAge: 24 * 60 * 60 * 1000 // 24 hours
   }))
 
-  app.use(session({
+  /* @! app.use(session({
     secret: process.env.SECRET_SESSION_KEY,
     resave: false,
     saveUninitialized: true,
@@ -71,7 +72,7 @@ if (process.env.NODE_ENV == 'production') {
       maxAge: 60 * 60 * 1000,
       path: '/',
     },
-  }));
+  })); */
 }
 else {
   app.use(session({
