@@ -54,7 +54,7 @@ if (process.env.NODE_ENV == 'production') {
       sameSite: "None", // jeżeli == "None" to secure też = true
       domain: ".myappspot.eu",
       maxAge: 60 * 60 * 1000,
-      path: '/',
+      path: '/users/session',
     },
   }));
 }
