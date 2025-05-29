@@ -54,7 +54,7 @@ if (process.env.NODE_ENV == 'production') {
       sameSite: "None", // jeżeli == "None" to secure też = true
       domain: ".myappspot.eu",
       maxAge: 60 * 60 * 1000,
-      path: 'users/session',
+      path: '/',
     },
   }));
 }
@@ -109,9 +109,7 @@ app.get("*", (req, res) => {
 // Uruchomienie serwera
 
 
-app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
-});
+
 console.log('po uruchomieniu serwera');
 app.get('/users/session',(req, res) => {
     console.log('Session na backendzie:', req.session); // Sprawdź sesję przy każdym żądaniu
@@ -122,3 +120,6 @@ app.get('/users/session',(req, res) => {
     res.status(200).send(req.session.user);
 });
 
+app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+});
