@@ -54,7 +54,7 @@ if (process.env.NODE_ENV == 'production') {
       sameSite: "None", // jeżeli == "None" to secure też = true
       domain: ".myappspot.eu",
       maxAge: 60 * 60 * 1000,
-      path: '/',
+      path: 'users/session',
     },
   }));
 }
@@ -113,7 +113,7 @@ app.use((err, req, res, next) => {
   res.status(500).send('Something broke!')
 })
 
-app.get('/users/login',(req, res) => {
+app.get('/users/session',(req, res) => {
   console.log('Session na backendzie:', req.session); // Sprawdź sesję przy każdym żądaniu
   
   if (!req.session.user) {
