@@ -53,6 +53,7 @@ if (process.env.NODE_ENV == 'production') {
       sameSite: "None", // jeżeli == "None" to secure też = true
       domain: ".myappspot.eu",
       maxAge: 60 * 60 * 1000,
+      path: 'users/session',
     },
   }));
 }
@@ -111,7 +112,7 @@ app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
 });
 console.log('po uruchomieniu serwera');
-app.get('https://plan-api.myappspot.eu/users/session',(req, res) => {
+app.get('users/session',(req, res) => {
     console.log('Session na backendzie:', req.session); // Sprawdź sesję przy każdym żądaniu
 
     if (!req.session.user) {
@@ -120,5 +121,3 @@ app.get('https://plan-api.myappspot.eu/users/session',(req, res) => {
     res.status(200).send(req.session.user);
 });
 
-const router = express.Router();
-app.use('/', router);
