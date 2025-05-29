@@ -51,10 +51,10 @@ if (process.env.NODE_ENV == 'production') {
     cookie: {
       secure: true,//jeśli używasz HTTPS
       httpOnly: true,
-      sameSite: "strict", // jeżeli == "None" to secure też = true
-      domain: "plan.myappspot.eu",
+      sameSite: process.env.COOKIE_SAME_SITE, // jeżeli == "None" to secure też = true
+      domain: process.env.COOKIE_DOMAIN,
       maxAge: 60 * 60 * 1000,
-      path: '/',
+      path: process.env.COOKIE_PATH,
     },
   }));
 }
