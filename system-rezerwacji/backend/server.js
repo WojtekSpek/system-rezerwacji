@@ -108,7 +108,10 @@ app.get("*", (req, res) => {
 
 // Uruchomienie serwera
 
-
+app.use((err, req, res, next) => {
+  console.error(err.stack)
+  res.status(500).send('Something broke!')
+})
 
 app.get('/users/login',(req, res) => {
   console.log('Session na backendzie:', req.session); // Sprawdź sesję przy każdym żądaniu
