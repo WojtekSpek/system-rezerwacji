@@ -4,9 +4,6 @@ const cors = require("cors");
 const bodyParser = require("body-parser");
 const session = require("express-session");
 
-var cookieSession = require('cookie-session')
-
-
 // Importy tras
 const projectRoutes = require("./routes/project");
 const participantRoutes = require("./routes/participant");
@@ -34,7 +31,6 @@ app.use(cors({
   origin: API_BASE_URL, // Zmienna URL twojego frontendu
   credentials: true,
   preflightContinue: true,
-  methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
 })); 
 
 const path = require("path");
@@ -42,24 +38,12 @@ const path = require("path");
 
 
 // Middleware
-// zbene ze względu na express.json(); app.use(bodyParser.json());
+//app.use(bodyParser.json());
 app.use(express.json());
 
 // Konfiguracja sesji
 if (process.env.NODE_ENV == 'production') {
-
-    app.use(cookieSession({
-    name: 'session',
-    secret: process.env.SECRET_SESSION_KEY,
-    secure: true,//jeśli używasz HTTPS
-    httpOnly: true,
-    sameSite: "None", // jeżeli == "None" to secure też = true
-    
-    // Cookie Options
-    maxAge: 24 * 60 * 60 * 1000 // 24 hours
-  }))
-
-  /* @! app.use(session({
+  app.use(session({
     secret: process.env.SECRET_SESSION_KEY,
     resave: false,
     saveUninitialized: true,
@@ -67,12 +51,12 @@ if (process.env.NODE_ENV == 'production') {
     cookie: {
       secure: true,//jeśli używasz HTTPS
       httpOnly: true,
-      sameSite: "None", // jeżeli == "None" to secure też = true
+      sameSite: "strict", // jeżeli == "None" to secure też = true
       domain: ".myappspot.eu",
       maxAge: 60 * 60 * 1000,
       path: '/',
     },
-  })); */
+  }));
 }
 else {
   app.use(session({
@@ -82,7 +66,7 @@ else {
     cookie: {
       secure: false,//jeśli używasz HTTPS
       httpOnly: true,
-      sameSite: "Lax",      
+      sameSite: 'strict',       
     },
   }));
 }
@@ -125,21 +109,16 @@ app.get("*", (req, res) => {
 
 // Uruchomienie serwera
 
-app.use((err, req, res, next) => {
-  console.error(err.stack)
-  res.status(500).send('Something broke!')
-})
-
-app.get('/users/session',(req, res) => {
+app.get('/users/login', function (req, res) {
   console.log('Session na backendzie:', req.session); // Sprawdź sesję przy każdym żądaniu
-  
+   
   if (!req.session.user) {
     return res.status(401).send('User not authenticated');
-  }
-  res.status(200).send(req.session.user);
-});
-
-
-app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
-});
+    }
+   res.status(200).send(req.session.user);
+  });
+  
+  
+  app.listen(PORT, () => {
+      console.log(`Server running on port ${PORT}`);
+  });
