@@ -4,6 +4,9 @@ const cors = require("cors");
 const bodyParser = require("body-parser");
 const session = require("express-session");
 
+var cookieSession = require('cookie-session')
+
+
 // Importy tras
 const projectRoutes = require("./routes/project");
 const participantRoutes = require("./routes/participant");
@@ -44,6 +47,17 @@ app.use(express.json());
 
 // Konfiguracja sesji
 if (process.env.NODE_ENV == 'production') {
+
+    app.use(cookieSession({
+    name: 'session',
+    secret: process.env.SECRET_SESSION_KEY,
+    secure: true,//jeśli używasz HTTPS
+    httpOnly: true,
+    sameSite: "None", // jeżeli == "None" to secure też = true
+    // Cookie Options
+    maxAge: 24 * 60 * 60 * 1000 // 24 hours
+  }))
+
   app.use(session({
     secret: process.env.SECRET_SESSION_KEY,
     resave: false,
@@ -71,6 +85,7 @@ else {
     },
   }));
 }
+
 app.use((req, res, next) => {
   console.log("Ciasteczko w żądaniu:", req.headers.cookie);
   console.log("Sesja użytkownika:", req.session);
