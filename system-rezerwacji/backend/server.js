@@ -57,6 +57,7 @@ if (process.env.NODE_ENV == 'production') {
       sameSite: 'None', // jeżeli == "None" to secure też = true
       maxAge: 60 * 60 * 1000,
       path: '/',
+      domain: process.env.COOKIE_DOMAIN,
     },
   }));
 }
