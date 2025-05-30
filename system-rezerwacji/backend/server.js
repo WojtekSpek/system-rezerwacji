@@ -20,7 +20,7 @@ const API_BASE_URL = process.env.NODE_ENV == 'production'
   : process.env.REACT_APP_HOST_LAN_URL + ':' + process.env.CLIENT_PORT;
 
 const app = express();
-app.set('trust proxy', 1);
+app.set('trust proxy', 1); // WAŻNE!!! jeżeli można sięzalogować ale nie ma sesji -> dodaj to
 
 const PORT = process.env.PORT || 5000; // Lokalnie 5000, na Render użyje zmiennej środowiskowej PORT
 
@@ -37,12 +37,9 @@ app.use(cors({
 
 const path = require("path");
 
-
-
 // Middleware
 app.use(bodyParser.json());
 app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
 
 // Konfiguracja sesji
 if (process.env.NODE_ENV == 'production') {
@@ -50,7 +47,6 @@ if (process.env.NODE_ENV == 'production') {
     secret: process.env.SECRET_SESSION_KEY,
     resave: false,
     saveUninitialized: true,
-    rolling: true,
     cookie: {
       secure: true,//jeśli używasz HTTPS
       httpOnly: true,
@@ -98,18 +94,6 @@ app.use("/calendar", calendarRoutes);
 app.use("/comments", commentaryRoutes);
 app.use("/group", groupRoutes);
 app.use("/skills", skillsRoutes);
-
-// Serve static files from the React app
-/*@! tylko gdy używasz develop local build 
-app.use(express.static(path.join(__dirname, "../frontend/build")));
-*/
-
-// Catch-all to send all other requests to React's index.html
-/*
-//@! tylko gdy używasz develop local build
-app.get("*", (req, res) => {
-  res.sendFile(path.join(__dirname, "../frontend/build", "index.html"));
-}); */
 
 
 // Uruchomienie serwera
