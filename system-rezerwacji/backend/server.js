@@ -52,9 +52,7 @@ if (process.env.NODE_ENV == 'production') {
       secure: true,//jeśli używasz HTTPS
       httpOnly: true,
       sameSite: process.env.COOKIE_SAME_SITE, // jeżeli == "None" to secure też = true
-      domain: process.env.COOKIE_DOMAIN,
       maxAge: 60 * 60 * 1000,
-      path: process.env.COOKIE_PATH,
     },
   }));
 }
@@ -72,6 +70,7 @@ else {
 }
 
 app.use((req, res, next) => {
+  console.log("Ciasteczko:",  req.cookies);
   console.log("Ciasteczko w żądaniu:", req.headers.cookie);
   console.log("Sesja użytkownika:", req.session);
   console.log(`Żądanie przychodzi z adresu: ${req.headers.origin}`);
