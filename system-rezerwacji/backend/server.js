@@ -104,7 +104,7 @@ app.use("/skills", skillsRoutes);
     try_files $uri /index.html;
 } */
 
-if (process.env.NODE_ENV == 'production') {
+if (process.env.NODE_ENV != 'production') {
   app.use(express.static(path.join(__dirname, "../frontend/build")));
 
 // Catch-all to send all other requests to React's index.html
