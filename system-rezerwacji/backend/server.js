@@ -38,7 +38,7 @@ const path = require("path");
 
 
 // Middleware
-//app.use(bodyParser.json());
+app.use(bodyParser.json());
 app.use(express.json());
 
 // Konfiguracja sesji
@@ -51,7 +51,7 @@ if (process.env.NODE_ENV == 'production') {
     cookie: {
       secure: true,//jeśli używasz HTTPS
       httpOnly: true,
-      sameSite: process.env.COOKIE_SAME_SITE, // jeżeli == "None" to secure też = true
+      sameSite: 'None', // jeżeli == "None" to secure też = true
       maxAge: 60 * 60 * 1000,
       path: '/',
     },

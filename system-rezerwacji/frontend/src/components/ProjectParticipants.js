@@ -15,7 +15,7 @@ function ProjectParticipants({ setView, setSelectedParticipant }) {
   const [isDropdownVisible, setIsDropdownVisible] = useState(false);
   const dropdownRef = useRef(null);
   const { id: projectId } = useParams();
-  const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || urlProvider();
+  const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || urlProvider(process.env.NODE_ENV);
   const navigate = useNavigate();
 
  // Obsługa kliknięcia poza komponentem
