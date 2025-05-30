@@ -30,7 +30,7 @@ const db = require("./config/database"); // upewnij się, że masz ten plik
 app.use(cors({
   origin: API_BASE_URL, // Zmienna URL twojego frontendu
   credentials: true,
-  preflightContinue: true,
+  //preflightContinue: true,
 })); 
 
 const path = require("path");
