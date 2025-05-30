@@ -47,6 +47,7 @@ if (process.env.NODE_ENV == 'production') {
     secret: process.env.SECRET_SESSION_KEY,
     resave: false,
     saveUninitialized: true,
+    rolling: true,
     cookie: {
       secure: true,//jeśli używasz HTTPS
       httpOnly: true,
