@@ -25,12 +25,12 @@ const PORT = process.env.PORT || 5000; // Lokalnie 5000, na Render użyje zmienn
 // Konfiguracja bazy danych
 const db = require("./config/database"); // upewnij się, że masz ten plik
 
-
+console.log("CORS origin:", API_BASE_URL);
 // Konfiguracja CORS
 app.use(cors({
   origin: API_BASE_URL, // Zmienna URL twojego frontendu
   credentials: true,
-  //preflightContinue: true,
+  preflightContinue: true,
 })); 
 
 const path = require("path");
@@ -53,6 +53,7 @@ if (process.env.NODE_ENV == 'production') {
       httpOnly: true,
       sameSite: process.env.COOKIE_SAME_SITE, // jeżeli == "None" to secure też = true
       maxAge: 60 * 60 * 1000,
+      path: '/',
     },
   }));
 }
@@ -105,16 +106,6 @@ app.use(express.static(path.join(__dirname, "../frontend/build")));
 app.get("*", (req, res) => {
   res.sendFile(path.join(__dirname, "../frontend/build", "index.html"));
 }); */
-
-
-app.get('/users/session', function (req, res) {
-  console.log('Session na backendzie:', req.session); // Sprawdź sesję przy każdym żądaniu
-  
-  if (!req.session.user) {
-    return res.status(401).send('User not authenticated');
-  }
-  res.status(200).send(req.session.user);
-});
 
 
 // Uruchomienie serwera
