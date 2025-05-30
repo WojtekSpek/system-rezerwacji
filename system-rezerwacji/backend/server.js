@@ -20,7 +20,8 @@ const API_BASE_URL = process.env.NODE_ENV == 'production'
   : process.env.REACT_APP_HOST_LAN_URL + ':' + process.env.CLIENT_PORT;
 
 const app = express();
-app.set('trust proxy', 1); // WAŻNE!!! jeżeli można sięzalogować ale nie ma sesji -> dodaj to
+// WAŻNE!!! jeżeli można sięzalogować ale nie ma sesji -> dodaj to
+app.set('trust proxy', 1); 
 
 const PORT = process.env.PORT || 5000; // Lokalnie 5000, na Render użyje zmiennej środowiskowej PORT
 
@@ -72,7 +73,6 @@ else {
 }
 
 app.use((req, res, next) => {
-  console.log("Ciasteczko:",  req.cookies);
   console.log("Ciasteczko w żądaniu:", req.headers.cookie);
   console.log("Sesja użytkownika:", req.session);
   console.log(`Żądanie przychodzi z adresu: ${req.headers.origin}`);
@@ -96,6 +96,22 @@ app.use("/comments", commentaryRoutes);
 app.use("/group", groupRoutes);
 app.use("/skills", skillsRoutes);
 
+
+// Serve static files from the React app
+// tylko gdy używasz develop local build  
+// na produkcji ustaw nginx:
+/* location / {
+    try_files $uri /index.html;
+} */
+
+if (process.env.NODE_ENV == 'production') {
+  app.use(express.static(path.join(__dirname, "../frontend/build")));
+
+// Catch-all to send all other requests to React's index.html
+  app.get("*", (req, res) => {
+    res.sendFile(path.join(__dirname, "../frontend/build", "index.html"));
+});
+}
 
 // Uruchomienie serwera
 app.listen(PORT, () => {
