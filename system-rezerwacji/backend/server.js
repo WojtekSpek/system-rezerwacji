@@ -40,6 +40,7 @@ const path = require("path");
 // Middleware
 app.use(bodyParser.json());
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 // Konfiguracja sesji
 if (process.env.NODE_ENV == 'production') {
