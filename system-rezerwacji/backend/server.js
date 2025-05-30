@@ -20,6 +20,8 @@ const API_BASE_URL = process.env.NODE_ENV == 'production'
   : process.env.REACT_APP_HOST_LAN_URL + ':' + process.env.CLIENT_PORT;
 
 const app = express();
+app.set('trust proxy', 1);
+
 const PORT = process.env.PORT || 5000; // Lokalnie 5000, na Render użyje zmiennej środowiskowej PORT
 
 // Konfiguracja bazy danych
