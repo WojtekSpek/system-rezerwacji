@@ -15,9 +15,7 @@ const commentaryRoutes = require("./routes/Commentary");
 const groupRoutes = require("./routes/group");
 const skillsRoutes = require("./routes/skills");
 
-const API_BASE_URL = process.env.NODE_ENV == 'production' 
-? process.env.REACT_APP_API_BASE_URL
-  : process.env.REACT_APP_HOST_LAN_URL + ':' + process.env.CLIENT_PORT;
+const API_BASE_URL = process.env.REACT_APP_BASE_URL;
 
 const app = express();
 // WAŻNE!!! jeżeli można sięzalogować ale nie ma sesji -> dodaj to
@@ -42,6 +40,7 @@ const path = require("path");
 app.use(bodyParser.json());
 app.use(express.json());
 
+console.log("NODE_ENV: ", process.env.NODE_ENV);
 // Konfiguracja sesji
 if (process.env.NODE_ENV == 'production') {
   app.use(session({
@@ -67,7 +66,7 @@ else {
     cookie: {
       secure: false,//jeśli używasz HTTPS
       httpOnly: true,
-      sameSite: 'strict',       
+      sameSite: 'Lax',       
     },
   }));
 }

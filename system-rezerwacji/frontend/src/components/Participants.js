@@ -37,7 +37,7 @@ function Participants({ onViewChange }) {
     disabilityLevel: "",
   });
   const navigate = useNavigate(); // Hook do nawigacji
-  const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || urlProvider(process.env.NODE_ENV);
+  const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || urlProvider();
   const handleSelectParticipant = (id) => {
     setSelectedParticipants((prev) =>
       prev.includes(id) ? prev.filter((participantId) => participantId !== id) : [...prev, id]
